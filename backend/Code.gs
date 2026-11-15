@@ -11,7 +11,7 @@
 const MEDIA_FOLDER_ID = '1Nr_Q34Kr27e9RV5KPkL0VA6Ye0Ty8UnG';
 
 const SCHEMA = {
-  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil'],
+  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen'],
   Posts: ['id','by','text','photo','ts'],
   Comments: ['id','postId','by','text','ts'],
   Reactions: ['id','postId','by','emoji','ts'],
@@ -21,11 +21,13 @@ const SCHEMA = {
   Rewards: ['id','by','title','emoji','cost','who','active','ts'],
   Redemptions: ['id','rewardId','memberId','title','cost','status','by','decidedBy','ts'],
   Answers: ['id','week','memberId','text','ts'],
+  Wishes: ['id','memberId','title','emoji','note','cost','by','ts'],
+  Messages: ['id','by','to','text','ts'],
   Sessions: ['token','memberId','ts'],
   Settings: ['key','value']
 };
-const SECRET = ['folder','pinHash','salt','fails','lockUntil'];
-const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers'];
+const SECRET = ['folder','pinHash','salt','fails','lockUntil','pinLen'];
+const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers','Wishes','Messages'];
 const WRITES = ['join','login','put','del','upload','settings','setPin','signout'];
 
 /* ---------------- one-time setup ---------------- */
@@ -73,7 +75,7 @@ function out(o) { return ContentService.createTextOutput(JSON.stringify(o)).setM
 
 function route(q) {
   switch (q.action) {
-    case 'boot': checkCode(q.code); return { appName: setting('appName'), members: readAll('Members').map(function (m) { return { id: m.id, name: m.name, nick: m.nick, avatar: m.avatar, claimed: !!m.pinHash }; }) };
+    case 'boot': checkCode(q.code); return { appName: setting('appName'), members: readAll('Members').map(function (m) { return { id: m.id, name: m.name, nick: m.nick, avatar: m.avatar, claimed: !!m.pinHash, pinLen: m.pinLen || '' }; }) };
     case 'join': return join(q);
     case 'login': return login(q);
   }
@@ -82,6 +84,7 @@ function route(q) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
       return syncAll(me);
+    case 'msgs': return messagesFor(me, Number(q.since) || 0);
     case 'put': return put(me, q.table, q.row || {});
     case 'del': return del(me, q.table, q.id);
     case 'upload': return upload(me, q.dataUrl);
@@ -94,12 +97,17 @@ function route(q) {
 }
 
 /* ---------------- sheet helpers ---------------- */
-function sh(name) { const s = SpreadsheetApp.getActive().getSheetByName(name); if (!s) throw new Error('Run setup first'); return s; }
+function sh(name) {   // a tab added in a later version is created the first time it is needed
+  const ss = SpreadsheetApp.getActive(); let s = ss.getSheetByName(name);
+  if (!s) { if (!SCHEMA[name]) throw new Error('Unknown tab'); s = ss.insertSheet(name); s.getRange(1, 1, s.getMaxRows(), SCHEMA[name].length).setNumberFormat('@'); s.getRange(1, 1, 1, SCHEMA[name].length).setValues([SCHEMA[name]]).setFontWeight('bold'); s.setFrozenRows(1); }
+  return s;
+}
 function str(v) { if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return v === null || v === undefined ? '' : String(v); }
 let MEMO = {};   // each tab is read once per request
 function readAll(name) {
   if (MEMO[name]) return MEMO[name];
-  const v = sh(name).getDataRange().getValues(), head = SCHEMA[name], rows = [];
+  const s0 = sh(name), v = s0.getDataRange().getValues(), head = SCHEMA[name], rows = [];
+  if (v[0].length < head.length || String(v[0][head.length - 1]) !== head[head.length - 1]) s0.getRange(1, 1, 1, head.length).setNumberFormat('@').setValues([head]);   // new columns added by an update
   for (let i = 1; i < v.length; i++) {
     if (v[i][0] === '') continue;
     const o = { _row: i + 1 };
@@ -145,7 +153,7 @@ function join(q) {
     const m = findBy('Members', q.claimId);
     if (!m) throw new Error('Profile not found');
     if (m.pinHash) throw new Error('This profile already has a PIN');
-    m.salt = salt; m.pinHash = hash(q.pin, salt);
+    m.salt = salt; m.pinHash = hash(q.pin, salt); m.pinLen = String(String(q.pin).length);
     writeRow('Members', m, m._row);
     return session(m.id);
   }
@@ -157,7 +165,7 @@ function join(q) {
   if (same.length) throw new Error(name + ' is already in the family. Go back and tap your name, or add a middle name if you are someone else.');
   const firstEver = readAll('Members').filter(function (m) { return m.pinHash; }).length === 0;
   const birth = /^\d{4}-\d{2}-\d{2}$/.test(String(q.birth || '')) ? q.birth : '';
-  const m = { id: newId(), name: name, birth: birth, role: firstEver ? 'admin' : roleFor(birth, q.role), ts: now(), salt: salt, pinHash: hash(q.pin, salt) };
+  const m = { id: newId(), name: name, birth: birth, role: firstEver ? 'admin' : roleFor(birth, q.role), ts: now(), salt: salt, pinHash: hash(q.pin, salt), pinLen: String(String(q.pin).length) };
   m.by = m.id;
   writeRow('Members', m);
   if (!firstEver) push(readAll('Members').filter(function (x) { return x.role === 'admin'; }).map(function (x) { return x.id; }), name + ' joined the family', 'Say hello and help them find their place in the tree.');
@@ -174,18 +182,24 @@ function login(q) {
     writeRow('Members', m, m._row);
     throw new Error('Wrong PIN');
   }
-  if (m.fails !== '0' || m.lockUntil) { m.fails = '0'; m.lockUntil = ''; writeRow('Members', m, m._row); }
+  const len = String(String(q.pin).length);
+  if (m.fails !== '0' || m.lockUntil || m.pinLen !== len) { m.fails = '0'; m.lockUntil = ''; m.pinLen = len; writeRow('Members', m, m._row); }
   return session(m.id);
 }
-function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinHash = hash(pin, me.salt); writeRow('Members', me, me._row); }
+function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinHash = hash(pin, me.salt); me.pinLen = String(String(pin).length); writeRow('Members', me, me._row); }
 
 /* ---------------- data ---------------- */
 function pub(name, r) { const o = {}; SCHEMA[name].forEach(function (h) { if (SECRET.indexOf(h) < 0) o[h] = r[h]; }); if (name === 'Members') o.claimed = !!r.pinHash; return o; }
 function syncAll(me) {
   const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId') } };
   if (me.role !== 'kid') d.settings.familyCode = setting('familyCode');
-  DATA_TABLES.forEach(function (t) { d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
+  DATA_TABLES.forEach(function (t) { if (t !== 'Messages') d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
+  d.messages = messagesFor(me, 0).slice(-600);
   return d;
+}
+/** Chat: the family group plus this person's own one-to-one messages. Nobody else's are ever sent. */
+function messagesFor(me, since) {
+  return readAll('Messages').filter(function (m) { return (m.to === 'all' || m.by === me.id || m.to === me.id) && Number(m.ts) > since; }).map(function (m) { return pub('Messages', m); });
 }
 function isParent(p, kidId) { const k = findBy('Members', kidId); return !!k && (k.fatherId === p.id || k.motherId === p.id); }
 function mayActFor(me, memberId) { return me.id === memberId || me.role === 'admin' || (me.role !== 'kid' && isParent(me, memberId)); }
@@ -232,8 +246,24 @@ function put(me, table, row) {
     case 'Logs':
       if (!mayActFor(me, r.memberId)) throw new Error('Not allowed');
       r.id = r.habitId + '_' + r.memberId + '_' + r.date; r.by = me.id; break;
+    case 'Wishes':
+      if (!old) { if (!mayActFor(me, r.memberId)) throw new Error('Not allowed'); if (me.role === 'kid') r.cost = ''; }
+      else { if (!mayActFor(me, old.memberId)) throw new Error('Not allowed'); r.memberId = old.memberId; if (me.role === 'kid') r.cost = old.cost; }   // only a grown-up sets the stars
+      if (!String(r.title || '').trim()) throw new Error('What is the wish?');
+      if (r.cost && !/^[1-9][0-9]{0,5}$/.test(r.cost)) r.cost = '';
+      break;
+    case 'Messages':
+      if (old) throw new Error('Messages cannot be changed');
+      r.by = me.id; r.text = String(r.text || '').trim().slice(0, 2000);
+      if (!r.text) throw new Error('Write a message first');
+      if (r.to !== 'all' && !findBy('Members', r.to)) throw new Error('Person not found');
+      break;
     case 'Redemptions':
-      if (!old) { if (!mayActFor(me, r.memberId)) throw new Error('Not allowed'); if (me.role === 'kid') r.status = 'requested'; }
+      if (!old) {
+        if (!mayActFor(me, r.memberId)) throw new Error('Not allowed'); if (me.role === 'kid') r.status = 'requested';
+        const rid = String(r.rewardId || ''), src = rid.indexOf('wish:') === 0 ? findBy('Wishes', rid.slice(5)) : findBy('Rewards', rid);
+        if (src) { if (!src.cost) throw new Error('A grown-up needs to set the stars first'); r.cost = src.cost; r.title = src.title; if (src.memberId) r.memberId = src.memberId; }   // the price always comes from the sheet
+      }
       else {
         if (me.role === 'kid' || !mayActFor(me, old.memberId)) throw new Error('A parent needs to approve this');
         const st = r.status; Object.assign(r, old); r.status = st; r.decidedBy = me.id;
@@ -251,7 +281,7 @@ function del(me, table, id) {
   if (DATA_TABLES.indexOf(table) < 0) throw new Error('Unknown table');
   const old = findBy(table, id); if (!old) return {};
   if (table === 'Members') { if (me.role !== 'admin' || id === me.id) throw new Error('Only an admin can remove people'); }
-  else if (table === 'Logs' || table === 'Redemptions') { if (!mayActFor(me, old.memberId)) throw new Error('Not allowed'); }
+  else if (table === 'Logs' || table === 'Redemptions' || table === 'Wishes') { if (!mayActFor(me, old.memberId)) throw new Error('Not allowed'); }
   else if (table === 'Reactions') { if (old.by !== me.id) throw new Error('Not allowed'); }
   else if (table === 'Answers') { if (old.memberId !== me.id && me.role !== 'admin') throw new Error('Not allowed'); }
   else ownerOnly(me, old);
@@ -305,6 +335,12 @@ function announce(me, table, r, old) {
     if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : p.text);
   }
   else if (table === 'Events' && !old) push(everyoneBut(me.id), (r.emoji || '📅') + ' ' + r.title, who + ' added a family date: ' + r.date);
+  else if (table === 'Messages' && !old) push(r.to === 'all' ? everyoneBut(me.id) : [r.to], r.to === 'all' ? who + ' in Family chat' : who, r.text);
+  else if (table === 'Wishes') {
+    const k = findBy('Members', r.memberId) || {};
+    if (!old && me.id === r.memberId) push([k.fatherId, k.motherId], shortName(k) + ' added a wish', r.title + '. Set how many stars it needs.');
+    else if (r.cost && (!old || old.cost !== r.cost) && r.memberId !== me.id) push([r.memberId], 'Your wish has a star goal ⭐', r.title + ': ' + r.cost + ' stars');
+  }
   else if (table === 'Redemptions') {
     const kid = findBy('Members', r.memberId) || {};
     if (!old && r.status === 'requested') push([kid.fatherId, kid.motherId], shortName(kid) + ' asked for a reward', r.title + ' (' + r.cost + ' stars)');

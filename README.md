@@ -36,6 +36,12 @@ Open the Pages link, enter the family code, choose "I'm new here". **The first p
 
 What is sent: new post (to everyone), comment or love (to the post's author), new family date (to everyone), reward request (to the child's parents), reward decision (to the child), someone new joined (to admins), and at 8 am the day's birthdays and family dates.
 
+## Chat, wishes and sign-in
+- **Chat:** the chat button (top right, or the sidebar on a Mac) opens the Family group and one-to-one chats. A person only ever receives the group plus their own one-to-one messages. New messages arrive within about 5 seconds while Chat is open, and by notification otherwise.
+- **Wishes:** Kids > Wishes. A child adds a wish, a parent sets how many stars it needs, and the child can ask for it once they have enough stars.
+- **Sign-in:** family code once, then tap your name and enter your PIN on the keypad. New PINs are 4 digits.
+- The `Messages` and `Wishes` tabs are created in the sheet automatically the first time they are used.
+
 ## Media folders
 Every person gets their own subfolder in "Media" the first time they post a photo, named `Full Name (id)`. Photos stay private in Drive and are only sent to signed-in family. Profile photos are small thumbnails stored in the sheet.
 

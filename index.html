@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Kinship</title>
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -212,12 +212,123 @@ form .btn.block{margin-top:16px}
 @keyframes ringspin{to{--spin:360deg}}
 @keyframes fillwave{from{background-position:130% 0}to{background-position:-130% 0}}
 @media(prefers-reduced-motion:reduce){*:not(.is-busy):not(.is-busy *){animation:none!important;transition:none!important}}
+
+/* ===== v3: no zoom, sticky title bar, nav blur, lock screen, chat, wishes, celebration tiles ===== */
+html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%}
+#app>.bar{position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:10px;min-height:58px;background:var(--page);margin:0 -16px;padding:calc(8px + env(safe-area-inset-top)) 16px 6px;transition:box-shadow .3s}
+#app.wide>.bar{margin:0}
+#app>.bar h1{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform-origin:left center;transition:transform .45s var(--ease)}
+body.scrolled #app>.bar{box-shadow:0 .5px 0 var(--sep)}
+body.scrolled #app>.bar h1{transform:scale(.7)}
+#app>.sub{font-size:15px;line-height:20px;color:var(--muted);letter-spacing:-.23px;margin:0 0 10px}
+#app.wide>.sub{padding:0 16px}
+.tb{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;flex:none}
+.tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.badge{position:absolute;top:-3px;right:-3px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--red);color:#fff;font-size:12px;line-height:19px;font-weight:700;font-style:normal;letter-spacing:0;text-align:center}
+.badge[hidden]{display:none}
+.srow .badge{position:static;margin-left:auto}
+#navblur{position:fixed;left:0;right:0;bottom:0;height:calc(118px + env(safe-area-inset-bottom) * .4);z-index:19;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(to top,#000 45%,transparent);mask-image:linear-gradient(to top,#000 45%,transparent);background:linear-gradient(to top,color-mix(in srgb,var(--page) 80%,transparent),transparent)}
+#navblur[hidden],.nav.off{display:none}
+@media(min-width:900px){#navblur{display:none}#app.shell>.bar{margin:0 auto;padding:22px 0 8px}#app.shell.wide>.bar{padding-left:40px;padding-right:40px}#app.shell.wide>.sub{padding:0 40px}#app>.bar .tb.me{display:none}}
+/* busy buttons: one even, continuous motion */
+.btn.is-busy:before{animation:fillwave 1.5s linear infinite;background-size:300% 100%}
+.btn.is-busy:after{animation:ringspin 1.4s linear infinite}
+@keyframes fillwave{from{background-position:150% 0}to{background-position:-50% 0}}
+.btn,.chip,.habit,.opt,.x,.nav button,.srow,.seg button,.tc,.who button,.tb{transition:transform .35s cubic-bezier(.4,0,.2,1),background-color .35s cubic-bezier(.4,0,.2,1),opacity .3s}
+/* lock screen (as in Orbit) */
+.lock{position:fixed;inset:0;z-index:100;display:flex;overflow-x:hidden;overflow-y:auto;background:var(--page);touch-action:manipulation}
+.lock-bg{position:fixed;inset:-20% -20% calc(-20% - 200px);pointer-events:none;filter:blur(60px);opacity:.9}
+.lock-bg i{position:absolute;border-radius:50%;display:block}
+.lock-bg i:nth-child(1){width:70vmax;height:70vmax;left:5%;top:-10%;background:color-mix(in srgb,#0088FF 34%,transparent);animation:drift1 18s ease-in-out infinite alternate}
+.lock-bg i:nth-child(2){width:55vmax;height:55vmax;right:-5%;top:10%;background:color-mix(in srgb,#FFCC00 30%,transparent);animation:drift2 22s ease-in-out infinite alternate}
+.lock-bg i:nth-child(3){width:50vmax;height:50vmax;left:20%;bottom:-15%;background:color-mix(in srgb,#FF2D55 20%,transparent);animation:drift3 26s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(18vw,14vh) scale(1.15)}}
+@keyframes drift2{to{transform:translate(-22vw,20vh) scale(.9)}}
+@keyframes drift3{to{transform:translate(10vw,-24vh) scale(1.1)}}
+.lock-card{position:relative;z-index:1;width:100%;max-width:360px;margin:0 auto;display:flex;flex-direction:column;text-align:center;min-height:100%;padding:calc(env(safe-area-inset-top) + max(28px,8vh)) 12px calc(env(safe-area-inset-bottom) + max(18px,4vh))}
+.lock-scene{display:flex;flex-direction:column;flex:1;animation:scene .55s var(--ease) both}
+.lock-scene.back-in{animation-name:scene-back}
+@keyframes scene{from{opacity:0;transform:translateX(36px)}}
+@keyframes scene-back{from{opacity:0;transform:translateX(-36px)}}
+.ident{position:relative;width:84px;height:84px;margin:0 auto 14px;flex:none}
+.ident .av,.ident .app-ic{position:relative;z-index:1;width:84px!important;height:84px!important}
+.ident .app-ic{border-radius:24px;display:block;object-fit:cover;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.ripple{position:absolute;inset:0;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 8%,transparent);animation:ripple 3.6s cubic-bezier(.2,.6,.3,1) infinite;pointer-events:none}
+.ripple:nth-child(2){animation-delay:1.2s}.ripple:nth-child(3){animation-delay:2.4s}
+@keyframes ripple{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.8);opacity:0}}
+.lock h1{font-size:24px;line-height:30px;font-weight:600;letter-spacing:-.3px}
+.lock .hello-s{font-size:15px;color:var(--muted);letter-spacing:-.23px;margin:0 0 2px}
+.lock p.sub{margin:6px 0 0;font-size:15px;line-height:20px;letter-spacing:-.23px;color:var(--muted)}
+.lock .back{position:absolute;left:0;top:calc(env(safe-area-inset-top) + 10px);z-index:2;display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px;height:44px;padding:0 10px 0 4px;border-radius:999px}
+.lock .back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lock .form{display:flex;flex-direction:column;gap:10px;margin-top:22px;text-align:left}
+.lock .form input{background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(180%);backdrop-filter:blur(16px) saturate(180%);box-shadow:inset 0 0 0 .5px var(--rim)}
+.lock .form input:focus{box-shadow:inset 0 0 0 .5px var(--rim),0 0 0 2px var(--accent)}
+.lock .form label{margin:6px 16px 0}
+.lock .actions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.lock .btn.soft{background:var(--glass);color:var(--ink);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:inset 0 0 0 .5px var(--rim)}
+.lock .who{margin:22px 0 4px}
+.lock .who button{background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(180%);backdrop-filter:blur(16px) saturate(180%);box-shadow:inset 0 0 0 .5px var(--rim)}
+.pin-dots{display:flex;justify-content:center;gap:22px;margin:28px 0 8px;min-height:14px}
+.pin-dots i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink);transition:background .12s}
+.pin-dots i.on{background:var(--ink)}
+.pin-dots.shake{animation:shake .45s}
+@keyframes shake{15%,55%{transform:translateX(-12px)}35%,75%{transform:translateX(12px)}}
+.pin-msg{min-height:20px;font-size:15px;line-height:20px;color:var(--muted);margin-bottom:10px;letter-spacing:-.23px;transition:transform .7s var(--ease)}
+.pin-msg.neg{color:var(--red)}
+.lock.checking .pin-msg{transform:translateY(150px)}
+.keypad{display:grid;grid-template-columns:repeat(3,78px);gap:16px 26px;justify-content:center;margin-top:auto;padding-top:16px;transition:transform .6s var(--ease),opacity .4s}
+.lock.checking .keypad{transform:translateY(70%);opacity:0;pointer-events:none}
+.lock.checking #pinok{opacity:0}
+.keypad button{width:78px;height:78px;border-radius:50%;font-size:34px;font-weight:400;display:flex;align-items:center;justify-content:center;line-height:1;position:relative;transition:background .2s;background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(180%);backdrop-filter:blur(16px) saturate(180%);box-shadow:inset 0 0 0 .5px var(--rim);letter-spacing:0}
+.keypad button:active{background:var(--fill)}
+.keypad button.fn{background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;font-size:17px;letter-spacing:-.43px}
+.lock.leaving{pointer-events:none;animation:lockout .5s var(--ease) forwards}
+@keyframes lockout{to{opacity:0;transform:scale(1.06);filter:blur(10px)}}
+/* celebration tile (as in Hearts) */
+.bday{position:relative;overflow:hidden;border-radius:26px;padding:16px 18px;margin:10px 0;color:#fff;background:linear-gradient(135deg,#FF2D55,#FF8D28);width:100%;text-align:left;display:block}
+.bday.anniv{background:linear-gradient(135deg,#6155F5,#CB30E0)}
+.bday .ey{font-size:13px;line-height:18px;font-weight:600;letter-spacing:.2px;text-transform:uppercase;opacity:.92}
+.bday .bd-nm{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.26px}
+.bday .bd-sub{font-size:15px;line-height:20px;opacity:.9}
+.bday .bd-note{margin:10px 0 0;font-size:15px;line-height:20px;opacity:.95}
+.bday .av{box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.bday .bd-in{position:relative;z-index:1}
+.bln{position:absolute;right:var(--x);top:var(--y);font-size:var(--s,34px);opacity:.9;animation:float var(--d,5s) ease-in-out infinite alternate;pointer-events:none}
+@keyframes float{from{transform:translateY(6px) rotate(-6deg)}to{transform:translateY(-10px) rotate(7deg)}}
+/* chat */
+.gav{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;background:linear-gradient(135deg,#34C759,#00C0E8);font-size:22px}
+.crow{padding:9px 0!important;width:100%;text-align:left}
+.crow .pv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:15px;line-height:20px}
+.crow:after{content:none}
+.crow .badge{position:static}
+#app.inthread{padding-bottom:0}
+#msgs{display:flex;flex-direction:column;gap:3px;padding:8px 0 14px;min-height:calc(100vh - 190px);min-height:calc(100dvh - 190px);justify-content:flex-end}
+.day{align-self:center;font-size:12px;line-height:16px;color:var(--muted);font-weight:600;margin:12px 0 6px}
+.msg{max-width:78%;padding:8px 13px;border-radius:19px;background:var(--card);align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere;animation:msgin .4s var(--ease) both}
+.msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+.msg.first{margin-top:8px}
+.who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
+.msg small{display:block;font-size:11px;line-height:13px;opacity:.6;margin-top:2px;text-align:right;letter-spacing:0}
+@keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
+.composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom) * .6);display:flex;align-items:center;gap:6px;border-radius:1000px;padding:5px 5px 5px 8px;margin-bottom:10px;z-index:16}
+.composer input[type=text]{background:transparent;min-height:40px;padding:8px 10px;box-shadow:none!important;flex:1}
+.composer .send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.composer .send svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+/* wishes */
+.wbar{height:10px;border-radius:5px;background:var(--fill3);overflow:hidden;margin:0 0 6px}
+.wbar i{display:block;height:100%;border-radius:5px;background:var(--c,var(--accent));transition:width .9s cubic-bezier(.34,1.15,.64,1)}
+.wish.got{opacity:.75}
+[hidden]{display:none!important}
+.msg{animation:none}.msg.new{animation:msgin .4s var(--ease) both}
+.seg.four button{font-size:13px}
 </style>
 </head>
 <body>
 <div id="banner"></div>
 <div id="app"></div>
 <aside id="side" hidden></aside>
+<div id="navblur" hidden></div>
 <nav class="nav" id="nav" hidden><div class="glass"></div></nav>
 <div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
 <div id="toast"></div>
@@ -258,7 +369,8 @@ async function api(action, payload = {}){
   if (!j.ok){ if (/session/i.test(j.error)) signOut(true); throw new Error(j.error); }
   return j.data;
 }
-function useData(d){ st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); }
+const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
+function useData(d){ normDb(d); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); }
 let syncing = null;
 function sync(){
   if (syncing) return syncing;
@@ -369,7 +481,7 @@ const Motion = (() => {
     lb.appendChild(sw); if (getComputedStyle(el).position === 'static') el.style.position = 'relative'; el.appendChild(lb); }); };
   M.after = () => {
     const app = document.getElementById('app');
-    if (M.enter){ M.enter = false; let n = 0; Array.from(app.children).flatMap(el => el.classList.contains('clocks') || el.classList.contains('stats') ? Array.from(el.children) : [el]).forEach(el => { if (el.getBoundingClientRect().top > innerHeight + 40) return; anim(el, [{ opacity:0, transform:'translateY(14px) scale(.985)' }, { opacity:1, transform:'none' }], { duration:460, delay:Math.min(n++, 7) * 32, easing:SETTLE, fill:'backwards' }); }); }
+    if (M.enter){ M.enter = false; let n = 0; Array.from(app.children).filter(el => !el.classList.contains('bar') && !el.classList.contains('composer')).flatMap(el => el.classList.contains('clocks') || el.classList.contains('stats') ? Array.from(el.children) : [el]).forEach(el => { if (el.getBoundingClientRect().top > innerHeight + 40) return; anim(el, [{ opacity:0, transform:'translateY(14px) scale(.985)' }, { opacity:1, transform:'none' }], { duration:460, delay:Math.min(n++, 7) * 32, easing:SETTLE, fill:'backwards' }); }); }
     const prg = app.querySelector('.prg');
     if (prg){ const C = 2 * Math.PI * 30, to = +prg.dataset.pct; if (M.ringFrom != null && M.ringFrom !== to) anim(prg, [{ strokeDashoffset:C * (1 - M.ringFrom) }, { strokeDashoffset:C * (1 - to) }], { duration:650, easing:SETTLE }); M.ringFrom = to; } else M.ringFrom = null;
     M.arm(app); M.arm(document.getElementById('nav')); M.arm(document.getElementById('side'));
@@ -481,25 +593,29 @@ const ICON = {
   kids:'<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/>',
   cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'
 };
+const ICO = { chat:'<path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.6-4.6A8.5 8.5 0 1 1 21 11.5z"/>', back:'<path d="M15 5l-7 7 7 7"/>', send:'<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>' };
 const TABS = [['home','Home'],['tree','Tree'],['feed','Feed'],['kids','Kids'],['cal','Dates']];
 const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
-function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
+function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
   $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
-  $('#nav').hidden = false;
+  const inThread = st.tab === 'chat' && !!st.chatWith;
+  $('#nav').hidden = false; $('#nav').classList.toggle('off', inThread); $('#navblur').hidden = inThread;
   $('#nav').firstElementChild.innerHTML = TABS.map(([k, l]) => `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+  const srow = (k, l, act, ico) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="${act}"><span class="i"><svg viewBox="0 0 24 24">${ico}</svg></span>${l}${k === 'chat' ? badge() : ''}</button>`;
   $('#side').hidden = false;
-  $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><span class="i"><svg viewBox="0 0 24 24">${ICON[k]}</svg></span>${SIDE[k] || l}</button>`).join('') + `<button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
-  const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree');
+  $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
+  const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree'); app.classList.toggle('inthread', inThread);
+  if (inThread && $('#msgs') && $('#msgs').dataset.t === st.chatWith && !Motion.enter){ updateMsgs(); Motion.arm($('#side')); return; }   // keep what is being typed
   const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
-  app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal })[st.tab]();
+  app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal, chat:vChat })[st.tab]();
   if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
   loadPhotos();
   if (sheetLive && sheetFn) { $('#sheet').innerHTML = sheetFn(); loadPhotos(); Motion.arm($('#sheet')); }
   Motion.after();
 }
-const topBar = (title, sub) => `<div class="top"><div class="bar"><button class="glass" onclick="meSheet()" aria-label="Me and settings">${av(me(), 36)}</button></div><h1>${esc(title)}</h1><div class="sub">${esc(sub || '')}</div></div>`;
+const topBar = (title, sub) => `<div class="bar"><h1>${esc(title)}</h1><button class="glass tb" onclick="openChat()" aria-label="Chat"><svg viewBox="0 0 24 24">${ICO.chat}</svg>${badge()}</button><button class="glass tb me" onclick="meSheet()" aria-label="Me and settings">${av(me(), 36)}</button></div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}`;
 
 /* ---------- HOME ---------- */
 function vHome(){
@@ -509,7 +625,7 @@ function vHome(){
   const board = kids.map(k => [k, pointsOf(k.id, ws)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const last = [...st.db.posts].sort((a, b) => b.ts - a.ts)[0];
   const needs = !m.country || !m.birth || (!m.fatherId && !m.motherId && !spouseOf(m));
-  return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) +
+  return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) + todayTiles() +
   `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
   (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
   (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock"><div class="small b">${flag(z.country)} ${esc(z.country)}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
@@ -620,9 +736,9 @@ function postSheet(id){
 /* ---------- KIDS ---------- */
 function vKids(){
   const kids = myKids(); if (!kids.some(k => k.id === st.kidId)) st.kidId = kids[0] ? kids[0].id : null;
-  const segs = [['today','Today'],['rewards','Rewards'],['corner','Cousins']];
-  return topBar('Kids', 'Habits, stars and cousins') + `<div class="seg">${segs.map(([k, l]) => `<button class="${st.seg === k ? 'on' : ''}" onclick="st.seg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
-    (st.seg === 'corner' ? vCorner() : kids.length ? kidPicker(kids) + (st.seg === 'today' ? vToday() : vRewards()) : `<div class="card empty">${isKid(me()) ? '' : 'Habits and rewards appear here for your children.<br><br><button class="btn" onclick="memberForm(null,{role:\'kid\',parentOf:1})">+ Add my child</button>'}</div>`);
+  const segs = [['today','Today'],['rewards','Rewards'],['wishes','Wishes'],['corner','Cousins']];
+  return topBar('Kids', 'Habits, stars and cousins') + `<div class="seg four">${segs.map(([k, l]) => `<button class="${st.seg === k ? 'on' : ''}" onclick="st.seg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
+    (st.seg === 'corner' ? vCorner() : kids.length ? kidPicker(kids) + (st.seg === 'today' ? vToday() : st.seg === 'wishes' ? vWishes() : vRewards()) : `<div class="card empty">${isKid(me()) ? '' : 'Habits and rewards appear here for your children.<br><br><button class="btn" onclick="memberForm(null,{role:\'kid\',parentOf:1})">+ Add my child</button>'}</div>`);
 }
 const kidPicker = kids => kids.length > 1 ? `<div class="chips">${kids.map(k => `<button class="chip ${k.id === st.kidId ? 'sel' : ''}" style="--c:${colorOf(k.id)}" onclick="st.kidId='${k.id}';Motion.ringFrom=null;Motion.haptic();render()">${esc(first(k))}</button>`).join('')}</div>` : '';
 function vToday(){
@@ -699,6 +815,100 @@ function quizHtml(){
   const z = st.quiz; if (!z) return '<div class="small muted">The quiz starts once a few people fill in their favourites in their profile.</div>';
   return `<h3>${esc(z.q)}</h3>${z.opts.map(id => `<button class="opt ${z.pick ? (id === z.right ? 'right' : id === z.pick ? 'wrong' : '') : ''}" ${z.pick ? 'disabled' : ''} onclick="st.quiz.pick='${id}';Motion.haptic();if('${id}'===st.quiz.right)Motion.confetti();render()">${esc((M(id) || {}).name)}</button>`).join('')}${z.pick ? `<div class="row"><span class="grow b">${z.pick === z.right ? 'Yes! 🎉' : 'Not quite. Now you know!'}</span><button class="btn sm" onclick="st.quiz=null;render()">Next question</button></div>` : ''}`;
 }
+
+/* ---------- CELEBRATION TILES (birthday / anniversary today, as in Hearts) ---------- */
+const BALLOONS = '<span class="bln" style="--x:14px;--y:8px;--d:4.6s">🎈</span><span class="bln" style="--x:58px;--y:30px;--s:24px;--d:5.8s">🎈</span><span class="bln" style="--x:22px;--y:64px;--s:20px;--d:6.6s">🎉</span>';
+function todayTiles(){
+  const md = today().slice(5), yr = new Date().getFullYear(), out = [], seen = new Set();
+  for (const m of st.db.members){
+    if (m.birth && !m.passed && m.birth.slice(5) === md){
+      const mine = m.id === st.db.me, turn = yr - Number(m.birth.slice(0, 4));
+      out.push(`<button class="bday" onclick="wish('${m.id}','b')">${BALLOONS}<div class="bd-in"><span class="ey">🎂 ${mine ? 'Happy birthday to you' : 'Birthday today'}</span><div class="row" style="gap:14px;margin-top:8px">${av(m, 56)}<div class="grow"><div class="bd-nm">${esc(mine ? 'Happy birthday, ' + first(m) + '!' : m.name)}</div><div class="bd-sub">${esc(isKid(m) && turn > 0 ? 'Turning ' + turn : mine ? '' : 'Your ' + relation(m.id))}</div></div></div><p class="bd-note">${mine ? 'Wishing you a wonderful year ahead, from all of us.' : `Tap to wish <b>${esc(first(m))}</b> a happy birthday!`}</p></div></button>`);
+    }
+    const sp = spouseOf(m), an = m.anniv || (sp && sp.anniv);
+    if (sp && an && an.slice(5) === md && !m.passed && !sp.passed){
+      const key = [m.id, sp.id].sort().join(); if (seen.has(key)) continue; seen.add(key);
+      const yrs = yr - Number(an.slice(0, 4)), mine = m.id === st.db.me || sp.id === st.db.me;
+      out.push(`<button class="bday anniv" onclick="wish('${m.id}','a')">${BALLOONS.replace(/🎈/g, '💜')}<div class="bd-in"><span class="ey">💍 Anniversary today</span><div class="row" style="gap:10px;margin-top:8px">${av(m, 48)}${av(sp, 48)}<div class="grow"><div class="bd-nm">${esc(first(m) + ' & ' + first(sp))}</div><div class="bd-sub">${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together' : ''}</div></div></div><p class="bd-note">${mine ? 'Happy anniversary to you both!' : 'Tap to send your wishes.'}</p></div></button>`);
+    }
+  }
+  return out.join('');
+}
+function wish(id, kind){
+  const m = M(id), sp = spouseOf(m); Motion.confetti(); Motion.haptic();
+  if (kind === 'b'){ if (id === st.db.me) return; openThread(m.claimed ? id : 'all', `Happy birthday, ${first(m)}! 🎂🎉`); }
+  else if (m.id !== st.db.me && !(sp && sp.id === st.db.me)) openThread('all', `Happy anniversary, ${first(m)} & ${first(sp)}! 💍🎉`);
+}
+
+/* ---------- CHAT (family group + one to one) ---------- */
+const threadMsgs = t => st.db.messages.filter(m => t === 'all' ? m.to === 'all' : (m.by === st.db.me && m.to === t) || (m.by === t && m.to === st.db.me)).sort((a, b) => a.ts - b.ts);
+const readMap = () => LS.get('read_' + st.db.me) || {};
+const unread = t => { const r = Number(readMap()[t] || 0); return threadMsgs(t).filter(m => m.by !== st.db.me && Number(m.ts) > r).length; };
+const chatPeople = () => st.db.members.filter(m => m.id !== st.db.me && m.claimed && !m.passed);
+const unreadTotal = () => ['all', ...chatPeople().map(m => m.id)].reduce((s, t) => s + unread(t), 0);
+function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length ? Math.max(...ms.map(m => Number(m.ts))) : Date.now(); LS.set('read_' + st.db.me, r); }
+const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" ${n ? '' : 'hidden'}>${n || ''}</i>`; };
+function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
+const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .5)}px">👪</span>`;
+function openChat(){ if (st.tab !== 'chat') Motion.enter = true; Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); }
+function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); scrollMsgs(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
+function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; window.scrollTo(0, 0); render(); }
+const scrollMsgs = () => window.scrollTo(0, document.documentElement.scrollHeight);
+function vChat(){
+  if (st.chatWith) return vThread();
+  const last = t => { const ms = threadMsgs(t); return ms[ms.length - 1]; };
+  const row = (t, avatar, name) => { const l = last(t), n = unread(t), who = l ? (l.by === st.db.me ? 'You: ' : t === 'all' ? first(M(l.by) || {}) + ': ' : '') : ''; return `<button class="row lrow crow" onclick="openThread('${t}')">${avatar}<span class="grow"><span class="row" style="gap:8px"><span class="b grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</span><span class="small muted">${l ? ago(l.ts) : ''}</span></span><span class="row" style="gap:8px"><span class="pv grow">${l ? esc(who + l.text) : 'Say hello'}</span>${n ? `<i class="badge">${n}</i>` : ''}</span></span></button>`; };
+  const people = chatPeople().sort((a, b) => Number((last(b.id) || {}).ts || 0) - Number((last(a.id) || {}).ts || 0) || String(a.name).localeCompare(b.name));
+  return topBar('Chat', 'Talk to the whole family or one to one') + `<div class="card">${row('all', GAV(46), 'Family')}</div>` + (people.length ? `<div class="sec"><h2>People</h2></div><div class="card">${people.map(p => row(p.id, av(p, 46), p.name)).join('')}</div>` : `<div class="card empty">When relatives join, you can message them here.</div>`);
+}
+const seenMsgs = new Set();
+function msgsHtml(){
+  const t = st.chatWith, ms = threadMsgs(t), firstPaint = seenMsgs.size === 0; let day = '', prev = '', h = '';
+  const dayName = ts => { const d = new Date(Number(ts)), k = ymd(d), y = new Date(); y.setDate(y.getDate() - 1); return k === today() ? 'Today' : k === ymd(y) ? 'Yesterday' : d.getDate() + ' ' + MON[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); };
+  const time = ts => new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(Number(ts)));
+  for (const m of ms){
+    const dn = dayName(m.ts), mine = m.by === st.db.me;
+    if (dn !== day){ h += `<div class="day">${dn}</div>`; day = dn; prev = ''; }
+    if (t === 'all' && !mine && m.by !== prev) h += `<div class="who-l">${esc(first(M(m.by) || { name:'Family' }))}</div>`;
+    h += `<div class="msg ${mine ? 'me' : ''} ${m.by !== prev ? 'first' : ''} ${!firstPaint && !seenMsgs.has(m.id) ? 'new' : ''}">${esc(m.text)}<small>${time(m.ts)}</small></div>`; prev = m.by; seenMsgs.add(m.id);
+  }
+  return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
+}
+function vThread(){
+  const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
+  return `<div class="bar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div><form class="composer glass" onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form>`;
+}
+function updateMsgs(){ const el = $('#msgs'), near = innerHeight + scrollY >= document.documentElement.scrollHeight - 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
+function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
+async function pollMsgs(){
+  if (!st.db || DEMO || document.hidden || pollMsgs.busy) return; pollMsgs.busy = true;
+  try { const r = await api('msgs', { since: st.msgSince || 0 }); if (r && r.length){ for (const m of r){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0) st.db.messages[i] = m; else st.db.messages.push(m); st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); } LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); } } catch(e){} finally { pollMsgs.busy = false; }
+}
+let pollN = 0; setInterval(() => { pollN++; if (st.db && (st.tab === 'chat' || pollN % 8 === 0)) pollMsgs(); }, 5000);
+
+/* ---------- WISH LIST (kids add wishes, a parent sets the stars) ---------- */
+const wishRed = w => st.db.redemptions.filter(r => r.rewardId === 'wish:' + w.id).sort((a, b) => b.ts - a.ts)[0];
+function vWishes(){
+  const k = M(st.kidId), bal = balance(k.id), adult = !isKid(me()), ws = st.db.wishes.filter(w => w.memberId === k.id).sort((a, b) => b.ts - a.ts);
+  const card = w => {
+    const r = wishRed(w), got = r && r.status === 'approved', asked = r && r.status === 'requested', cost = Number(w.cost || 0), have = asked || got ? cost : Math.min(bal, cost), c = PAL[hue(w.id) % PAL.length];
+    let foot;
+    if (got) foot = `<span class="chip" style="background:color-mix(in srgb,var(--green) 22%,transparent)">Wish came true 🎉</span>`;
+    else if (!cost) foot = adult ? `<button class="btn sm" onclick="wishForm('${w.id}')">Set the stars</button>` : `<span class="small muted">Waiting for a grown-up to set the stars.</span>`;
+    else foot = `<div class="wbar" style="--c:${c}"><i style="width:${Math.round(have / cost * 100)}%"></i></div><div class="row"><span class="grow small muted">⭐ ${have} of ${cost} stars${!asked && bal < cost ? ' · ' + (cost - bal) + ' to go' : ''}</span>${asked ? (adult ? `<button class="btn sm" onclick="decide('${r.id}','approved');Motion.confetti()">Approve</button><button class="btn sm line" onclick="decide('${r.id}','declined')">No</button>` : '<span class="chip">Asked</span>') : bal >= cost ? `<button class="btn sm" onclick="redeemWish('${w.id}')">${adult ? 'Give it' : "I'm ready!"}</button>` : ''}</div>`;
+    return `<div class="card wish ${got ? 'got' : ''}"><div class="row"><span class="tile" style="--c:${c}">${esc(w.emoji || '🎁')}</span><div class="grow"><div class="b">${esc(w.title)}</div>${w.note ? `<div class="small muted">${esc(w.note)}</div>` : ''}</div>${got ? '' : `<span class="link" onclick="wishForm('${w.id}')">Edit</span>`}</div><div style="margin-top:12px">${foot}</div></div>`;
+  };
+  const open = ws.filter(w => !(wishRed(w) && wishRed(w).status === 'approved')), done = ws.filter(w => !open.includes(w));
+  return `<div class="card row"><div class="grow"><div class="small muted">${esc(first(k))} has</div><h2>⭐ ${bal} stars</h2></div><button class="btn sm" onclick="wishForm()">+ Add a wish</button></div>` +
+    (open.length ? open.map(card).join('') : `<div class="card empty">${adult ? esc(first(k)) + ' has no wishes yet.' : 'What are you wishing for? Add it here, and a grown-up will say how many stars it needs.'}</div>`) +
+    (done.length ? `<div class="sec"><h3>Wishes that came true</h3></div>` + done.map(card).join('') : '');
+}
+function wishForm(id){
+  const w = id ? st.db.wishes.find(x => x.id === id) : { emoji:'🎁' }, adult = !isKid(me());
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit wish' : 'New wish'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitWish(event,'${id || ''}')"><div class="two" style="grid-template-columns:80px minmax(0,1fr)"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(w.emoji || '')}"></div><div><label>I wish for</label><input type="text" name="title" required maxlength="80" value="${esc(w.title || '')}" placeholder="A new football"></div></div><div class="chips">${['🎁','⚽','🚲','🎮','📚','🧸','🎨','👟','🎧','🛹','🐶','✈️'].map(e => `<button type="button" class="chip" onclick="this.form.emoji.value='${e}'">${e}</button>`).join('')}</div><label>Why I want it (optional)</label><input type="text" name="note" maxlength="140" value="${esc(w.note || '')}">${adult ? `<label>Stars needed</label><input type="number" name="cost" min="1" max="100000" inputmode="numeric" value="${esc(w.cost || '')}" placeholder="How many stars to earn it"><p class="small muted" style="margin:6px 16px 0">${esc(first(M(st.kidId)))} can ask for it once they have this many stars.</p>` : `<p class="small muted" style="margin:10px 16px 0">A grown-up will set how many stars it needs.</p>`}<button class="btn block">Save wish</button>${id ? `<button type="button" class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Wishes','${id}')">Delete wish</button>` : ''}</form>`);
+}
+function submitWish(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), row = { ...(id ? { id } : { memberId: st.kidId }), title:f.get('title').trim(), emoji:f.get('emoji').trim(), note:f.get('note').trim() }; if (f.has('cost')) row.cost = String(f.get('cost') || ''); closeSheet(); save('Wishes', row).catch(() => {}); return false; }
+function redeemWish(id){ const w = st.db.wishes.find(x => x.id === id), kid = isKid(me()); if (!confirm(`Use ${w.cost} stars for "${w.title}"?`)) return; save('Redemptions', { rewardId:'wish:' + id, memberId:w.memberId, title:w.title, cost:String(w.cost), status: kid ? 'requested' : 'approved' }).then(() => { toast(kid ? 'Asked! A grown-up will approve it.' : 'Wish granted 🎉'); Motion.confetti(); }).catch(() => {}); }
 
 /* ---------- CALENDAR ---------- */
 function vCal(){
@@ -782,7 +992,7 @@ function meSheet(){
   ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
   ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><button class="btn sm">Save settings</button></form></div>` : ''}
   <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}</div>
-  <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="New PIN (4 to 8 digits)" required><button class="btn sm">Change</button></form></div>
+  <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="New 4-digit PIN" required><button class="btn sm">Change</button></form></div>
   <button class="btn line block" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
 }
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
@@ -790,24 +1000,76 @@ function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async (
 function submitPin(ev){ const f = ev.target, pin = f.pin.value; busy(ev, async () => { await api('setPin', { pin }); toast('PIN changed'); f.reset(); }, 'Changing…'); return false; }
 function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; warmLogin(); closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
 
-/* ---------- LOGIN ---------- */
+/* ---------- SIGN-IN (lock screen with PIN keypad, modelled on Orbit) ---------- */
+const A = { pin:'', pin1:'', err:'', busy:false, dir:1 };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function lockGo(step, dir){ A.pin = ''; A.err = ''; A.dir = dir || 1; st.login.step = step; render(); }
+const lockMember = () => (st.login.members || []).find(x => x.id === st.login.id) || null;
+const pinTarget = () => st.login.step === 'pin' ? (Number((lockMember() || {}).pinLen) || 0) : 4;
+const dotsHtml = () => { const t = pinTarget(), n = t || Math.max(4, A.pin.length); return Array.from({ length:n }, (_, i) => `<i class="${i < A.pin.length ? 'on' : ''}"></i>`).join(''); };
 function renderLogin(){
-  const L = st.login, head = `<img src="icon-192.png" alt=""><h1>${esc(L.appName || CONFIG.APP_NAME)}</h1>`;
-  let body = '';
-  if (L.step === 'code') body = `<p class="muted">Enter your family code to come in.</p><form onsubmit="return loginCode(event)"><input type="text" name="code" placeholder="Family code" autocomplete="off" autocapitalize="characters" required style="text-align:center;font-weight:600;letter-spacing:.1em"><button class="btn block" style="margin-top:12px">Continue</button></form>`;
-  else if (L.step === 'who') body = `<p class="muted">Who are you?</p><div class="who">${L.members.map(m => `<button onclick="loginPick('${m.id}')">${av(m, 48)}<div style="margin-top:6px">${esc(first(m))}</div>${m.claimed ? '' : '<div class="small muted" style="font-weight:600">set up</div>'}</button>`).join('')}</div><button class="btn ghost block" onclick="st.login.step='new';render()">I'm new here</button>`;
-  else if (L.step === 'pin'){ const m = L.members.find(x => x.id === L.id); body = `<div>${av(m, 72)}</div><p class="b">${esc(m.name)}</p><p class="muted">${m.claimed ? 'Enter your PIN' : 'Your profile is waiting. Choose a PIN (4 to 8 digits) to make it yours.'}</p><form onsubmit="return loginPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required autofocus style="text-align:center;font-size:22px;letter-spacing:.3em"><button class="btn block" style="margin-top:12px">${m.claimed ? 'Sign in' : 'Set PIN and enter'}</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`; }
-  else if (L.step === 'new') body = `<p class="muted">Welcome! Add yourself to the family.</p><form onsubmit="return loginNew(event)" style="text-align:left"><label>Your full name</label><input type="text" name="name" required maxlength="60"><label>Date of birth</label><input type="date" name="birth" required max="${today()}"><label>Choose a PIN (4 to 8 digits)</label><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required><button class="btn block" style="margin-top:14px">Join the family</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`;
-  $('#app').innerHTML = `<div class="login">${head}${body}</div>`;
+  const L = st.login, m = lockMember(), rip = '<span class="ripple"></span>'.repeat(3);
+  const ident = who => `<div class="ident">${rip}${who ? av(who, 84) : '<img class="app-ic" src="icon-192.png" alt="">'}</div>`;
+  const back = (to, label) => `<button class="back" onclick="lockGo('${to}',-1)"><svg viewBox="0 0 24 24">${ICO.back}</svg>${label || 'Back'}</button>`;
+  const keypad = to => `<div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="pinPress('${n}')">${n}</button>`).join('')}<button class="fn" onclick="lockGo('${to}',-1)">Back</button><button onclick="pinPress('0')">0</button><button class="fn" onclick="pinDel()" aria-label="Delete">⌫</button></div>`;
+  const pinBlock = `<div class="pin-dots" id="dots">${dotsHtml()}</div><div class="pin-msg ${A.err ? 'neg' : ''}" id="pinmsg">${esc(A.err)}</div><div class="actions" style="margin-top:0"><button class="btn sm" id="pinok" hidden onclick="pinSubmit()" style="align-self:center">Sign in</button></div>`;
+  const name = esc(L.appName || CONFIG.APP_NAME);
+  let c = '';
+  if (L.step === 'code') c = `${ident()}<h1>${name}</h1><p class="sub">One place for the whole family. Enter your family code to come in.</p><form class="form" onsubmit="return loginCode(event)"><input type="text" name="code" placeholder="Family code" autocomplete="off" autocapitalize="characters" required style="text-align:center;font-weight:600;letter-spacing:.12em;text-transform:uppercase"><div class="actions" style="margin-top:6px"><button class="btn block">Continue</button></div></form>`;
+  else if (L.step === 'who') c = `${ident()}<h1>Who are you?</h1><p class="sub">Tap your name to sign in.</p><div class="who">${L.members.map(x => `<button onclick="loginPick('${x.id}')">${av(x, 48)}<div style="margin-top:6px">${esc(first(x))}</div>${x.claimed ? '' : '<div class="small muted" style="font-weight:400">set up</div>'}</button>`).join('')}</div><div class="actions"><button class="btn block" onclick="lockGo('new')">I'm new here</button><button class="btn block soft" onclick="LS.del('boot');lockGo('code',-1)">Use another family code</button></div>`;
+  else if (L.step === 'pin') c = `${ident(m)}<div class="hello-s">Welcome back</div><h1>${esc(first(m))}</h1><p class="sub">Enter your PIN</p>${pinBlock}${keypad('who')}`;
+  else if (L.step === 'new') c = `${back('who')}${ident()}<h1>Join the family</h1><p class="sub">Tell us who you are.</p><form class="form" onsubmit="return loginNew(event)"><input type="text" name="name" placeholder="Full name" required maxlength="60" autocomplete="name" value="${esc(L.name || '')}"><label>Date of birth</label><input type="date" name="birth" required max="${today()}" value="${esc(L.birth || '')}"><div class="actions" style="margin-top:6px"><button class="btn block">Continue</button></div></form>`;
+  else if (L.step === 'newpin') c = `${ident(L.claim ? m : null)}<div class="hello-s">${L.claim ? 'Your profile is waiting' : 'Almost there'}</div><h1>Choose a PIN</h1><p class="sub">4 digits. You will use it to sign in.</p>${pinBlock}${keypad(L.claim ? 'who' : 'new')}`;
+  else if (L.step === 'newpin2') c = `${ident(L.claim ? m : null)}<div class="hello-s">One more time</div><h1>Confirm your PIN</h1><p class="sub">Enter the same 4 digits again.</p>${pinBlock}${keypad('newpin')}`;
+  $('#nav').hidden = true; $('#side').hidden = true; $('#navblur').hidden = true; $('#banner').innerHTML = '';
+  $('#app').className = '';
+  $('#app').innerHTML = `<div class="lock" id="lock"><div class="lock-bg"><i></i><i></i><i></i></div><div class="lock-card"><div class="lock-scene ${A.dir < 0 ? 'back-in' : ''}">${c}</div></div></div>`;
+  Motion.arm($('#lock'));
 }
-function bootDone(d, code){ st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; LS.set('boot', { code, members:d.members.map(m => ({ ...m, avatar:'' })), appName:d.appName }); }
-function loginCode(ev){ const code = ev.target.code.value.trim(); busy(ev, async () => { bootDone(await api('boot', { code }), code); render(); }, 'Checking…'); return false; }
-function loginPick(id){ st.login.id = id; st.login.step = 'pin'; render(); }
+function drawPin(){ const d = $('#dots'); if (!d) return; d.innerHTML = dotsHtml(); const ok = $('#pinok'); if (ok) ok.hidden = !(st.login.step === 'pin' && !pinTarget() && A.pin.length >= 4); }
+function say(t, neg){ const el = $('#pinmsg'); if (el){ el.textContent = t || ''; el.classList.toggle('neg', !!neg); } }
+function shake(){ const d = $('#dots'); if (!d) return; d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); try { if (!IOS && navigator.vibrate) navigator.vibrate([12, 50, 12]); } catch(e){} }
+function pinPress(n){
+  if (A.busy || !$('#dots')) return;
+  const t = pinTarget(); if (A.pin.length >= (t || 8)) return;
+  A.pin += n; Motion.haptic(); if (A.err){ A.err = ''; say(''); } drawPin();
+  if (A.pin.length === t) setTimeout(pinSubmit, 160);
+}
+function pinDel(){ if (A.busy) return; A.pin = A.pin.slice(0, -1); drawPin(); }
+async function pinSubmit(){
+  const L = st.login, step = L.step; if (A.busy || A.pin.length < 4) return;
+  if (step === 'newpin'){ A.pin1 = A.pin; A.pin = ''; A.dir = 1; L.step = 'newpin2'; render(); return; }
+  if (step === 'newpin2' && A.pin !== A.pin1){ shake(); await sleep(450); A.pin = ''; A.pin1 = ''; A.err = 'The PINs did not match. Choose again.'; A.dir = -1; L.step = 'newpin'; render(); return; }
+  A.busy = true; const lock = $('#lock'); lock.classList.add('checking'); say(step === 'pin' ? 'Signing in…' : 'Setting things up…');
+  const t0 = Date.now();
+  try {
+    const d = step === 'pin' ? await api('login', { code:L.code, id:L.id, pin:A.pin })
+      : L.claim ? await api('join', { code:L.code, claimId:L.id, pin:A.pin })
+      : await api('join', { code:L.code, name:L.name, birth:L.birth, role:roleFor(L.birth), pin:A.pin });
+    await sleep(Math.max(0, 700 - (Date.now() - t0)));
+    lock.classList.add('leaving'); await sleep(430);
+    const isNew = step !== 'pin' && !L.claim;
+    A.busy = false; A.pin = ''; A.pin1 = ''; Motion.enter = true;
+    await enter(d);
+    if (isNew){ memberForm(st.db.me); toast('Welcome! Tell the family about you.'); }
+  } catch(e){ A.busy = false; A.pin = ''; lock.classList.remove('checking', 'leaving'); drawPin(); shake(); say(e.message, true); }
+}
+function bootDone(d, code){ const keep = st.login || {}; st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; LS.set('boot', { code, members:d.members.map(m => ({ ...m, avatar:'' })), appName:d.appName }); return keep; }
+function loginCode(ev){ const code = ev.target.code.value.trim().toUpperCase(); busy(ev, async () => { bootDone(await api('boot', { code }), code); A.dir = 1; render(); }, 'Checking…'); return false; }
+function loginPick(id){ const L = st.login; L.id = id; L.claim = !lockMember().claimed; lockGo(L.claim ? 'newpin' : 'pin'); }
+function loginNew(ev){ ev.preventDefault(); const f = ev.target, L = st.login; L.name = f.name.value.trim(); L.birth = f.birth.value; if (!L.name || !L.birth) return false; L.id = null; L.claim = false; lockGo('newpin'); return false; }
 async function enter(d){ st.token = d.token; LS.set('token', d.token); if (d.data) useData(d.data); else await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
-function loginPin(ev){ const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; busy(ev, async () => { await enter(m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin })); }, 'Signing in…'); return false; }
-function loginNew(ev){ const f = ev.target, body = { code:st.login.code, name:f.name.value.trim(), birth:f.birth.value, role:roleFor(f.birth.value), pin:f.pin.value }; busy(ev, async () => { await enter(await api('join', body)); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); }, 'Joining…'); return false; }
 /* Returning to the sign-in screen: show the family list straight away from this device, refresh it quietly. */
-function warmLogin(){ const b = LS.get('boot'); if (!b || !b.code) return; st.login = { step: b.members.length ? 'who' : 'new', code:b.code, members:b.members, appName:b.appName }; api('boot', { code:b.code }).then(d => { const at = st.login.step, id = st.login.id; bootDone(d, b.code); if (at === 'pin' || at === 'new'){ st.login.step = at; st.login.id = id; } if (!st.db && at === 'who') render(); }).catch(e => { if (/code/i.test(e.message)){ LS.del('boot'); st.login = { step:'code' }; if (!st.db) render(); } }); }
+function warmLogin(){
+  const b = LS.get('boot'); if (!b || !b.code) return;
+  st.login = { step: b.members.length ? 'who' : 'new', code:b.code, members:b.members, appName:b.appName };
+  api('boot', { code:b.code }).then(d => { const was = st.login; bootDone(d, b.code); if (was.step !== 'who' && was.step !== 'code') Object.assign(st.login, { step:was.step, id:was.id, claim:was.claim, name:was.name, birth:was.birth }); else if (!st.db){ A.dir = 0; render(); } })
+    .catch(e => { if (/code/i.test(e.message)){ LS.del('boot'); st.login = { step:'code' }; if (!st.db) render(); } });
+}
+document.addEventListener('keydown', e => {
+  if (st.db || !$('#dots') || e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey) return;
+  if (/^[0-9]$/.test(e.key)) pinPress(e.key); else if (e.key === 'Backspace') pinDel(); else if (e.key === 'Enter') pinSubmit();
+});
 
 /* ---------- DEMO DATA (used only until API_URL is set) ---------- */
 let demoDb = null; const demoPhotos = {};
@@ -840,6 +1102,8 @@ function seedDemo(){
     comments:[{ id:'c1', postId:'p1', by:'m3', text:'Well done Ishaan! Kabir says he is ready.', ts:ts(2) }], reactions:[{ id:'p1_m4', postId:'p1', by:'m4', emoji:'❤️', ts:ts(2) }, { id:'p1_g1', postId:'p1', by:'g1', emoji:'❤️', ts:ts(1) }],
     events:[{ id:'e1', by:'m3', title:'Cousins video call', emoji:'📞', date:dd(3), at:new Date(soon(3).getTime() + 17 * 36e5).toISOString(), yearly:'0', note:'Everyone bring one joke.', ts:ts(40) }, { id:'e2', by:'m5', title:'Diwali at Dadaji\'s house', emoji:'🪔', date:dd(40), at:'', yearly:'0', note:'', ts:ts(50) }],
     rewards:[{ id:'r1', by:'m3', title:'Movie night, you choose', emoji:'🎬', cost:'20', who:'k1,k2', active:'1' }, { id:'r2', by:'m3', title:'Video call with cousins', emoji:'📞', cost:'10', who:'k1,k2', active:'1' }, { id:'r3', by:'m3', title:'Trip to the water park', emoji:'🌊', cost:'150', who:'k1,k2', active:'1' }],
+    messages:[{ id:'x1', by:'m5', to:'all', text:'Good morning everyone! Ishaan has his chess final today.', ts:ts(5) }, { id:'x2', by:'g4', to:'all', text:'Good luck Ishaan! We are cheering from Leeds.', ts:ts(4) }, { id:'x3', by:'m4', to:'m3', text:'Can you pick up the cake on the way home?', ts:ts(1) }],
+    wishes:[{ id:'w1', memberId:'k1', title:'Roller skates', emoji:'🛼', note:'Purple ones like Sofia has', cost:'60', by:'k1', ts:ts(30) }, { id:'w2', memberId:'k1', title:'Art set', emoji:'🎨', note:'', cost:'', by:'k1', ts:ts(8) }, { id:'w3', memberId:'k2', title:'Rocket model kit', emoji:'🚀', note:'', cost:'40', by:'k2', ts:ts(20) }],
     redemptions:[], answers:[{ id:weekKey() + '_k3', week:weekKey(), memberId:'k3', text:'When Dadaji tried my chess app and lost to the easy level.', ts:ts(5) }] };
 }
 async function demoApi(action, p){
@@ -851,6 +1115,7 @@ async function demoApi(action, p){
   if (action === 'upload'){ const id = uid(); demoPhotos[id] = p.dataUrl; return { id }; }
   if (action === 'img') return { dataUrl: demoPhotos[p.id] };
   if (action === 'settings'){ Object.assign(demoDb.settings, p); return {}; }
+  if (action === 'msgs') return [];
   return {};
 }
 
@@ -859,13 +1124,18 @@ async function demoApi(action, p){
   if (DEMO){ st.token = 'demo'; await sync(); return; }
   st.token = LS.get('token');
   if (!st.token){ warmLogin(); render(); return; }
-  st.db = LS.get('db');
+  st.db = normDb(LS.get('db'));
   if (st.db) render();                                   // saved data first: the app opens at once
   else $('#app').innerHTML = `<div class="splash"><img src="icon-192.png" alt=""><div>Opening ${esc(CONFIG.APP_NAME)}…</div></div>`;
   try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('OneSignalSDKWorker.js').catch(() => {}));
-document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn) sync().catch(() => {}); });
+/* No pinch or double-tap zoom: the app keeps one size, like a native app. */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive:false });
+addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 16), { passive:true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); else if (!document.hidden) pollMsgs(); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
 </script>
 </body>
