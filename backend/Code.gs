@@ -28,7 +28,7 @@ const SCHEMA = {
 };
 const SECRET = ['folder','pinHash','salt','fails','lockUntil','pinLen'];
 const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers','Wishes','Messages'];
-const WRITES = ['join','login','put','del','upload','settings','setPin','signout'];
+const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link'];
 
 /* ---------------- one-time setup ---------------- */
 function setup() {
@@ -85,6 +85,7 @@ function route(q) {
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
       return syncAll(me);
     case 'msgs': return messagesFor(me, Number(q.since) || 0);
+    case 'link': return link(me, q);
     case 'put': return put(me, q.table, q.row || {});
     case 'del': return del(me, q.table, q.id);
     case 'upload': return upload(me, q.dataUrl);
@@ -354,6 +355,50 @@ function dailyDigest() {
     .forEach(function (m) { push(everyoneBut(m.id), '🎂 ' + shortName(m) + "'s birthday is today", 'Send your wishes in the family feed.'); });
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
     .forEach(function (e) { push(everyoneBut(''), (e.emoji || '📅') + ' Today: ' + e.title, e.note || ''); });
+}
+
+/* ---------------- relatives: link two people already in the family ---------------- */
+function linkPlan(ms, aId, rel, bId) {
+  const A = ms.filter(function (m) { return m.id === aId; })[0], B = ms.filter(function (m) { return m.id === bId; })[0];
+  if (!A || !B || aId === bId) throw new Error('Choose a person');
+  const slot = function (p) { return p.gender === 'female' ? 'motherId' : 'fatherId'; };
+  if (rel === 'father' || rel === 'mother') {
+    if (B.fatherId === aId || B.motherId === aId) throw new Error('That would make them each other\'s parent');
+    return [{ id: aId, field: rel + 'Id', value: bId }];
+  }
+  if (rel === 'spouse') return [{ id: aId, field: 'spouseId', value: bId }];
+  if (rel === 'child') {
+    if (A.fatherId === bId || A.motherId === bId) throw new Error('That would make them each other\'s parent');
+    if (!A.gender) throw new Error('Set male or female in the profile first, so the tree knows father or mother');
+    const out = [{ id: bId, field: slot(A), value: aId }];
+    const sp = ms.filter(function (m) { return m.id === A.spouseId || m.spouseId === aId; })[0];
+    if (sp && sp.gender && slot(sp) !== slot(A) && !B[slot(sp)]) out.push({ id: bId, field: slot(sp), value: sp.id });
+    return out;
+  }
+  if (rel === 'sibling') {
+    const out = [];
+    ['fatherId', 'motherId'].forEach(function (f) { if (A[f] && !B[f]) out.push({ id: bId, field: f, value: A[f] }); else if (B[f] && !A[f]) out.push({ id: aId, field: f, value: B[f] }); });
+    if (out.length) return out;
+    if ((A.fatherId && A.fatherId === B.fatherId) || (A.motherId && A.motherId === B.motherId)) throw new Error('They are already linked as brother or sister');
+    if (!A.fatherId && !A.motherId && !B.fatherId && !B.motherId) throw new Error('Add a father or mother to one of them first. Brothers and sisters are linked through a shared parent.');
+    throw new Error('They have different parents in the tree. Check the parents first.');
+  }
+  throw new Error('Unknown relationship');
+}
+function link(me, q) {
+  const aId = q.a || me.id, ms = readAll('Members');
+  if (!(aId === me.id || me.role === 'admin' || isParent(me, aId))) throw new Error('You can add relatives for yourself or your children');
+  const plan = linkPlan(ms, aId, String(q.rel), String(q.b));
+  plan.forEach(function (c) {
+    const t = ms.filter(function (m) { return m.id === c.id; })[0];
+    const mayEdit = t.id === me.id || me.role === 'admin' || t.fatherId === me.id || t.motherId === me.id;
+    // Someone else's profile may only gain a missing parent, and only if they are a child or not signed up yet.
+    const mayFill = me.role !== 'kid' && (c.field === 'fatherId' || c.field === 'motherId') && !t[c.field] && (t.role === 'kid' || !t.pinHash);
+    if (!mayEdit && !mayFill) throw new Error('Ask ' + shortName(t) + ' to add this from their own profile, or ask the family admin');
+  });
+  plan.forEach(function (c) { const t = findBy('Members', c.id); t[c.field] = c.value; writeRow('Members', t, t._row); });
+  if (q.b !== me.id) push([String(q.b)], shortName(me) + ' linked you in the family tree', 'Open Kinship to see how everyone is connected.');
+  return {};
 }
 
 /* ---------------- admin settings ---------------- */

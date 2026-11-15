@@ -926,6 +926,60 @@ function eventForm(id){
 }
 function submitEvent(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), date = f.get('date'), time = f.get('time'); closeSheet(); save('Events', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), date, at: time ? new Date(date + 'T' + time).toISOString() : '', yearly: f.get('yearly') ? '1' : '0', note:f.get('note').trim() }).catch(() => {}); return false; }
 
+/* ---------- RELATIVES: pick someone already in the family and say how they are related ---------- */
+function linkPlan(ms, aId, rel, bId) {
+  const A = ms.filter(function (m) { return m.id === aId; })[0], B = ms.filter(function (m) { return m.id === bId; })[0];
+  if (!A || !B || aId === bId) throw new Error('Choose a person');
+  const slot = function (p) { return p.gender === 'female' ? 'motherId' : 'fatherId'; };
+  if (rel === 'father' || rel === 'mother') {
+    if (B.fatherId === aId || B.motherId === aId) throw new Error('That would make them each other\'s parent');
+    return [{ id: aId, field: rel + 'Id', value: bId }];
+  }
+  if (rel === 'spouse') return [{ id: aId, field: 'spouseId', value: bId }];
+  if (rel === 'child') {
+    if (A.fatherId === bId || A.motherId === bId) throw new Error('That would make them each other\'s parent');
+    if (!A.gender) throw new Error('Set male or female in the profile first, so the tree knows father or mother');
+    const out = [{ id: bId, field: slot(A), value: aId }];
+    const sp = ms.filter(function (m) { return m.id === A.spouseId || m.spouseId === aId; })[0];
+    if (sp && sp.gender && slot(sp) !== slot(A) && !B[slot(sp)]) out.push({ id: bId, field: slot(sp), value: sp.id });
+    return out;
+  }
+  if (rel === 'sibling') {
+    const out = [];
+    ['fatherId', 'motherId'].forEach(function (f) { if (A[f] && !B[f]) out.push({ id: bId, field: f, value: A[f] }); else if (B[f] && !A[f]) out.push({ id: aId, field: f, value: B[f] }); });
+    if (out.length) return out;
+    if ((A.fatherId && A.fatherId === B.fatherId) || (A.motherId && A.motherId === B.motherId)) throw new Error('They are already linked as brother or sister');
+    if (!A.fatherId && !A.motherId && !B.fatherId && !B.motherId) throw new Error('Add a father or mother to one of them first. Brothers and sisters are linked through a shared parent.');
+    throw new Error('They have different parents in the tree. Check the parents first.');
+  }
+  throw new Error('Unknown relationship');
+}
+const siblingsOf = m => st.db.members.filter(x => x.id !== m.id && ((m.fatherId && x.fatherId === m.fatherId) || (m.motherId && x.motherId === m.motherId))).sort(byBirth);
+function relativeSheet(aId, bId){ st.rel = { a:aId, b:bId || '' }; openSheet(relHtml); }
+function relHtml(){
+  const R = st.rel, A = M(R.a), B = M(R.b), mine = R.a === st.db.me, whose = mine ? 'my' : first(A) + "'s";
+  if (!B){
+    const list = st.db.members.filter(x => x.id !== R.a).sort((a, b) => String(a.name).localeCompare(b.name));
+    return `<div class="sh"><h2>Add a relative</h2><button class="x" onclick="closeSheet()">×</button></div><input type="text" placeholder="Search the family" oninput="relFilter(this.value)" autocomplete="off"><div class="card" id="relList" style="max-height:44vh;overflow:auto">${list.length ? list.map(x => `<div class="row lrow" data-n="${esc(String(x.name + ' ' + (x.nick || '')).toLowerCase())}" style="padding:8px 0" onclick="st.rel.b='${x.id}';$('#sheet').innerHTML=relHtml();Motion.arm($('#sheet'))">${av(x, 40)}<div class="grow"><div class="b">${esc(x.name)}</div><div class="small muted">${esc(cap(relation(x.id)))}${x.country ? ' · ' + flag(x.country) + ' ' + esc(x.country) : ''}</div></div></div>`).join('') : '<div class="empty">Nobody else has joined yet.</div>'}</div><div class="sec"><h3>Someone not in the app yet</h3></div><div class="chips">${isKid(A) ? '' : `<button class="chip" onclick="memberForm(null,{childOf:'${A.id}'})">+ New child</button>`}${parentsOf(A).length < 2 ? `<button class="chip" onclick="memberForm(null,{parentFor:'${A.id}'})">+ New parent</button>` : ''}${!spouseOf(A) && !isKid(A) ? `<button class="chip" onclick="memberForm(null,{spouseOf:'${A.id}'})">+ New husband / wife</button>` : ''}</div>`;
+  }
+  const g = B.gender, opts = [['father', 'Father'], ['mother', 'Mother'], ['sibling', g === 'female' ? 'Sister' : g === 'male' ? 'Brother' : 'Brother / sister'], ['spouse', g === 'female' ? 'Wife' : g === 'male' ? 'Husband' : 'Husband / wife'], ['child', g === 'female' ? 'Daughter' : g === 'male' ? 'Son' : 'Son / daughter']]
+    .filter(o => !(isKid(A) && (o[0] === 'spouse' || o[0] === 'child')) && !(isKid(B) && (o[0] === 'father' || o[0] === 'mother' || o[0] === 'spouse')) && !(g === 'female' && o[0] === 'father') && !(g === 'male' && o[0] === 'mother'));
+  return `<div class="sh"><h2>How are they related?</h2><button class="x" onclick="closeSheet()">×</button></div><div style="text-align:center">${av(B, 72)}<h2 style="margin-top:8px">${esc(B.name)}</h2><p class="muted" style="margin:4px 0 12px">${esc(first(B))} is ${esc(whose)}…</p></div>${opts.map(o => `<button class="opt" onclick="linkRel('${o[0]}',event)"><b>${o[1]}</b></button>`).join('')}<p class="small muted" style="margin:12px 16px 0">Grandparents, uncles, aunts, cousins, nieces and nephews are worked out automatically once parents are linked.</p>`;
+}
+function relFilter(q){ q = q.trim().toLowerCase(); document.querySelectorAll('#relList [data-n]').forEach(el => { el.hidden = !!q && !q.split(/\s+/).every(w => el.dataset.n.includes(w)); }); }
+function linkRel(rel, ev){
+  const R = st.rel; if (linkRel.busy) return; linkRel.busy = true; const b = ev.currentTarget; b.style.opacity = '.5';
+  (async () => {
+    try {
+      if (DEMO) linkPlan(st.db.members, R.a, rel, R.b).forEach(c => { M(c.id)[c.field] = c.value; });
+      else { await api('link', { a:R.a, rel, b:R.b }); await sync(); }
+      Motion.haptic(); closeSheet(); render(); toast(`${first(M(R.b))} is now ${R.a === st.db.me ? 'your' : first(M(R.a)) + "'s"} ${relationOf(R.a, R.b)}`);
+    } catch(e){ toast(e.message); b.style.opacity = ''; }
+    linkRel.busy = false;
+  })();
+}
+function relationOf(aId, bId){ const keep = st.db.me; st.db.me = aId; try { return relation(bId); } finally { st.db.me = keep; } }
+
 /* ---------- PROFILES ---------- */
 let sheetFn = null, sheetLive = false;
 function openSheet(fn, live){ sheetFn = fn; sheetLive = !!live; $('#sheet').innerHTML = fn(); $('#sheetWrap').classList.add('on'); $('#sheet').scrollTop = 0; loadPhotos(); Motion.arm($('#sheet')); }
@@ -934,9 +988,10 @@ function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
     const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), ch = childrenOf(m), adult = !isKid(me());
     const linkRow = (l, arr) => arr.length ? `<div class="fact"><b>${l}</b><span>${arr.map(x => `<a class="link" onclick="profileSheet('${x.id}')">${esc(first(x))}</a>`).join(', ')}</span></div>` : '';
-    return `<div class="sh"><span class="grow"></span><button class="x" onclick="closeSheet()">×</button></div><div style="text-align:center">${av(m, 96)}<h2 style="margin-top:10px">${esc(m.name)}</h2>${m.nick ? `<div class="muted">"${esc(m.nick)}"</div>` : ''}<div style="margin-top:8px"><span class="chip clay">${rel === 'you' ? 'This is you' : 'Your ' + esc(rel)}</span> ${m.passed ? '<span class="chip">In loving memory</span>' : ''}</div></div><div class="card">${facts(m)}${linkRow('Parents', ps)}${linkRow('Married to', sp ? [sp] : [])}${linkRow('Children', ch)}</div>` +
+    return `<div class="sh"><span class="grow"></span><button class="x" onclick="closeSheet()">×</button></div><div style="text-align:center">${av(m, 96)}<h2 style="margin-top:10px">${esc(m.name)}</h2>${m.nick ? `<div class="muted">"${esc(m.nick)}"</div>` : ''}<div style="margin-top:8px"><span class="chip clay">${rel === 'you' ? 'This is you' : 'Your ' + esc(rel)}</span> ${m.passed ? '<span class="chip">In loving memory</span>' : ''}</div></div><div class="card">${facts(m)}${linkRow('Parents', ps)}${linkRow('Married to', sp ? [sp] : [])}${linkRow('Brothers & sisters', siblingsOf(m))}${linkRow('Children', ch)}</div>` +
     (canEdit(m) ? `<button class="btn block" onclick="memberForm('${id}')">Edit profile</button>` : '') +
-    (adult ? `<div class="chips" style="margin-top:10px;justify-content:center">${isKid(m) ? '' : `<button class="chip" onclick="memberForm(null,{childOf:'${id}'})">+ Child</button>`}${canEdit(m) && ps.length < 2 ? `<button class="chip" onclick="memberForm(null,{parentFor:'${id}'})">+ Parent</button>` : ''}${!sp && !isKid(m) ? `<button class="chip" onclick="memberForm(null,{spouseOf:'${id}'})">+ Spouse</button>` : ''}</div>` : '') +
+    (canEdit(m) ? `<button class="btn ghost block" style="margin-top:8px" onclick="relativeSheet('${id}')">Add a relative${id === st.db.me ? '' : ' for ' + esc(first(m))}</button>` : '') +
+    (id !== st.db.me ? `<button class="btn ghost block" style="margin-top:8px" onclick="relativeSheet('${st.db.me}','${id}')">${esc(first(m))} is my…</button>` : '') +
     (isAdmin() && id !== st.db.me ? `<div class="chips" style="margin-top:10px;justify-content:center"><button class="chip" onclick="save('Members',{id:'${id}',role:'${m.role === 'admin' ? 'adult' : 'admin'}'}).catch(()=>{})">${m.role === 'admin' ? 'Remove admin' : 'Make admin'}</button><button class="chip clay" onclick="if(confirm('Remove ${esc(first(m).replace(/[^\p{L}\p{N} ]/gu, ''))} from the family app?')){closeSheet();removeRow('Members','${id}')}">Remove person</button></div>` : ''); }, true);
 }
 let pendingAvatar = null, formPreset = null;
@@ -1116,6 +1171,7 @@ async function demoApi(action, p){
   if (action === 'img') return { dataUrl: demoPhotos[p.id] };
   if (action === 'settings'){ Object.assign(demoDb.settings, p); return {}; }
   if (action === 'msgs') return [];
+  if (action === 'link') return {};
   return {};
 }
 
