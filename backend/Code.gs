@@ -144,6 +144,10 @@ function join(q) {
   }
   const name = String(q.name || '').trim();
   if (!name) throw new Error('Please enter your name');
+  // Same name again: a repeated tap signs in to the profile just made; otherwise point them to their existing name.
+  const same = readAll('Members').filter(function (x) { return x.name.trim().toLowerCase() === name.toLowerCase(); });
+  for (let i = 0; i < same.length; i++) if (same[i].pinHash && hash(q.pin, same[i].salt) === same[i].pinHash) return session(same[i].id);
+  if (same.length) throw new Error(name + ' is already in the family. Go back and tap your name, or add a middle name if you are someone else.');
   const firstEver = readAll('Members').filter(function (m) { return m.pinHash; }).length === 0;
   const m = { id: newId(), name: name, role: firstEver ? 'admin' : (q.role === 'kid' ? 'kid' : 'adult'), ts: now(), salt: salt, pinHash: hash(q.pin, salt) };
   m.by = m.id;

@@ -196,7 +196,14 @@ form .btn.block{margin-top:16px}
 .cf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:90;pointer-events:none}
 [data-haptic]{position:absolute;inset:0;z-index:5;border-radius:inherit;touch-action:manipulation;cursor:pointer;margin:0;padding:0;background:none}
 [data-haptic] input{position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;visibility:hidden;pointer-events:none;min-height:0}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* busy buttons: locked while saving, with a filling wave and a spinning ring (as in Orbit) */
+.btn.is-busy{position:relative;overflow:visible;pointer-events:none;opacity:1!important;background:var(--accent)!important;color:rgba(255,255,255,.75)!important}
+.btn.is-busy:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 0 20%,rgba(255,255,255,.38) 50%,transparent 80%) 0 0/220% 100% no-repeat;animation:fillwave 1.25s var(--ease) infinite}
+.btn.is-busy:after{content:"";position:absolute;inset:-4px;border-radius:inherit;padding:2.5px;background:conic-gradient(from var(--spin,0deg),transparent 0 55%,color-mix(in srgb,var(--accent) 35%,transparent) 78%,var(--accent) 98%,transparent);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:ringspin 1.1s linear infinite}
+@property --spin{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes ringspin{to{--spin:360deg}}
+@keyframes fillwave{from{background-position:130% 0}to{background-position:-130% 0}}
+@media(prefers-reduced-motion:reduce){*:not(.is-busy):not(.is-busy *){animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -263,6 +270,18 @@ async function removeRow(table, id){
   const k = table.toLowerCase();
   st.db[k] = st.db[k].filter(x => x.id !== id); render();
   try { await api('del', { table, id }); LS.set('db', st.db); } catch(e){ toast(e.message); try { await sync(); } catch(_){} }
+}
+
+/* One submit at a time: locks the form and its button until the server answers. */
+async function busy(ev, fn, label){
+  if (ev && ev.preventDefault) ev.preventDefault();
+  const f = ev && ev.target ? ev.target.closest('form') || ev.target : null, b = f ? (f.matches('button') ? f : f.querySelector('button:not([type=button])')) : null;
+  if (f && f.dataset.busy) return;
+  const old = b ? b.innerHTML : '';
+  if (f) f.dataset.busy = '1';
+  if (b){ b.classList.add('is-busy'); b.disabled = true; if (label) b.textContent = label; }
+  try { await fn(); } catch(e){ toast(e.message || 'Something went wrong'); }
+  finally { if (f) delete f.dataset.busy; if (b && b.isConnected){ b.classList.remove('is-busy'); b.disabled = false; b.innerHTML = old; Motion.arm(b.parentNode); } }
 }
 
 /* ---------- helpers ---------- */
@@ -576,11 +595,9 @@ function composeSheet(){
   openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><label>Photo (optional)</label><input type="file" accept="image/*" onchange="pickPhoto(this)"><img id="prev" style="display:none;border-radius:14px;margin-top:10px" alt=""><p class="small muted">Photos are kept in the family's private Google Drive folder and only load for signed-in family.</p><button class="btn block" id="postBtn">Share with the family</button></form>`);
 }
 async function pickPhoto(inp){ if (!inp.files[0]) return; try { pendingPhoto = await compress(inp.files[0], 1280, .72); const p = $('#prev'); p.src = pendingPhoto; p.style.display = 'block'; } catch(e){ toast(e.message); } }
-async function submitPost(ev){
-  ev.preventDefault(); const text = ev.target.text.value.trim(); if (!text && !pendingPhoto) return false;
-  const btn = $('#postBtn'); btn.disabled = true; btn.textContent = 'Sharing…';
-  try { let photo = ''; if (pendingPhoto){ const up = await api('upload', { dataUrl: pendingPhoto }); photo = up.id; photoMem.set(photo, Promise.resolve(pendingPhoto)); } closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo }); }
-  catch(e){ toast(e.message); btn.disabled = false; btn.textContent = 'Share with the family'; }
+function submitPost(ev){
+  const text = ev.target.text.value.trim(); if (!text && !pendingPhoto){ ev.preventDefault(); return false; }
+  busy(ev, async () => { let photo = ''; if (pendingPhoto){ const up = await api('upload', { dataUrl: pendingPhoto }); photo = up.id; photoMem.set(photo, Promise.resolve(pendingPhoto)); } closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo }); }, 'Sharing…');
   return false;
 }
 function postSheet(id){
@@ -730,8 +747,8 @@ function memberForm(id, preset){
   <button class="btn block" style="margin-top:14px">Save</button></form>`);
 }
 async function pickAvatar(inp){ if (!inp.files[0]) return; try { pendingAvatar = await squareAvatar(inp.files[0]); $('#avPrev').innerHTML = `<img class="av" src="${pendingAvatar}" style="width:64px;height:64px">`; } catch(e){ toast(e.message); } }
-async function submitMember(ev, id){
-  ev.preventDefault(); const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim(), P = formPreset || {};
+function submitMember(ev, id){
+  const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim(), P = formPreset || {};
   const row = { name:g('name'), nick:g('nick'), gender:g('gender'), birth:g('birth'), country:g('country'), city:g('city'), fatherId:g('fatherId'), motherId:g('motherId'), spouseId:g('spouseId'), anniv:g('anniv'), favFood:g('favFood'), favColor:g('favColor'), hobby:g('hobby'), askMe:g('askMe'), about:g('about') };
   if (f.has('role')) row.role = g('role'); else if (!id) row.role = 'adult';
   if (id !== st.db.me) row.passed = f.get('passed') ? '1' : '';
@@ -739,13 +756,12 @@ async function submitMember(ev, id){
   if (id === st.db.me) row.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; else if (!id || !M(id).claimed) row.tz = (cInfo(row.country) || [])[2] || '';
   if (id) row.id = id; else row.claimed = false;
   const old = id ? spouseOf(M(id)) : null;
-  closeSheet();
-  try {
+  busy(ev, async () => {
     const saved = await save('Members', row);
     if (old && old.spouseId === saved.id && old.id !== row.spouseId) await save('Members', { id:old.id, spouseId:'' }).catch(() => {});
     if (P.parentFor){ const c = M(P.parentFor); await save('Members', { id:c.id, [row.gender === 'female' ? 'motherId' : 'fatherId']: saved.id }); }
-    toast('Saved');
-  } catch(e){}
+    closeSheet(); toast('Saved');
+  }, 'Saving…');
   return false;
 }
 function meSheet(){
@@ -753,13 +769,13 @@ function meSheet(){
   openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div><button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
   ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
   ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><button class="btn sm">Save settings</button></form></div>` : ''}
-  <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="pushEnable()">Turn on</button>'}</div>` : ''}</div>
+  <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}</div>
   <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="New PIN (4 to 8 digits)" required><button class="btn sm">Change</button></form></div>
-  <button class="btn line block" onclick="sync().then(()=>toast('Up to date')).catch(e=>toast(e.message))">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
+  <button class="btn line block" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
 }
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
-function submitSettings(ev){ ev.preventDefault(); const f = new FormData(ev.target); api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim() }).then(() => sync()).then(() => toast('Saved')).catch(e => toast(e.message)); return false; }
-function submitPin(ev){ ev.preventDefault(); api('setPin', { pin: ev.target.pin.value }).then(() => { toast('PIN changed'); ev.target.reset(); }).catch(e => toast(e.message)); return false; }
+function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim() }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
+function submitPin(ev){ const f = ev.target, pin = f.pin.value; busy(ev, async () => { await api('setPin', { pin }); toast('PIN changed'); f.reset(); }, 'Changing…'); return false; }
 function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
 
 /* ---------- LOGIN ---------- */
@@ -772,11 +788,11 @@ function renderLogin(){
   else if (L.step === 'new') body = `<p class="muted">Welcome! Add yourself to the family.</p><form onsubmit="return loginNew(event)" style="text-align:left"><label>Your full name</label><input type="text" name="name" required maxlength="60"><label>I am a</label><select name="role"><option value="adult">Grown-up</option><option value="kid">Kid</option></select><label>Choose a PIN (4 to 8 digits)</label><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required><button class="btn block" style="margin-top:14px">Join the family</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`;
   $('#app').innerHTML = `<div class="login">${head}${body}</div>`;
 }
-async function loginCode(ev){ ev.preventDefault(); const code = ev.target.code.value.trim(); try { const d = await api('boot', { code }); st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; render(); } catch(e){ toast(e.message); } return false; }
+function loginCode(ev){ const code = ev.target.code.value.trim(); busy(ev, async () => { const d = await api('boot', { code }); st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; render(); }, 'Checking…'); return false; }
 function loginPick(id){ st.login.id = id; st.login.step = 'pin'; render(); }
 async function enter(tok){ st.token = tok; LS.set('token', tok); await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
-async function loginPin(ev){ ev.preventDefault(); const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; try { const d = m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin }); await enter(d.token); } catch(e){ toast(e.message); } return false; }
-async function loginNew(ev){ ev.preventDefault(); const f = ev.target; try { const d = await api('join', { code:st.login.code, name:f.name.value.trim(), role:f.role.value, pin:f.pin.value }); await enter(d.token); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); } catch(e){ toast(e.message); } return false; }
+function loginPin(ev){ const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; busy(ev, async () => { const d = m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin }); await enter(d.token); }, 'Signing in…'); return false; }
+function loginNew(ev){ const f = ev.target, body = { code:st.login.code, name:f.name.value.trim(), role:f.role.value, pin:f.pin.value }; busy(ev, async () => { const d = await api('join', body); await enter(d.token); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); }, 'Joining…'); return false; }
 
 /* ---------- DEMO DATA (used only until API_URL is set) ---------- */
 let demoDb = null; const demoPhotos = {};
