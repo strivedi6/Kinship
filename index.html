@@ -329,6 +329,17 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .thread #msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 10px;justify-content:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;width:100%;max-width:852px;margin:0 auto}
 .thread #msgs>:first-child{margin-top:auto}
 .thread .composer{position:static;flex:none;margin:4px auto max(8px,env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:828px}
+/* sheets: page behind is frozen and blurred */
+#sheetWrap{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);background:rgba(0,0,0,.22)}
+#sheet{overscroll-behavior:contain;will-change:transform}
+/* message box rests just above the keyboard */
+.thread.kb .composer{margin-bottom:6px}
+.thread{will-change:transform}
+/* meet-your-family card can be swiped */
+.meet{touch-action:pan-y;will-change:transform}
+.mdots{display:flex;justify-content:center;gap:6px;margin:10px 0 0}
+.mdots i{width:7px;height:7px;border-radius:50%;background:var(--tert)}
+.mdots i.on{background:var(--ink)}
 </style>
 </head>
 <body>
@@ -808,10 +819,10 @@ function submitReward(ev, id){ ev.preventDefault(); const f = new FormData(ev.ta
 const weekKey = () => { const d = pDate(weekStart()); return ymd(d); };
 function vCorner(){
   const others = st.db.members.filter(m => m.id !== st.db.me && !m.passed), pool = others.filter(isKid).length ? others.filter(isKid) : others;
-  if (!st.meet || !M(st.meet)) st.meet = pool.length ? pool[Math.floor(Math.random() * pool.length)].id : null;
-  const c = M(st.meet), wk = weekKey(), q = QUESTIONS[Math.floor(pDate(wk) / 6048e5) % QUESTIONS.length], ans = st.db.answers.filter(a => a.week === wk), mine = ans.find(a => a.memberId === st.db.me);
+  if (!st.meetOrder || st.meetOrder.length !== pool.length || st.meetOrder.some(id => !M(id))){ st.meetOrder = pool.map(x => x.id).sort(() => Math.random() - .5); st.meetIdx = 0; }
+  const c = M(st.meetOrder[st.meetIdx]), nM = st.meetOrder.length, wk = weekKey(), q = QUESTIONS[Math.floor(pDate(wk) / 6048e5) % QUESTIONS.length], ans = st.db.answers.filter(a => a.week === wk), mine = ans.find(a => a.memberId === st.db.me);
   const ws = weekStart(), board = kidsList().map(k => [k, pointsOf(k.id, ws)]).sort((a, b) => b[1] - a[1]);
-  return (c ? `<div class="sec"><h2>Meet your family</h2><a onclick="st.meet=null;render()">Next person</a></div><div class="card meet" style="--c:${colorOf(c.id)}"><div class="row" onclick="profileSheet('${c.id}')">${av(c, 64)}<div class="grow"><h3>${esc(c.name)}</h3><span class="chip clay">Your ${esc(relation(c.id))}</span></div></div><div style="margin-top:12px">${facts(c)}</div></div>` : '') +
+  return (c ? `<div class="sec"><h2>Meet your family</h2><a onclick="meetGo(1)">Next person</a></div><div class="card meet" style="--c:${colorOf(c.id)}" ontouchstart="meetTS(event)" ontouchmove="meetTM(event)" ontouchend="meetTE(event)"><div class="row" onclick="profileSheet('${c.id}')">${av(c, 64)}<div class="grow"><h3>${esc(c.name)}</h3><span class="chip clay">Your ${esc(relation(c.id))}</span></div></div><div style="margin-top:12px">${facts(c)}</div>${nM > 1 ? `<div class="mdots">${Array.from({ length:Math.min(nM, 9) }, (_, i) => `<i class="${i === st.meetIdx % 9 ? 'on' : ''}"></i>`).join('')}</div><div class="small muted" style="text-align:center;margin-top:6px">Swipe left or right to meet someone else</div>` : ''}</div>` : '') +
   `<div class="sec"><h2>Question of the week</h2></div><div class="card qcard"><h3>${esc(q)}</h3><form class="row" style="margin-top:12px" onsubmit="event.preventDefault();const v=this.a.value.trim();if(v){save('Answers',{id:'${wk}_'+st.db.me,week:'${wk}',memberId:st.db.me,text:v}).catch(()=>{})}return false"><input type="text" name="a" maxlength="200" placeholder="Your answer" value="${esc(mine ? mine.text : '')}"><button class="btn sm">${mine ? 'Update' : 'Send'}</button></form>${ans.map(a => { const m = M(a.memberId) || {}; return `<div class="row" style="padding:8px 0 0;align-items:flex-start">${av(m, 30)}<div class="grow"><span class="b">${esc(first(m))}</span> ${m.country ? flag(m.country) : ''}<div>${esc(a.text)}</div></div></div>`; }).join('')}</div>` +
   `<div class="sec"><h2>How well do you know us?</h2></div><div class="card quiz">${quizHtml()}</div>` +
   (board.length ? `<div class="sec"><h2>Stars this week</h2></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div>` : '');
@@ -822,20 +833,62 @@ function facts(m){
   const h = rows.filter(r => r[1] && String(r[1]).trim()).map(r => `<div class="fact"><b>${r[0]}</b><span>${esc(r[1])}</span></div>`).join('');
   return h || '<div class="small muted">No details added yet.</div>';
 }
+const MEET = { x:0, y:0, dx:0, on:false };
+function meetGo(d){ const n = (st.meetOrder || []).length; if (n < 2) return; st.meetIdx = (st.meetIdx + d + n) % n; Motion.haptic(); render(); const el = $('.meet'); if (el && el.animate) el.animate([{ opacity:0, transform:`translateX(${d * 46}px)` }, { opacity:1, transform:'none' }], { duration:380, easing:'cubic-bezier(.32,.72,0,1)' }); }
+function meetTS(e){ const t = e.touches[0]; MEET.on = t.clientX > 30; MEET.x = t.clientX; MEET.y = t.clientY; MEET.dx = 0; }
+function meetTM(e){ if (!MEET.on) return; const t = e.touches[0], dx = t.clientX - MEET.x, dy = t.clientY - MEET.y; if (Math.abs(dy) > Math.abs(dx) + 10){ MEET.on = false; e.currentTarget.style.transform = ''; return; } MEET.dx = dx; e.currentTarget.style.transform = `translateX(${dx * .6}px)`; e.currentTarget.style.opacity = String(Math.max(.4, 1 - Math.abs(dx) / 300)); }
+function meetTE(e){ const el = e.currentTarget; el.style.transform = ''; el.style.opacity = ''; if (MEET.on && Math.abs(MEET.dx) > 50){ e.preventDefault(); meetGo(MEET.dx < 0 ? 1 : -1); } MEET.on = false; }
 function newQuiz(){
-  const ms = st.db.members.filter(m => !m.passed), qs = [];
-  for (const m of ms){ if (m.favFood) qs.push([`Whose favourite food is ${m.favFood}?`, m, 'favFood']); if (m.hobby) qs.push([`Who loves ${m.hobby}?`, m, 'hobby']); if (m.city) qs.push([`Who lives in ${m.city}?`, m, 'city']); if (m.favColor) qs.push([`Whose favourite colour is ${m.favColor}?`, m, 'favColor']); }
-  if (!qs.length || ms.length < 3) return null;
-  const [q, right, key] = qs[Math.floor(Math.random() * qs.length)];
-  const wrong = ms.filter(m => m.id !== right.id && String(m[key] || '').toLowerCase() !== String(right[key]).toLowerCase()).sort(() => Math.random() - .5).slice(0, 2);
-  if (wrong.length < 2) return null;
-  return { q, right:right.id, opts:[right, ...wrong].sort(() => Math.random() - .5).map(m => m.id), pick:null };
+  const ms = st.db.members.filter(m => !m.passed), pick = a => a[Math.floor(Math.random() * a.length)], shuf = a => [...a].sort(() => Math.random() - .5);
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if (ms.length < 3) return null;
+  const qs = [];
+  // choose a person: "Whose … is X?"
+  const whose = (text, right, same) => { const wrong = shuf(ms.filter(m => m.id !== right.id && !same(m))).slice(0, 3); if (wrong.length >= 2) qs.push({ q:text, right:right.name, opts:shuf([right, ...wrong]).map(m => m.name) }); };
+  // choose a word: "Where / when / how many …?"
+  const which = (text, right, pool) => { const wrong = shuf([...new Set(pool.map(String))].filter(x => x && x.toLowerCase() !== String(right).toLowerCase())).slice(0, 3); if (wrong.length >= 2) qs.push({ q:text, right:String(right), opts:shuf([String(right), ...wrong]) }); };
+  const low = v => String(v || '').trim().toLowerCase();
+  for (const m of ms){
+    const f = first(m);
+    if (m.favFood) whose(`Whose favourite food is ${m.favFood}?`, m, x => low(x.favFood) === low(m.favFood));
+    if (m.hobby) whose(`Who loves ${m.hobby}?`, m, x => low(x.hobby) === low(m.hobby));
+    if (m.favColor) whose(`Whose favourite colour is ${m.favColor}?`, m, x => low(x.favColor) === low(m.favColor));
+    if (m.askMe) whose(`Who would you ask about "${m.askMe}"?`, m, () => false);
+    if (m.nick && low(m.nick) !== low(String(m.name).split(' ')[0])) whose(`Who do we call "${m.nick}"?`, m, x => low(x.nick) === low(m.nick));
+    if (m.city) whose(`Who lives in ${m.city}?`, m, x => low(x.city) === low(m.city));
+    if (m.country) which(`Which country does ${f} live in?`, m.country, [...ms.map(x => x.country), ...COUNTRIES.map(c => c[0])]);
+    if (m.city) which(`Which city does ${f} live in?`, m.city, ms.map(x => x.city));
+    if (m.favFood) which(`What is ${f}'s favourite food?`, m.favFood, ms.map(x => x.favFood));
+    if (m.hobby) which(`What does ${f} love doing?`, m.hobby, ms.map(x => x.hobby));
+    if (m.birth){ const mo = pDate(m.birth).getMonth(); which(`In which month is ${f}'s birthday?`, MONTHS[mo], MONTHS); whose(`Whose birthday is in ${MONTHS[mo]}?`, m, x => !x.birth || pDate(x.birth).getMonth() === mo); }
+    if (isKid(m) && age(m) != null){ const a = age(m); which(`How old is ${f}?`, a, [a - 2, a - 1, a + 1, a + 2, a + 3].filter(n => n > 0)); }
+    const mum = M(m.motherId), dad = M(m.fatherId), sp = spouseOf(m), kids = childrenOf(m);
+    if (mum && !mum.passed) whose(`Who is ${f}'s mother?`, mum, x => x.id === m.id);
+    if (dad && !dad.passed) whose(`Who is ${f}'s father?`, dad, x => x.id === m.id);
+    if (sp && !sp.passed) whose(`Who is ${f} married to?`, sp, x => x.id === m.id);
+    if (kids.length) which(`How many children does ${f} have?`, kids.length, [kids.length - 1, kids.length + 1, kids.length + 2, kids.length + 3].filter(n => n >= 0));
+    if (m.id !== st.db.me){ const r = relation(m.id); if (r && r !== 'family' && !/by marriage/.test(r)) which(`${f} is your…`, cap(r), ['Cousin', 'Uncle', 'Aunt', 'Brother', 'Sister', 'Nephew', 'Niece', 'Grandmother', 'Grandfather', 'Mother', 'Father'].filter(x => low(x) !== low(r))); }
+  }
+  const born = shuf(ms.filter(m => m.birth)).slice(0, 4);
+  if (born.length >= 3){ const s = [...born].sort(byBirth); qs.push({ q:'Who is the oldest of these?', right:s[0].name, opts:shuf(born).map(m => m.name) }); qs.push({ q:'Who is the youngest of these?', right:s[s.length - 1].name, opts:shuf(born).map(m => m.name) }); }
+  const cs = [...new Set(ms.map(m => m.country).filter(Boolean))];
+  if (cs.length){ which('How many countries does our family live in?', cs.length, [cs.length - 1, cs.length + 1, cs.length + 2, cs.length + 3].filter(n => n > 0)); const top = cs.map(c => [c, ms.filter(m => m.country === c).length]).sort((a, b) => b[1] - a[1]); if (top.length >= 3 && top[0][1] > top[1][1]) which('Where do most of us live?', top[0][0], cs); }
+  which('How many of us are in the family app?', ms.length, [ms.length - 2, ms.length - 1, ms.length + 1, ms.length + 2].filter(n => n > 0));
+  const kidsN = ms.filter(isKid).length; if (kidsN) which('How many kids are in the family?', kidsN, [kidsN - 1, kidsN + 1, kidsN + 2, kidsN + 3].filter(n => n > 0));
+  if (!qs.length) return null;
+  // do not repeat a recent question
+  st.quizSeen = st.quizSeen || []; const fresh = qs.filter(x => !st.quizSeen.includes(x.q)); const z = pick(fresh.length ? fresh : qs);
+  st.quizSeen.push(z.q); if (st.quizSeen.length > Math.min(30, qs.length - 1)) st.quizSeen.shift();
+  st.quizScore = st.quizScore || { ok:0, n:0 };
+  return { ...z, pick:null };
 }
 function quizHtml(){
   if (!st.quiz) st.quiz = newQuiz();
   const z = st.quiz; if (!z) return '<div class="small muted">The quiz starts once a few people fill in their favourites in their profile.</div>';
-  return `<h3>${esc(z.q)}</h3>${z.opts.map(id => `<button class="opt ${z.pick ? (id === z.right ? 'right' : id === z.pick ? 'wrong' : '') : ''}" ${z.pick ? 'disabled' : ''} onclick="st.quiz.pick='${id}';Motion.haptic();if('${id}'===st.quiz.right)Motion.confetti();render()">${esc((M(id) || {}).name)}</button>`).join('')}${z.pick ? `<div class="row"><span class="grow b">${z.pick === z.right ? 'Yes! 🎉' : 'Not quite. Now you know!'}</span><button class="btn sm" onclick="st.quiz=null;render()">Next question</button></div>` : ''}`;
+  const sc = st.quizScore || { ok:0, n:0 };
+  return `<div class="row"><h3 class="grow">${esc(z.q)}</h3>${sc.n ? `<span class="chip clay">⭐ ${sc.ok}/${sc.n}</span>` : ''}</div>${z.opts.map((o, i) => `<button class="opt ${z.pick != null ? (o === z.right ? 'right' : i === z.pick ? 'wrong' : '') : ''}" ${z.pick != null ? 'disabled' : ''} onclick="quizPick(${i})">${esc(o)}</button>`).join('')}${z.pick != null ? `<div class="row"><span class="grow b">${z.opts[z.pick] === z.right ? 'Yes! 🎉' : 'Not quite. It is ' + esc(z.right) + '.'}</span><button class="btn sm" onclick="st.quiz=null;Motion.haptic();render()">Next question</button></div>` : ''}`;
 }
+function quizPick(i){ const z = st.quiz; if (!z || z.pick != null) return; z.pick = i; const ok = z.opts[i] === z.right; st.quizScore.n++; if (ok){ st.quizScore.ok++; Motion.confetti(); } Motion.haptic(); render(); }
 
 /* ---------- CELEBRATION TILES (birthday / anniversary today, as in Hearts) ---------- */
 const BALLOONS = '<span class="bln" style="--x:14px;--y:8px;--d:4.6s">🎈</span><span class="bln" style="--x:58px;--y:30px;--s:24px;--d:5.8s">🎈</span><span class="bln" style="--x:22px;--y:64px;--s:20px;--d:6.6s">🎉</span>';
@@ -871,7 +924,7 @@ function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length 
 const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" ${n ? '' : 'hidden'}>${n || ''}</i>`; };
 function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
 const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .5)}px">👪</span>`;
-function openChat(){ if (st.tab !== 'chat') Motion.enter = true; Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); wakePoll(); }
+function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); wakePoll(); }
 function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
 function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; window.scrollTo(0, 0); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
@@ -900,7 +953,8 @@ function vThread(){
   return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div><form class="composer glass" onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
-function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v) return; t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; scrollMsgs(); }
+let vvMax = 0;
+function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
 if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
 function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
 function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
@@ -1017,8 +1071,14 @@ function relationOf(aId, bId){ const keep = st.db.me; st.db.me = aId; try { retu
 
 /* ---------- PROFILES ---------- */
 let sheetFn = null, sheetLive = false;
-function openSheet(fn, live){ sheetFn = fn; sheetLive = !!live; $('#sheet').innerHTML = fn(); $('#sheetWrap').classList.add('on'); $('#sheet').scrollTop = 0; loadPhotos(); Motion.arm($('#sheet')); }
-function closeSheet(){ sheetFn = null; $('#sheetWrap').classList.remove('on'); }
+let lockY = null;
+function lockPage(on){
+  const b = document.body;
+  if (on && lockY === null){ lockY = window.scrollY; b.style.position = 'fixed'; b.style.top = -lockY + 'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%'; }
+  else if (!on && lockY !== null){ const y = lockY; lockY = null; b.style.position = b.style.top = b.style.left = b.style.right = b.style.width = ''; window.scrollTo(0, y); }
+}
+function openSheet(fn, live){ const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); sh.innerHTML = fn(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
+function closeSheet(){ sheetFn = null; $('#sheetWrap').classList.remove('on'); const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; lockPage(false); }
 function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
     const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), ch = childrenOf(m), adult = !isKid(me());
@@ -1223,6 +1283,32 @@ async function demoApi(action, p){
   try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('OneSignalSDKWorker.js').catch(() => {}));
+/* ---------- back swipe from the left edge, as in a native app ---------- */
+const Back = { on:false, x0:0, y0:0, dx:0, el:null };
+function goBack(){
+  if (sheetFn) return closeSheet();
+  if (!st.db){ const L = st.login, to = { pin:'who', new:'who', newpin: L.claim ? 'who' : 'new', newpin2:'newpin' }[L.step]; if (to){ L.known = false; lockGo(to, -1); } return; }
+  if (st.tab === 'chat' && st.chatWith) return closeThread();
+  if (st.tab === 'chat') return go(st.prevTab && st.prevTab !== 'chat' ? st.prevTab : 'home');
+}
+const canGoBack = () => !!sheetFn || (!st.db ? ['pin', 'new', 'newpin', 'newpin2'].includes(st.login.step) : st.tab === 'chat');
+document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1 || e.touches[0].clientX > 26 || !canGoBack() || A.busy) return;
+  Back.on = true; Back.x0 = e.touches[0].clientX; Back.y0 = e.touches[0].clientY; Back.dx = 0;
+  Back.el = sheetFn ? $('#sheet') : (st.db && st.chatWith ? $('.thread') : null); if (Back.el) Back.el.style.transition = 'none';
+}, { passive:true });
+document.addEventListener('touchmove', e => {
+  if (!Back.on) return; const t = e.touches[0], dx = Math.max(0, t.clientX - Back.x0), dy = Math.abs(t.clientY - Back.y0);
+  if (dy > dx + 14 && dx < 24){ Back.on = false; if (Back.el){ Back.el.style.transition = ''; Back.el.style.transform = ''; } return; }
+  Back.dx = dx; if (dx > 8) e.preventDefault(); if (Back.el) Back.el.style.transform = `translateX(${dx}px)`;
+}, { passive:false });
+const backEnd = () => {
+  if (!Back.on) return; Back.on = false; const el = Back.el, ease = 'transform .28s cubic-bezier(.4,0,.2,1)';
+  if (Back.dx > 80){ Motion.haptic(); if (el){ el.style.transition = ease; el.style.transform = 'translateX(105%)'; setTimeout(goBack, 230); } else goBack(); }
+  else if (el){ el.style.transition = ease; el.style.transform = ''; }
+};
+document.addEventListener('touchend', backEnd, { passive:true }); document.addEventListener('touchcancel', backEnd, { passive:true });
+
 /* No pinch or double-tap zoom: the app keeps one size, like a native app. */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive:false });
