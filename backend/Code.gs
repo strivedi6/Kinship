@@ -1,0 +1,315 @@
+/**
+ * KINSHIP - Google Apps Script backend
+ * 1. Open the "Kinship" Google Sheet > Extensions > Apps Script, and paste this whole file.
+ * 2. Run the function  setup  once (builds the tabs, links the Media folder, starts the daily birthday reminder).
+ * 3. Deploy > New deployment > Web app > Execute as: Me, Who has access: Anyone.
+ * 4. Paste the Web app URL into index.html (CONFIG.API_URL).
+ * Notifications: paste the OneSignal App ID and REST API key in the Settings tab.
+ */
+
+// Drive folder "Kinship / Media". Each person gets their own subfolder inside it.
+const MEDIA_FOLDER_ID = '1Nr_Q34Kr27e9RV5KPkL0VA6Ye0Ty8UnG';
+
+const SCHEMA = {
+  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil'],
+  Posts: ['id','by','text','photo','ts'],
+  Comments: ['id','postId','by','text','ts'],
+  Reactions: ['id','postId','by','emoji','ts'],
+  Events: ['id','by','title','emoji','date','at','yearly','note','ts'],
+  Habits: ['id','by','title','emoji','points','who','days','active','ts'],
+  Logs: ['id','habitId','memberId','date','points','by','ts'],
+  Rewards: ['id','by','title','emoji','cost','who','active','ts'],
+  Redemptions: ['id','rewardId','memberId','title','cost','status','by','decidedBy','ts'],
+  Answers: ['id','week','memberId','text','ts'],
+  Sessions: ['token','memberId','ts'],
+  Settings: ['key','value']
+};
+const SECRET = ['folder','pinHash','salt','fails','lockUntil'];
+const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers'];
+const WRITES = ['join','login','put','del','upload','settings','setPin','signout'];
+
+/* ---------------- one-time setup ---------------- */
+function setup() {
+  const ss = SpreadsheetApp.getActive();
+  Object.keys(SCHEMA).forEach(function (name) {
+    let s = ss.getSheetByName(name) || ss.insertSheet(name);
+    const head = SCHEMA[name];
+    s.getRange(1, 1, s.getMaxRows(), head.length).setNumberFormat('@');
+    s.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
+    s.setFrozenRows(1);
+  });
+  const first = ss.getSheetByName('Sheet1');
+  if (first && first.getLastRow() === 0) ss.deleteSheet(first);
+  if (!setting('appName')) setSetting('appName', 'Kinship');
+  if (!setting('familyCode')) setSetting('familyCode', randomCode());
+  if (!setting('photoFolder')) setSetting('photoFolder', MEDIA_FOLDER_ID);
+  ['oneSignalAppId', 'oneSignalKey', 'appUrl'].forEach(function (k) { if (!findBy('Settings', k, 'key')) setSetting(k, ''); });
+  DriveApp.getFolderById(setting('photoFolder')).getName();   // checks the Media folder can be reached
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'dailyDigest') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('dailyDigest').timeBased().everyDays(1).atHour(8).create();
+  const msg = 'Ready!\n\nYour family code is: ' + setting('familyCode') + '\n\nYou can change it in the Settings tab or inside the app.\nNow deploy this script as a Web app.';
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+function onOpen() { SpreadsheetApp.getUi().createMenu('Family App').addItem('Set up / repair tabs', 'setup').addToUi(); }
+function randomCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 8; i++) s += a.charAt(Math.floor(Math.random() * a.length)); return s.slice(0, 4) + '-' + s.slice(4); }
+
+/* ---------------- web entry ---------------- */
+function doGet() { return out({ ok: true, app: 'family' }); }
+function doPost(e) {
+  let q;
+  try { q = JSON.parse(e.postData.contents); } catch (err) { return out({ ok: false, error: 'Bad request' }); }
+  const lock = LockService.getScriptLock(), write = WRITES.indexOf(q.action) >= 0;
+  try {
+    if (write) lock.waitLock(25000);
+    return out({ ok: true, data: route(q) });
+  } catch (err) {
+    return out({ ok: false, error: String(err && err.message || err) });
+  } finally {
+    if (write) try { lock.releaseLock(); } catch (x) {}
+  }
+}
+function out(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+function route(q) {
+  switch (q.action) {
+    case 'boot': checkCode(q.code); return { appName: setting('appName'), members: readAll('Members').map(function (m) { return { id: m.id, name: m.name, nick: m.nick, avatar: m.avatar, claimed: !!m.pinHash }; }) };
+    case 'join': return join(q);
+    case 'login': return login(q);
+  }
+  const me = auth(q.token);
+  switch (q.action) {
+    case 'sync':
+      if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
+      return syncAll(me);
+    case 'put': return put(me, q.table, q.row || {});
+    case 'del': return del(me, q.table, q.id);
+    case 'upload': return upload(me, q.dataUrl);
+    case 'img': return img(q.id);
+    case 'setPin': setPin(me, q.pin); return {};
+    case 'settings': return saveSettings(me, q);
+    case 'signout': delRow('Sessions', q.token, 'token'); return {};
+  }
+  throw new Error('Unknown action');
+}
+
+/* ---------------- sheet helpers ---------------- */
+function sh(name) { const s = SpreadsheetApp.getActive().getSheetByName(name); if (!s) throw new Error('Run setup first'); return s; }
+function str(v) { if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return v === null || v === undefined ? '' : String(v); }
+function readAll(name) {
+  const v = sh(name).getDataRange().getValues(), head = SCHEMA[name], rows = [];
+  for (let i = 1; i < v.length; i++) {
+    if (v[i][0] === '') continue;
+    const o = { _row: i + 1 };
+    for (let j = 0; j < head.length; j++) o[head[j]] = str(v[i][j]);
+    rows.push(o);
+  }
+  return rows;
+}
+function safe(v, max) { let s = str(v).slice(0, max || 3000); if (/^[=+\-@]/.test(s)) s = "'" + s; return s; }
+function writeRow(name, obj, rowNum) {
+  const s = sh(name), head = SCHEMA[name];
+  const vals = head.map(function (h) { return safe(obj[h], h === 'avatar' ? 48000 : 3000); });
+  const r = rowNum || s.getLastRow() + 1;
+  s.getRange(r, 1, 1, head.length).setNumberFormat('@').setValues([vals]);
+}
+function findBy(name, id, key) { key = key || 'id'; const all = readAll(name); for (let i = 0; i < all.length; i++) if (all[i][key] === id) return all[i]; return null; }
+function delRow(name, id, key) { const r = findBy(name, id, key); if (r) sh(name).deleteRow(r._row); }
+function setting(k) { const r = findBy('Settings', k, 'key'); return r ? r.value : ''; }
+function setSetting(k, v) { const r = findBy('Settings', k, 'key'); writeRow('Settings', { key: k, value: v }, r ? r._row : 0); }
+function now() { return String(Date.now()); }
+function newId() { return Utilities.getUuid().replace(/-/g, '').slice(0, 14); }
+
+/* ---------------- sign-in ---------------- */
+function checkCode(code) { const c = setting('familyCode'); if (!c || String(code || '').trim().toUpperCase() !== c.toUpperCase()) throw new Error('That family code is not right'); }
+function hash(pin, salt) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + pin, Utilities.Charset.UTF_8)); }
+function checkPin(pin) { if (!/^[0-9]{4,8}$/.test(String(pin || ''))) throw new Error('PIN must be 4 to 8 digits'); }
+function session(memberId) { const t = Utilities.getUuid() + Utilities.getUuid(); writeRow('Sessions', { token: t, memberId: memberId, ts: now() }); return { token: t, id: memberId }; }
+function auth(token) {
+  const s = token && findBy('Sessions', token, 'token');
+  const m = s && findBy('Members', s.memberId);
+  if (!m) throw new Error('Session expired, please sign in again');
+  return m;
+}
+function join(q) {
+  checkCode(q.code); checkPin(q.pin);
+  const salt = Utilities.getUuid();
+  if (q.claimId) {
+    const m = findBy('Members', q.claimId);
+    if (!m) throw new Error('Profile not found');
+    if (m.pinHash) throw new Error('This profile already has a PIN');
+    m.salt = salt; m.pinHash = hash(q.pin, salt);
+    writeRow('Members', m, m._row);
+    return session(m.id);
+  }
+  const name = String(q.name || '').trim();
+  if (!name) throw new Error('Please enter your name');
+  const firstEver = readAll('Members').filter(function (m) { return m.pinHash; }).length === 0;
+  const m = { id: newId(), name: name, role: firstEver ? 'admin' : (q.role === 'kid' ? 'kid' : 'adult'), ts: now(), salt: salt, pinHash: hash(q.pin, salt) };
+  m.by = m.id;
+  writeRow('Members', m);
+  if (!firstEver) push(readAll('Members').filter(function (x) { return x.role === 'admin'; }).map(function (x) { return x.id; }), name + ' joined the family', 'Say hello and help them find their place in the tree.');
+  return session(m.id);
+}
+function login(q) {
+  checkCode(q.code);
+  const m = findBy('Members', q.id);
+  if (!m || !m.pinHash) throw new Error('Profile not found');
+  if (Number(m.lockUntil || 0) > Date.now()) throw new Error('Too many tries. Please wait 15 minutes.');
+  if (hash(String(q.pin || ''), m.salt) !== m.pinHash) {
+    m.fails = String(Number(m.fails || 0) + 1);
+    if (Number(m.fails) >= 5) { m.fails = '0'; m.lockUntil = String(Date.now() + 15 * 60000); }
+    writeRow('Members', m, m._row);
+    throw new Error('Wrong PIN');
+  }
+  if (m.fails !== '0' || m.lockUntil) { m.fails = '0'; m.lockUntil = ''; writeRow('Members', m, m._row); }
+  return session(m.id);
+}
+function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinHash = hash(pin, me.salt); writeRow('Members', me, me._row); }
+
+/* ---------------- data ---------------- */
+function pub(name, r) { const o = {}; SCHEMA[name].forEach(function (h) { if (SECRET.indexOf(h) < 0) o[h] = r[h]; }); if (name === 'Members') o.claimed = !!r.pinHash; return o; }
+function syncAll(me) {
+  const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId') } };
+  if (me.role !== 'kid') d.settings.familyCode = setting('familyCode');
+  DATA_TABLES.forEach(function (t) { d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
+  return d;
+}
+function isParent(p, kidId) { const k = findBy('Members', kidId); return !!k && (k.fatherId === p.id || k.motherId === p.id); }
+function mayActFor(me, memberId) { return me.id === memberId || me.role === 'admin' || (me.role !== 'kid' && isParent(me, memberId)); }
+function adultOnly(me) { if (me.role === 'kid') throw new Error('Ask a grown-up to do this'); }
+function ownerOnly(me, old) { if (old && old.by !== me.id && me.role !== 'admin') throw new Error('Only the person who added this can change it'); }
+
+function put(me, table, row) {
+  if (DATA_TABLES.indexOf(table) < 0) throw new Error('Unknown table');
+  const head = SCHEMA[table], clean = {};
+  head.forEach(function (h) { if (SECRET.indexOf(h) < 0 && row[h] !== undefined) clean[h] = str(row[h]); });
+  if (!clean.id) clean.id = newId();
+  if (!/^[A-Za-z0-9_\-]{1,80}$/.test(clean.id)) throw new Error('Bad id');
+  const old = findBy(table, clean.id);
+  const r = Object.assign({}, old || {}, clean);
+  if (!old) { r.ts = now(); if (table !== 'Members' || !r.by) r.by = me.id; } else { r.by = old.by; r.ts = old.ts; }
+
+  switch (table) {
+    case 'Members':
+      if (!String(r.name || '').trim()) throw new Error('Name is needed');
+      if (!old) { adultOnly(me); r.by = me.id; r.role = r.role === 'kid' ? 'kid' : 'adult'; }
+      else {
+        const ok = old.id === me.id || me.role === 'admin' || (me.role !== 'kid' && (!old.pinHash || old.fatherId === me.id || old.motherId === me.id));
+        if (!ok) throw new Error('You can only edit your own profile');
+        if (me.role !== 'admin') r.role = (old.role === 'admin') ? 'admin' : (old.id === me.id ? old.role : (r.role === 'kid' ? 'kid' : 'adult'));
+        else if (['admin', 'adult', 'kid'].indexOf(r.role) < 0) r.role = old.role;
+        if (old.id === me.id && old.role === 'admin' && r.role !== 'admin') {
+          const others = readAll('Members').filter(function (m) { return m.role === 'admin' && m.id !== me.id; });
+          if (!others.length) r.role = 'admin';
+        }
+        SECRET.forEach(function (h) { r[h] = old[h]; });
+      }
+      if (r.avatar && !/^data:image\/(jpeg|png|webp);base64,/.test(r.avatar)) r.avatar = '';
+      break;
+    case 'Posts': case 'Comments':
+      ownerOnly(me, old); r.by = old ? old.by : me.id; break;
+    case 'Reactions':
+      r.by = me.id; r.id = r.postId + '_' + me.id; break;
+    case 'Answers':
+      r.memberId = me.id; r.id = r.week + '_' + me.id; break;
+    case 'Events': case 'Habits': case 'Rewards':
+      adultOnly(me); ownerOnly(me, old); break;
+    case 'Logs':
+      if (!mayActFor(me, r.memberId)) throw new Error('Not allowed');
+      r.id = r.habitId + '_' + r.memberId + '_' + r.date; r.by = me.id; break;
+    case 'Redemptions':
+      if (!old) { if (!mayActFor(me, r.memberId)) throw new Error('Not allowed'); if (me.role === 'kid') r.status = 'requested'; }
+      else {
+        if (me.role === 'kid' || !mayActFor(me, old.memberId)) throw new Error('A parent needs to approve this');
+        const st = r.status; Object.assign(r, old); r.status = st; r.decidedBy = me.id;
+      }
+      if (['requested', 'approved', 'declined'].indexOf(r.status) < 0) r.status = 'requested';
+      break;
+  }
+  const target = (r.id !== clean.id) ? findBy(table, r.id) : old;
+  writeRow(table, r, target ? target._row : 0);
+  announce(me, table, r, target);
+  return pub(table, r);
+}
+
+function del(me, table, id) {
+  if (DATA_TABLES.indexOf(table) < 0) throw new Error('Unknown table');
+  const old = findBy(table, id); if (!old) return {};
+  if (table === 'Members') { if (me.role !== 'admin' || id === me.id) throw new Error('Only an admin can remove people'); }
+  else if (table === 'Logs' || table === 'Redemptions') { if (!mayActFor(me, old.memberId)) throw new Error('Not allowed'); }
+  else if (table === 'Reactions') { if (old.by !== me.id) throw new Error('Not allowed'); }
+  else if (table === 'Answers') { if (old.memberId !== me.id && me.role !== 'admin') throw new Error('Not allowed'); }
+  else ownerOnly(me, old);
+  sh(table).deleteRow(old._row);
+  if (table === 'Posts' && old.photo) try { DriveApp.getFileById(old.photo).setTrashed(true); } catch (e) {}
+  if (table === 'Members') readAll('Sessions').filter(function (s) { return s.memberId === id; }).reverse().forEach(function (s) { sh('Sessions').deleteRow(s._row); });
+  return {};
+}
+
+/* ---------------- photos (private, one Drive folder per person) ---------------- */
+function memberFolder(me) {
+  if (me.folder) { try { const f = DriveApp.getFolderById(me.folder); if (!f.isTrashed()) return f; } catch (e) {} }
+  const f = DriveApp.getFolderById(setting('photoFolder') || MEDIA_FOLDER_ID).createFolder(me.name + ' (' + me.id + ')');
+  me.folder = f.getId();
+  writeRow('Members', me, me._row);
+  return f;
+}
+function upload(me, dataUrl) {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(dataUrl || ''));
+  if (!m) throw new Error('That is not a photo');
+  if (m[2].length > 4000000) throw new Error('Photo is too large');
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HHmmss');
+  const blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], stamp + '.jpg');
+  return { id: memberFolder(me).createFile(blob).getId() };
+}
+function img(id) {
+  if (!readAll('Posts').some(function (p) { return p.photo === id; })) throw new Error('Not found');
+  const b = DriveApp.getFileById(id).getBlob();
+  return { dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+}
+
+/* ---------------- notifications (OneSignal) ---------------- */
+function push(ids, title, body) {
+  try {
+    const app = setting('oneSignalAppId'), key = setting('oneSignalKey');
+    ids = (ids || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
+    if (!app || !key || !ids.length) return;
+    const payload = { app_id: app, target_channel: 'push', include_aliases: { external_id: ids }, headings: { en: String(title).slice(0, 64) }, contents: { en: String(body || '').slice(0, 170) || ' ' } };
+    const url = setting('appUrl'); if (url) payload.url = url;
+    const res = UrlFetchApp.fetch('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', headers: { Authorization: 'Key ' + key }, payload: JSON.stringify(payload), muteHttpExceptions: true });
+    if (res.getResponseCode() >= 300) console.log('OneSignal: ' + res.getContentText());
+  } catch (e) { console.log('push failed: ' + e); }
+}
+function everyoneBut(id) { return readAll('Members').filter(function (m) { return m.pinHash && m.id !== id; }).map(function (m) { return m.id; }); }
+function shortName(m) { return m.nick || String(m.name || '').split(' ')[0]; }
+function announce(me, table, r, old) {
+  const who = shortName(me);
+  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + ' shared something', r.text || 'A new photo');
+  else if ((table === 'Comments' || table === 'Reactions') && !old) {
+    const p = findBy('Posts', r.postId);
+    if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : p.text);
+  }
+  else if (table === 'Events' && !old) push(everyoneBut(me.id), (r.emoji || '📅') + ' ' + r.title, who + ' added a family date: ' + r.date);
+  else if (table === 'Redemptions') {
+    const kid = findBy('Members', r.memberId) || {};
+    if (!old && r.status === 'requested') push([kid.fatherId, kid.motherId], shortName(kid) + ' asked for a reward', r.title + ' (' + r.cost + ' stars)');
+    else if (old && old.status !== r.status && r.memberId !== me.id) push([r.memberId], r.status === 'approved' ? 'Reward approved 🎉' : 'Not this time', r.title);
+  }
+}
+/** Runs every morning (trigger created by setup): birthdays and family dates happening today. */
+function dailyDigest() {
+  const tz = Session.getScriptTimeZone(), md = Utilities.formatDate(new Date(), tz, 'MM-dd'), ymd = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  readAll('Members').filter(function (m) { return m.birth && !m.passed && m.birth.slice(5) === md; })
+    .forEach(function (m) { push(everyoneBut(m.id), '🎂 ' + shortName(m) + "'s birthday is today", 'Send your wishes in the family feed.'); });
+  readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
+    .forEach(function (e) { push(everyoneBut(''), (e.emoji || '📅') + ' Today: ' + e.title, e.note || ''); });
+}
+
+/* ---------------- admin settings ---------------- */
+function saveSettings(me, q) {
+  if (me.role !== 'admin') throw new Error('Only an admin can change settings');
+  if (q.appName) setSetting('appName', String(q.appName).slice(0, 30));
+  if (q.familyCode) { const c = String(q.familyCode).trim(); if (c.length < 6) throw new Error('Family code needs at least 6 characters'); setSetting('familyCode', c); }
+  return {};
+}

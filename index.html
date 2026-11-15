@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kinship</title>
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kinship">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--accent:#0088FF;--page:#F2F2F7;--card:#FFFFFF;--side:#F2F2F7;--ink:#000;--muted:rgba(60,60,67,.6);--tert:rgba(60,60,67,.3);--fill:rgba(120,120,128,.16);--fill3:rgba(118,118,128,.12);--sep:rgba(60,60,67,.14);--glass:rgba(255,255,255,.74);--rim:#E8E8E8;--sel:#EDEDED;--sheet:rgba(242,242,247,.96);--orange:#C55300;--orange2:rgba(255,141,40,.16);--red:#FF383C;--green:#34C759;--grab:#CCC;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--accent:#0091FF;--page:#000;--card:#1C1C1E;--side:#1C1C1E;--ink:#FFF;--muted:rgba(235,235,245,.6);--tert:rgba(235,235,245,.3);--fill:rgba(120,120,128,.32);--fill3:rgba(118,118,128,.24);--sep:rgba(84,84,88,.6);--glass:rgba(44,44,46,.74);--rim:rgba(255,255,255,.14);--sel:rgba(255,255,255,.14);--sheet:rgba(28,28,30,.96);--orange:#FF9F45;--red:#FF4245;--grab:#5A5A5E}#sheet{--card:#2C2C2E}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--page);color:var(--ink);font:400 17px/22px -apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro","Helvetica Neue",system-ui,sans-serif;letter-spacing:-.43px;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+h1,h2,h3{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro","Helvetica Neue",system-ui,sans-serif}
+h1{font-size:34px;line-height:41px;font-weight:700;letter-spacing:.4px}
+h2{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.26px}
+h3{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.43px}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+img{max-width:100%}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 0 0 .5px var(--rim),0 8px 24px rgba(0,0,0,.10)}
+#app{max-width:760px;margin:0 auto;min-height:100%;padding:0 16px calc(110px + env(safe-area-inset-bottom))}
+#app.wide{max-width:none;padding-left:0;padding-right:0}
+.top{padding:calc(6px + env(safe-area-inset-top)) 0 10px}
+#app.wide .top{padding-left:16px;padding-right:16px}
+.top .bar{display:flex;justify-content:flex-end;align-items:center;min-height:44px;margin-bottom:8px}
+.top .bar button{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.top .sub{font-size:15px;line-height:20px;color:var(--muted);letter-spacing:-.23px;margin-top:2px}
+.card{background:var(--card);border-radius:26px;padding:16px;margin:12px 0}
+button.card{display:flex}
+.row{display:flex;align-items:center;gap:12px}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted)}.small{font-size:13px;line-height:18px;letter-spacing:-.08px}.b{font-weight:600}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:28px 4px 6px}
+.sec a,.link{color:var(--accent);font-weight:400;font-size:17px;text-decoration:none;cursor:pointer}
+.small .link{font-size:13px}
+.lrow{position:relative}.lrow+.lrow:before,.ev+.ev:before{content:"";position:absolute;left:48px;right:0;top:0;height:.5px;background:var(--sep)}
+.lrow:after{content:"›";color:var(--tert);font-weight:600;font-size:20px;margin-left:4px}
+.btn{background:var(--accent);color:#fff;border-radius:1000px;min-height:50px;padding:0 20px;font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn.ghost{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.btn.clay{background:var(--accent)}
+.btn.line{background:var(--fill);color:var(--ink)}
+.btn.sm{min-height:34px;padding:0 14px;font-size:15px;letter-spacing:-.23px}
+.btn.block{display:flex;width:100%}
+.btn:disabled{background:var(--fill);color:var(--tert)}
+.btn:active,.chip:active,.habit:active,.opt:active{opacity:.6}
+.av{border-radius:50%;object-fit:cover;flex:none;display:inline-flex;align-items:center;justify-content:center;font-weight:600;color:#fff;background:linear-gradient(#A9BCE1,#7983BE);overflow:hidden;letter-spacing:0}
+.av.passed{filter:grayscale(1);opacity:.75}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--fill);color:var(--ink);border-radius:1000px;padding:6px 12px;font-weight:600;font-size:13px;line-height:18px;letter-spacing:-.08px;white-space:nowrap}
+.chip.clay{background:var(--orange2);color:var(--orange)}
+.chip.sel{background:var(--accent);color:#fff}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.seg{display:flex;background:var(--fill3);border-radius:1000px;padding:2px;margin:6px 0 8px;height:36px}
+.seg button{flex:1;border-radius:1000px;font-weight:500;font-size:14px;letter-spacing:-.15px}
+.seg button.on{background:var(--card);font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.10),0 0 0 .5px var(--sep)}
+@media(prefers-color-scheme:dark){.seg button.on{background:#636366}}
+/* tab bar: floating glass capsule */
+.nav{position:fixed;left:0;right:0;bottom:0;padding:16px 21px calc(25px + env(safe-area-inset-bottom) * .4);z-index:20;pointer-events:none}
+.nav div{max-width:360px;margin:0 auto;display:flex;padding:4px;border-radius:1000px;pointer-events:auto}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 4px 7px;font-size:10px;line-height:12px;font-weight:600;letter-spacing:0;color:var(--ink);border-radius:100px}
+.nav button.on{color:var(--accent);background:var(--sel)}
+.nav svg,.srow svg{width:26px;height:28px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* sidebar (Mac / wide) */
+#side{display:none}
+@media(min-width:900px){
+  :root{--page:#FFFFFF}
+  #side{display:flex;flex-direction:column;gap:8px;position:fixed;left:0;top:0;bottom:0;width:300px;background:var(--side);padding:24px 20px;z-index:20;overflow:auto;border-right:.5px solid var(--sep)}
+  #side[hidden]{display:none}
+  #app{--card:#F2F2F7}
+  #app.shell{margin-left:300px;max-width:none;padding:8px 40px 60px}
+  #app.shell>*{max-width:820px;margin-left:auto;margin-right:auto}
+  #app.shell.wide{padding-left:0;padding-right:0}
+  #app.shell.wide>*{max-width:none}
+  #app.shell.wide .top,#app.shell.wide .treebar,#app.shell.wide .pad{padding-left:40px;padding-right:40px}
+  .nav{display:none}
+  .top .bar{display:none}.top{padding-top:28px}
+  #sheetWrap.shell{left:300px}
+}
+@media(min-width:900px) and (prefers-color-scheme:dark){:root{--page:#000}#app{--card:#1C1C1E}}
+.sbrand{display:flex;align-items:center;gap:12px;padding:6px 8px 14px;font-size:20px;font-weight:700;letter-spacing:-.45px}
+.sbrand img{width:38px;height:38px;border-radius:10px}
+.srow{display:flex;align-items:center;height:52px;padding:0 16px 0 3px;border-radius:1000px;width:100%;text-align:left}
+.srow span.i{width:52px;display:flex;justify-content:center;color:var(--accent)}
+.srow.on{background:var(--fill)}
+.srow.me{margin-top:auto;padding-left:10px;gap:12px}
+.clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.clock{background:var(--card);border-radius:22px;padding:12px 16px}
+.clock .t{font-size:28px;line-height:34px;font-weight:700;letter-spacing:.38px}
+.hero{background:var(--accent);color:#fff;border-radius:26px;padding:20px;margin-top:6px}
+.hero h2{font-size:22px}.hero p{margin:4px 0 0;opacity:.85;font-size:15px}
+.ev{display:flex;gap:12px;align-items:center;padding:10px 0;position:relative}
+.ev .d{width:46px;height:48px;border-radius:12px;background:var(--fill3);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:600;font-size:20px;line-height:22px;flex:none}
+.ev .d small{font-size:11px;line-height:13px;text-transform:uppercase;color:var(--red);letter-spacing:.06px}
+.ev+.ev:before{left:58px}
+.post .ph{width:100%;border-radius:16px;margin-top:10px;background:var(--fill3);min-height:120px;display:block}
+.post p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.acts{display:flex;gap:22px;margin-top:12px;font-size:15px;color:var(--muted)}
+.acts .on{color:var(--red)}
+.habit{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:68px;border-radius:22px;background:var(--card);margin:8px 0;width:100%;text-align:left}
+.habit .e{font-size:28px;width:40px;text-align:center}
+.habit .ck{width:28px;height:28px;border-radius:50%;border:2px solid var(--tert);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none}
+.habit.done .ck{background:var(--accent);border-color:var(--accent)}
+.habit.done .b{color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.stat{background:var(--card);border-radius:22px;padding:12px 8px;text-align:center}
+.stat b{display:block;font-size:22px;line-height:28px;font-weight:700}
+.pop{position:fixed;z-index:60;font-weight:700;color:var(--orange);pointer-events:none;animation:pop .9s ease-out forwards}
+@keyframes pop{to{transform:translateY(-70px);opacity:0}}
+/* tree */
+.treebar{display:flex;gap:8px;align-items:center;padding:0 16px 10px}
+.treewrap{overflow:auto;background:var(--card);max-height:calc(100vh - 290px);-webkit-overflow-scrolling:touch;border-top:.5px solid var(--sep);border-bottom:.5px solid var(--sep)}
+.tree{position:relative;transform-origin:0 0}
+.tree svg{position:absolute;left:0;top:0;pointer-events:none}
+.tc{position:absolute;width:92px;text-align:center;padding:8px 4px;border-radius:20px;background:var(--page);font-size:13px;font-weight:600;line-height:16px;letter-spacing:-.08px}
+.tc.me{box-shadow:0 0 0 2px var(--accent)}
+.tc.stub{background:transparent;box-shadow:inset 0 0 0 1px var(--tert)}
+.tc>span:not(.av){display:block;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc i{font-style:normal;font-weight:400;color:var(--muted);font-size:11px;display:block}
+.tlabel{position:absolute;font-size:15px;font-weight:600;color:var(--muted);white-space:nowrap}
+.pad{padding:0 16px}
+/* sheet: floating glass card, 8pt inset, 38pt corners */
+#sheetWrap{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:40;display:none;align-items:flex-end;justify-content:center;padding:8px 8px calc(8px + env(safe-area-inset-bottom) * .5)}
+#sheetWrap.on{display:flex}
+#sheet{background:var(--sheet);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);width:100%;max-width:560px;max-height:calc(100% - 54px - env(safe-area-inset-top));overflow:auto;border-radius:38px;padding:0 16px 22px;box-shadow:0 0 0 .5px var(--rim),0 8px 48px rgba(0,0,0,.25)}
+#sheet:before{content:"";display:block;width:58px;height:4px;border-radius:100px;background:var(--grab);margin:6px auto 5px}
+@media(min-width:700px){#sheetWrap{align-items:center}}
+.sh{display:flex;align-items:center;justify-content:flex-end;min-height:44px;margin-bottom:10px;position:relative}
+.sh h2{position:absolute;left:52px;right:52px;text-align:center;font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.43px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{width:44px;height:44px;border-radius:50%;font-size:22px;font-weight:500;line-height:1;background:var(--glass);box-shadow:0 0 0 .5px var(--rim),0 4px 12px rgba(0,0,0,.06);flex:none}
+.card .x,.row .x{width:30px;height:30px;font-size:17px;box-shadow:none;background:var(--fill3);color:var(--muted)}
+label{display:block;font-size:13px;line-height:18px;color:var(--muted);letter-spacing:-.08px;margin:14px 16px 6px}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=password],select,textarea{width:100%;border:0;background:var(--card);border-radius:16px;padding:15px 16px;min-height:52px;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 2px var(--accent)}
+input[type=file]{font-size:15px;width:100%}
+textarea{min-height:96px;resize:vertical;display:block}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.two>div{min-width:0}input{min-width:0;max-width:100%}
+.days{display:flex;gap:6px}.days label{margin:0;flex:1}
+.days input{display:none}.days span{display:block;text-align:center;padding:9px 0;border-radius:1000px;background:var(--card);font-size:15px;color:var(--ink);font-weight:600}
+.days input:checked+span{background:var(--accent);color:#fff}
+.check{display:flex;align-items:center;gap:10px;font-size:17px;line-height:22px;color:var(--ink);letter-spacing:-.43px;margin:10px 0;background:var(--card);border-radius:16px;padding:13px 16px}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+form .btn.block{margin-top:16px}
+#toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:rgba(40,40,40,.86);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;padding:11px 18px;border-radius:1000px;font-weight:600;font-size:15px;z-index:80;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+.banner{background:var(--fill);color:var(--muted);font-size:13px;line-height:18px;text-align:center;padding:6px 12px;padding-top:calc(6px + env(safe-area-inset-top))}
+.login{max-width:420px;margin:0 auto;padding:12vh 22px 40px;text-align:center}
+.login img{width:92px;height:92px;border-radius:22px}
+.login h1{margin:16px 0 6px}
+.login label{text-align:left}
+.who{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;text-align:center}
+.who button{background:var(--card);border-radius:22px;padding:12px 4px;font-weight:600;font-size:13px}
+.fact{display:flex;gap:10px;padding:11px 0;position:relative}.fact+.fact:before{content:"";position:absolute;left:0;right:0;top:0;height:.5px;background:var(--sep)}
+.fact b{width:128px;flex:none;color:var(--muted);font-weight:400}
+.empty{text-align:center;color:var(--muted);padding:26px 10px;font-size:15px;line-height:20px}
+.opt{display:block;width:100%;text-align:left;padding:15px 16px;border-radius:16px;background:var(--fill3);margin:8px 0}
+.opt.right{background:color-mix(in srgb,var(--green) 22%,transparent);font-weight:600}.opt.wrong{background:color-mix(in srgb,var(--red) 18%,transparent)}
+
+/* colour (iOS system palette) */
+.hero{background:linear-gradient(135deg,#0088FF,#6155F5 55%,#CB30E0)}
+.clock:nth-child(4n+1) .t{color:#0088FF}.clock:nth-child(4n+2) .t{color:#FF8D28}.clock:nth-child(4n+3) .t{color:#34C759}.clock:nth-child(4n+4) .t{color:#CB30E0}
+.chip.sel[style]{background:var(--c)}
+.khero{display:flex;align-items:center;gap:16px;border-radius:26px;padding:16px 18px;margin:10px 0;color:#fff;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 55%,#6155F5))}
+.khero p{margin:2px 0 0;opacity:.9;font-size:15px;line-height:20px}
+.ring{width:76px;height:76px;flex:none}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}.ring .trk{stroke:rgba(255,255,255,.3)}.ring .prg{stroke:#fff}
+.ring text{fill:#fff;font-size:17px;font-weight:700;letter-spacing:0}
+.stat{background:color-mix(in srgb,var(--c,var(--accent)) 14%,var(--card))}.stat b{color:var(--c,var(--ink))}
+.tile{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none;background:color-mix(in srgb,var(--c,var(--accent)) 20%,transparent)}
+.habit.done .ck{background:var(--c,var(--accent));border-color:var(--c,var(--accent))}
+.habit.done{background:color-mix(in srgb,var(--c,var(--accent)) 10%,var(--card))}
+.rank{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--tert);flex:none}
+.rank.r1{background:#FFCC00;color:#5c4700}.rank.r2{background:#A2A2A7}.rank.r3{background:#AC7F5E}
+.meet{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 26%,var(--card)),var(--card) 62%)}
+.qcard{background:linear-gradient(135deg,#FFE27A,#FFB45C);color:#1C1C1E}.qcard input[type=text]{background:#fff;color:#000}
+.quiz{background:color-mix(in srgb,#6155F5 12%,var(--card))}
+/* motion (same easings as Orbit) */
+:root{--ease:cubic-bezier(.32,.72,0,1);--spring:cubic-bezier(.34,1.36,.64,1)}
+.btn,.chip,.habit,.opt,.x,.nav button,.srow,.seg button,.tc,.who button{transition:transform .25s var(--ease),background-color .25s var(--ease),opacity .2s}
+.btn:active,.chip:active,.opt:active,.x:active,.who button:active{transform:scale(.96);opacity:1}
+.habit:active{transform:scale(.985);opacity:1}.nav button:active,.srow:active{transform:scale(.94)}
+#sheetWrap.on{animation:fadeIn .25s ease}
+#sheetWrap.on #sheet{animation:sheetUp .5s var(--ease)}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes sheetUp{from{transform:translateY(60px) scale(.985);opacity:0}}
+#toast{transition:opacity .25s,transform .45s var(--spring);transform:translateX(-50%) translateY(16px)}#toast.on{transform:translateX(-50%)}
+.cf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:90;pointer-events:none}
+[data-haptic]{position:absolute;inset:0;z-index:5;border-radius:inherit;touch-action:manipulation;cursor:pointer;margin:0;padding:0;background:none}
+[data-haptic] input{position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;visibility:hidden;pointer-events:none;min-height:0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="banner"></div>
+<div id="app"></div>
+<aside id="side" hidden></aside>
+<nav class="nav" id="nav" hidden><div class="glass"></div></nav>
+<div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
+<div id="toast"></div>
+<script>
+/* ============ SETTINGS: change these two lines ============ */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbwdczETJa_ogzocppDe4Wzh7Mbuz95D9_I6tLVxyYLhc7QYu5dYVFeYo2eNlDYbf8rJ/exec',   // the Web app URL from Google Apps Script (ends in /exec)
+  APP_NAME: 'Kinship',
+  ONESIGNAL_APP_ID: ''   // optional here: it is normally read from the Settings tab of the Google Sheet
+};
+/* ========================================================== */
+const DEMO = !/^https:\/\/script\.google(usercontent)?\.com\//.test(CONFIG.API_URL);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem('fam_' + k)); } catch(e){ return null; } },
+  set(k, v){ try { localStorage.setItem('fam_' + k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem('fam_' + k); } catch(e){} }
+};
+const st = { token:null, db:null, tab:'home', seg:'today', kidId:null, zoom:1, code:'', feedN:20, quiz:null, meet:null, login:{step:'code'} };
+const TABLES = ['members','posts','comments','reactions','events','habits','logs','rewards','redemptions','answers'];
+
+const COUNTRIES = [['India','IN','Asia/Kolkata'],['United Arab Emirates','AE','Asia/Dubai'],['Philippines','PH','Asia/Manila'],['United Kingdom','GB','Europe/London'],['United States','US','America/New_York'],['Canada','CA','America/Toronto'],['Australia','AU','Australia/Sydney'],['New Zealand','NZ','Pacific/Auckland'],['Singapore','SG','Asia/Singapore'],['Saudi Arabia','SA','Asia/Riyadh'],['Qatar','QA','Asia/Qatar'],['Oman','OM','Asia/Muscat'],['Kuwait','KW','Asia/Kuwait'],['Bahrain','BH','Asia/Bahrain'],['Germany','DE','Europe/Berlin'],['France','FR','Europe/Paris'],['Spain','ES','Europe/Madrid'],['Italy','IT','Europe/Rome'],['Netherlands','NL','Europe/Amsterdam'],['Ireland','IE','Europe/Dublin'],['Portugal','PT','Europe/Lisbon'],['Switzerland','CH','Europe/Zurich'],['South Africa','ZA','Africa/Johannesburg'],['Kenya','KE','Africa/Nairobi'],['Malaysia','MY','Asia/Kuala_Lumpur'],['Sri Lanka','LK','Asia/Colombo'],['Nepal','NP','Asia/Kathmandu'],['Pakistan','PK','Asia/Karachi'],['Bangladesh','BD','Asia/Dhaka'],['Japan','JP','Asia/Tokyo'],['Hong Kong','HK','Asia/Hong_Kong'],['Thailand','TH','Asia/Bangkok'],['Indonesia','ID','Asia/Jakarta']];
+const cInfo = n => COUNTRIES.find(c => c[0] === n);
+const flag = n => { const c = cInfo(n); return c ? String.fromCodePoint(...[...c[1]].map(ch => 127397 + ch.charCodeAt(0))) : '🌍'; };
+const QUESTIONS = ['What made you laugh this week?','What is your favourite thing to eat at a family party?','If all the cousins could go on one trip together, where should we go?','What is one thing you are really good at?','What game should we all play together next time?','What is the best thing about where you live?','Which animal would you love as a pet, and why?','What is something new you learned this month?','What is your favourite family memory?','What do you want to be when you grow up?','What song should be our family song?','What would you cook for the whole family?'];
+
+/* ---------- API ---------- */
+async function api(action, payload = {}){
+  if (DEMO) return demoApi(action, payload);
+  let j;
+  try {
+    const r = await fetch(CONFIG.API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action, token: st.token, ...payload }) });
+    j = await r.json();
+  } catch(e){ throw new Error('No connection. Please try again.'); }
+  if (!j.ok){ if (/session/i.test(j.error)) signOut(true); throw new Error(j.error); }
+  return j.data;
+}
+async function sync(){
+  const d = await api('sync', { appUrl: location.href.split(/[?#]/)[0] });
+  st.db = d; LS.set('db', d); pushLogin();
+  if (d.settings && d.settings.appName) document.title = d.settings.appName;
+  render();
+}
+async function save(table, row){
+  const arr = st.db[table.toLowerCase()];
+  if (!row.id) row.id = uid();
+  const i = arr.findIndex(x => x.id === row.id);
+  const merged = { ts:String(Date.now()), by:st.db.me, ...(i >= 0 ? arr[i] : {}), ...row };
+  if (i >= 0) arr[i] = merged; else arr.push(merged);
+  render();
+  try { Object.assign(merged, await api('put', { table, row: merged })); LS.set('db', st.db); }
+  catch(e){ toast(e.message); try { await sync(); } catch(_){} throw e; }
+  return merged;
+}
+async function removeRow(table, id){
+  const k = table.toLowerCase();
+  st.db[k] = st.db[k].filter(x => x.id !== id); render();
+  try { await api('del', { table, id }); LS.set('db', st.db); } catch(e){ toast(e.message); try { await sync(); } catch(_){} }
+}
+
+/* ---------- helpers ---------- */
+const M = id => id ? st.db.members.find(m => m.id === id) : null;
+const me = () => M(st.db.me) || {};
+const first = m => m ? (m.nick || String(m.name || '').split(' ')[0]) : '';
+const isKid = m => m && m.role === 'kid';
+const isAdmin = () => me().role === 'admin';
+const spouseOf = m => m ? (M(m.spouseId) || st.db.members.find(x => x.spouseId === m.id) || null) : null;
+const parentsOf = m => m ? [M(m.fatherId), M(m.motherId)].filter(Boolean) : [];
+const byBirth = (a, b) => String(a.birth || '9').localeCompare(String(b.birth || '9')) || String(a.name).localeCompare(String(b.name));
+const childrenOf = m => st.db.members.filter(c => c.fatherId === m.id || c.motherId === m.id).sort(byBirth);
+const isParentOf = (p, k) => !!k && (k.fatherId === p.id || k.motherId === p.id);
+const canEdit = m => m.id === me().id || isAdmin() || (!isKid(me()) && (!m.claimed || isParentOf(me(), m)));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const today = () => ymd(new Date());
+const pDate = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const age = m => { if (!m.birth) return null; const b = pDate(m.birth), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) a--; return a; };
+const timeIn = tz => { try { return new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit', timeZone: tz || undefined }).format(new Date()); } catch(e){ return ''; } };
+const dayIn = tz => { try { return new Intl.DateTimeFormat([], { weekday:'short', timeZone: tz || undefined }).format(new Date()); } catch(e){ return ''; } };
+const ago = ts => { const s = (Date.now() - Number(ts)) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60) + ' min ago'; if (s < 86400) return Math.floor(s/3600) + ' h ago'; if (s < 604800) return Math.floor(s/86400) + ' d ago'; const d = new Date(Number(ts)); return d.getDate() + ' ' + MON[d.getMonth()]; };
+const PAL = ['#FF383C','#FF8D28','#FFCC00','#34C759','#00C8B3','#00C3D0','#00C0E8','#0088FF','#6155F5','#CB30E0','#FF2D55','#AC7F5E'];
+const AVP = ['#FF383C','#FF8D28','#34C759','#00C8B3','#00C0E8','#0088FF','#6155F5','#CB30E0','#FF2D55'];
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const colorOf = id => AVP[hue(id) % AVP.length];
+function av(m, size = 44){
+  if (!m) return '';
+  const cls = 'av' + (m.passed ? ' passed' : '');
+  if (m.avatar) return `<img class="${cls}" src="${esc(m.avatar)}" style="width:${size}px;height:${size}px" alt="">`;
+  const ini = String(m.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  return `<span class="${cls}" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px;background:linear-gradient(color-mix(in srgb,${colorOf(m.id || m.name)} 62%,#fff),${colorOf(m.id || m.name)})">${esc(ini)}</span>`;
+}
+function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2600); }
+function compress(file, max, q){
+  return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const s = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(img.src); res(c.toDataURL('image/jpeg', q)); }; img.onerror = () => rej(new Error('Could not read that photo')); img.src = URL.createObjectURL(file); });
+}
+function squareAvatar(file){
+  return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(img, (img.width - s)/2, (img.height - s)/2, s, s, 0, 0, 128, 128); res(c.toDataURL('image/jpeg', .62)); }; img.onerror = () => rej(new Error('Could not read that photo')); img.src = URL.createObjectURL(file); });
+}
+
+/* ---------- photo cache (IndexedDB) ---------- */
+const photoMem = new Map();
+const idb = new Promise(res => { try { const r = indexedDB.open('fam_photos', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch(e){ res(null); } });
+async function getPhoto(id){
+  if (photoMem.has(id)) return photoMem.get(id);
+  const p = (async () => {
+    const db = await idb;
+    if (db){ const hit = await new Promise(r => { const q = db.transaction('p').objectStore('p').get(id); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); if (hit) return hit; }
+    const d = (await api('img', { id })).dataUrl;
+    if (db && d) try { db.transaction('p', 'readwrite').objectStore('p').put(d, id); } catch(e){}
+    return d;
+  })();
+  photoMem.set(id, p); return p;
+}
+function loadPhotos(){ document.querySelectorAll('img[data-photo]').forEach(el => { const id = el.dataset.photo; el.removeAttribute('data-photo'); getPhoto(id).then(d => { if (d) el.src = d; }).catch(() => {}); }); }
+
+
+/* ---------- Motion: screen transitions, haptics, confetti (modelled on Orbit) ---------- */
+const Motion = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, SETTLE = 'cubic-bezier(.32,.72,0,1)';
+  const anim = (el, frames, opts) => (reduce || !el || !el.animate ? null : el.animate(frames, opts));
+  const M = { enter: false, ringFrom: null };
+  M.bounce = el => anim(el, [{ transform:'scale(1)' }, { transform:'scale(1.3)', offset:.45 }, { transform:'scale(1)' }], { duration:520, easing:SETTLE });
+  M.haptic = () => { try { if (!IOS && navigator.vibrate) navigator.vibrate(8); } catch(e){} };
+  const HAPTIC = '.btn, .nav button, .srow, .seg button, .habit, button.chip, .opt, .x, .acts button, .who button, .top .bar button';
+  M.arm = root => { if (!IOS || !root) return; root.querySelectorAll(HAPTIC).forEach(el => {
+    if (el.querySelector(':scope > [data-haptic]')) return;
+    const lb = document.createElement('label'); lb.setAttribute('data-haptic', ''); lb.setAttribute('aria-hidden', 'true');
+    const sw = document.createElement('input'); sw.type = 'checkbox'; sw.setAttribute('switch', ''); sw.tabIndex = -1; sw.addEventListener('click', e => e.stopPropagation());
+    lb.appendChild(sw); if (getComputedStyle(el).position === 'static') el.style.position = 'relative'; el.appendChild(lb); }); };
+  M.after = () => {
+    const app = document.getElementById('app');
+    if (M.enter){ M.enter = false; let n = 0; Array.from(app.children).flatMap(el => el.classList.contains('clocks') || el.classList.contains('stats') ? Array.from(el.children) : [el]).forEach(el => { if (el.getBoundingClientRect().top > innerHeight + 40) return; anim(el, [{ opacity:0, transform:'translateY(14px) scale(.985)' }, { opacity:1, transform:'none' }], { duration:460, delay:Math.min(n++, 7) * 32, easing:SETTLE, fill:'backwards' }); }); }
+    const prg = app.querySelector('.prg');
+    if (prg){ const C = 2 * Math.PI * 30, to = +prg.dataset.pct; if (M.ringFrom != null && M.ringFrom !== to) anim(prg, [{ strokeDashoffset:C * (1 - M.ringFrom) }, { strokeDashoffset:C * (1 - to) }], { duration:650, easing:SETTLE }); M.ringFrom = to; } else M.ringFrom = null;
+    M.arm(app); M.arm(document.getElementById('nav')); M.arm(document.getElementById('side'));
+  };
+  M.confetti = () => { if (reduce) return; for (let i = 0; i < 36; i++){ const d = document.createElement('div'); d.className = 'cf'; d.style.left = (8 + Math.random() * 84) + 'vw'; d.style.background = PAL[i % PAL.length]; document.body.appendChild(d);
+    d.animate([{ transform:'translateY(0) rotate(0)', opacity:1 }, { transform:`translate(${(Math.random() - .5) * 160}px,${innerHeight * (.55 + Math.random() * .4)}px) rotate(${Math.random() * 720}deg)`, opacity:0 }], { duration:1300 + Math.random() * 900, delay:Math.random() * 250, easing:'cubic-bezier(.2,.6,.4,1)', fill:'forwards' }).onfinish = () => d.remove(); } };
+  return M;
+})();
+
+/* ---------- notifications (OneSignal web push) ---------- */
+const PUSH = { ready:null };
+const pushAppId = () => (st.db && st.db.settings && st.db.settings.oneSignalAppId) || CONFIG.ONESIGNAL_APP_ID || '';
+function pushInit(){
+  if (DEMO || !/^[0-9a-f-]{36}$/i.test(pushAppId())) return Promise.resolve(null);
+  if (PUSH.ready) return PUSH.ready;
+  PUSH.ready = new Promise(res => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async OneSignal => { try { const base = location.pathname.replace(/[^/]*$/, ''); await OneSignal.init({ appId: pushAppId(), serviceWorkerPath: base.slice(1) + 'OneSignalSDKWorker.js', serviceWorkerParam: { scope: base } }); res(OneSignal); } catch(e){ console.warn('OneSignal', e); res(null); } });
+    const sc = document.createElement('script'); sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; sc.defer = true; sc.onerror = () => res(null); document.head.appendChild(sc);
+  });
+  return PUSH.ready;
+}
+async function pushLogin(){ const os = await pushInit(); if (os && st.db) try { await os.login(st.db.me); } catch(e){} }
+const pushIsOn = () => { try { return !!(window.OneSignal && OneSignal.Notifications && OneSignal.Notifications.permission); } catch(e){ return false; } };
+async function pushEnable(){
+  const os = await pushInit(); if (!os){ toast('Notifications are not set up yet'); return; }
+  try {
+    if (!os.Notifications.isPushSupported()){ toast(IOS ? 'Add the app to your Home Screen, then open it from there' : 'This browser does not support notifications'); return; }
+    await os.Notifications.requestPermission(); await os.login(st.db.me);
+    toast(pushIsOn() ? 'Notifications are on' : 'Notifications are blocked. Allow them in your device settings.');
+  } catch(e){ toast('Could not turn on notifications'); }
+  if (sheetFn) $('#sheet').innerHTML = sheetFn();
+}
+
+/* ---------- relationships ---------- */
+function ancestors(id){ const out = new Map([[id, 0]]); const q = [id]; while (q.length){ const c = q.shift(), m = M(c); if (!m) continue; for (const p of [m.fatherId, m.motherId]) if (p && M(p) && !out.has(p)){ out.set(p, out.get(c) + 1); q.push(p); } } return out; }
+function blood(a, b){ const A = ancestors(a), B = ancestors(b); let best = null; for (const [id, da] of A) if (B.has(id)){ const db = B.get(id); if (!best || da + db < best[0] + best[1]) best = [da, db]; } return best; }
+const ORD = ['','','second ','third ','fourth '];
+function bloodName(da, db, g){
+  const f = g === 'female', mm = g === 'male', pick = (a, b, c) => f ? a : mm ? b : c;
+  const gr = n => n <= 0 ? '' : n === 1 ? 'grand' : 'great-'.repeat(n - 1) + 'grand';
+  if (da === 0 && db === 0) return 'you';
+  if (db === 0) return gr(da - 1) + pick('mother', 'father', 'parent');
+  if (da === 0) return gr(db - 1) + pick('daughter', 'son', 'child');
+  if (da === 1 && db === 1) return pick('sister', 'brother', 'sibling');
+  if (db === 1) return (da > 2 ? gr(da - 2).replace('grand', 'great-') : '') + pick('aunt', 'uncle', 'aunt/uncle');
+  if (da === 1) return (db > 2 ? gr(db - 2).replace('grand', 'great-') : '') + pick('niece', 'nephew', 'niece/nephew');
+  const deg = Math.min(da, db) - 1, rem = Math.abs(da - db);
+  return (ORD[deg] ?? deg + 'th ') + 'cousin' + (rem === 1 ? ' once removed' : rem === 2 ? ' twice removed' : rem ? ` ${rem}× removed` : '');
+}
+function relation(bId){
+  const a = me(), b = M(bId); if (!b || !a.id) return '';
+  if (a.id === b.id) return 'you';
+  let r = blood(a.id, b.id); if (r) return bloodName(r[0], r[1], b.gender);
+  const sa = spouseOf(a), sb = spouseOf(b), g = b.gender;
+  if (sa && sa.id === b.id) return g === 'female' ? 'wife' : g === 'male' ? 'husband' : 'spouse';
+  if (sa && (r = blood(sa.id, b.id))){ const n = bloodName(r[0], r[1], g); if (/niece|nephew/.test(n)) return n; return /cousin|aunt|uncle|grand/.test(n) && !/^grand(mother|father|parent)$/.test(n) ? n + ' (by marriage)' : n + '-in-law'; }
+  if (sb && (r = blood(a.id, sb.id))){
+    const [da, db] = r, f = g === 'female';
+    if (da === 0 && db === 1) return f ? 'daughter-in-law' : 'son-in-law';
+    if (da === 1 && db === 1) return f ? 'sister-in-law' : 'brother-in-law';
+    if (db === 1 && da >= 2) return bloodName(da, db, g) + ' (by marriage)';
+    return bloodName(da, db, sb.gender) + "'s " + (f ? 'wife' : 'husband');
+  }
+  if (sa && sb && (r = blood(sa.id, sb.id))) return r[0] === 1 && r[1] === 1 ? (g === 'female' ? 'sister-in-law' : 'brother-in-law') : 'family by marriage';
+  return 'family';
+}
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+
+/* ---------- events ---------- */
+function nextOcc(s){ const d = pDate(s), n = pDate(today()); let c = new Date(n.getFullYear(), d.getMonth(), d.getDate()); if (c < n) c = new Date(n.getFullYear() + 1, d.getMonth(), d.getDate()); return c; }
+function upcoming(){
+  const out = [], t0 = pDate(today()), seen = new Set();
+  for (const m of st.db.members){
+    if (m.birth && !m.passed){ const d = nextOcc(m.birth); const turn = d.getFullYear() - pDate(m.birth).getFullYear(); out.push({ d, emoji:'🎂', title: first(m) + "'s birthday", sub: isKid(m) && turn > 0 ? 'Turning ' + turn : (m.country ? flag(m.country) + ' ' + m.country : ''), mid:m.id }); }
+    const sp = spouseOf(m); const an = m.anniv || (sp && sp.anniv);
+    if (sp && an && !m.passed && !sp.passed){ const key = [m.id, sp.id].sort().join(); if (!seen.has(key)){ seen.add(key); const d = nextOcc(an); out.push({ d, emoji:'💍', title: first(m) + ' & ' + first(sp) + "'s anniversary", sub: (d.getFullYear() - pDate(an).getFullYear()) + ' years', mid:m.id }); } }
+  }
+  for (const e of st.db.events){
+    const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
+    const d = e.yearly === '1' ? nextOcc(base) : pDate(base); if (d < t0) continue;
+    out.push({ d, emoji: e.emoji || '📅', title: e.title, sub: e.note || '', at: e.at, eid: e.id, by: e.by });
+  }
+  return out.sort((a, b) => a.d - b.d);
+}
+const inDays = d => { const n = Math.round((d - pDate(today())) / 864e5); return n === 0 ? 'Today 🎉' : n === 1 ? 'Tomorrow' : 'in ' + n + ' days'; };
+function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
+function evRow(e){
+  let times = '';
+  if (e.at){ const t = new Date(e.at); const f = tz => new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit', timeZone:tz }).format(t); times = f(undefined).replace(' ', '\u00A0') + zones().filter(z => z.tz !== Intl.DateTimeFormat().resolvedOptions().timeZone).map(z => ` · ${flag(z.country)}\u00A0${f(z.tz).replace(' ', '\u00A0')}`).join(''); }
+  const click = e.eid ? `onclick="eventSheet('${e.eid}')"` : e.mid ? `onclick="profileSheet('${e.mid}')"` : '';
+  return `<div class="ev" ${click}><div class="d"><small>${MON[e.d.getMonth()]}</small>${e.d.getDate()}</div><div class="grow"><div class="b">${e.emoji} ${esc(e.title)}</div><div class="small muted">${esc([times, e.sub].filter(Boolean).join(' · '))}</div></div><span class="chip ${inDays(e.d).startsWith('Today') ? 'clay' : ''}">${inDays(e.d)}</span></div>`;
+}
+
+/* ---------- kids: points ---------- */
+const kidsList = () => st.db.members.filter(m => isKid(m) && !m.passed).sort(byBirth);
+const myKids = () => isKid(me()) ? [me()] : kidsList().filter(k => isAdmin() || isParentOf(me(), k)).sort((a, b) => isParentOf(me(), b) - isParentOf(me(), a));
+const pointsOf = (id, from) => st.db.logs.filter(l => l.memberId === id && (!from || l.date >= from)).reduce((s, l) => s + Number(l.points || 0), 0);
+const balance = id => pointsOf(id) - st.db.redemptions.filter(r => r.memberId === id && r.status !== 'declined').reduce((s, r) => s + Number(r.cost || 0), 0);
+const weekStart = () => { const d = pDate(today()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); };
+function streak(id){ const days = new Set(st.db.logs.filter(l => l.memberId === id).map(l => l.date)); const d = pDate(today()); if (!days.has(ymd(d))) d.setDate(d.getDate() - 1); let n = 0; while (days.has(ymd(d))){ n++; d.setDate(d.getDate() - 1); } return n; }
+const habitsFor = id => st.db.habits.filter(h => h.active !== '0' && String(h.who).split(',').includes(id));
+
+/* ================= RENDER ================= */
+const ICON = {
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  tree:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M5 16.5V12h14v4.5"/>',
+  feed:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 15l5-4 4 3 3-2 6 4"/>',
+  kids:'<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+};
+const TABS = [['home','Home'],['tree','Tree'],['feed','Feed'],['kids','Kids'],['cal','Dates']];
+const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
+function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
+function render(){
+  if (!st.db){ renderLogin(); return; }
+  $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
+  $('#nav').hidden = false;
+  $('#nav').firstElementChild.innerHTML = TABS.map(([k, l]) => `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+  $('#side').hidden = false;
+  $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><span class="i"><svg viewBox="0 0 24 24">${ICON[k]}</svg></span>${SIDE[k] || l}</button>`).join('') + `<button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
+  const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree');
+  const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
+  app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal })[st.tab]();
+  if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
+  loadPhotos();
+  if (sheetLive && sheetFn) { $('#sheet').innerHTML = sheetFn(); loadPhotos(); Motion.arm($('#sheet')); }
+  Motion.after();
+}
+const topBar = (title, sub) => `<div class="top"><div class="bar"><button class="glass" onclick="meSheet()" aria-label="Me and settings">${av(me(), 36)}</button></div><h1>${esc(title)}</h1><div class="sub">${esc(sub || '')}</div></div>`;
+
+/* ---------- HOME ---------- */
+function vHome(){
+  const m = me(), ms = st.db.members.filter(x => !x.passed), zs = zones(), up = upcoming().slice(0, 3);
+  const h = new Date().getHours(), greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const kids = kidsList(), ws = weekStart();
+  const board = kids.map(k => [k, pointsOf(k.id, ws)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const last = [...st.db.posts].sort((a, b) => b.ts - a.ts)[0];
+  const needs = !m.country || !m.birth || (!m.fatherId && !m.motherId && !spouseOf(m));
+  return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) +
+  `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
+  (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
+  (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock"><div class="small b">${flag(z.country)} ${esc(z.country)}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
+  `<div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Add birthdays to profiles and they will show up here.</div>'}</div>` +
+  (board.length ? `<div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div>` : '') +
+  `<div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">Open feed</a></div>` + (last ? postCard(last) : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
+}
+
+/* ---------- TREE ---------- */
+const CW = 92, CH = 112, SG = 8, GAP = 22, LV = 168, TG = 70, PADX = 30, PADY = 54;
+function treeModel(){
+  const ms = [...st.db.members].sort(byBirth), hasPar = m => parentsOf(m).length > 0;
+  const kidsOfUnit = (a, b) => ms.filter(c => [c.fatherId, c.motherId].some(x => x && (x === a.id || (b && x === b.id))));
+  const roots = [], used = new Set(), loose = [];
+  for (const m of ms){
+    if (hasPar(m) || used.has(m.id)) continue;
+    const sp = spouseOf(m); if (sp && hasPar(sp)) continue;
+    used.add(m.id); if (sp) used.add(sp.id);
+    if (!sp && !kidsOfUnit(m).length){ loose.push(m); continue; }
+    roots.push(m);
+  }
+  const mine = new Set(); (function up(m, n){ if (!m || n > 12) return; const ps = parentsOf(m); if (!ps.length) mine.add(m.id); ps.forEach(p => up(p, n + 1)); })(me(), 0);
+  roots.sort((a, b) => { const s = r => (mine.has(r.id) || (spouseOf(r) && mine.has(spouseOf(r).id))) ? 0 : 1; return s(a) - s(b); });
+  const placed = new Map(), trees = [];
+  function build(p, depth, path){
+    const u = { p, depth, kids: [] };
+    if (placed.has(p.id)){ u.stub = true; u.w = CW; return u; }
+    placed.set(p.id, u);
+    const sp = spouseOf(p); if (sp && !placed.has(sp.id)){ u.sp = sp; placed.set(sp.id, u); }
+    const np = new Set(path).add(p.id); if (u.sp) np.add(u.sp.id);
+    u.kids = kidsOfUnit(p, u.sp).filter(k => !np.has(k.id)).map(k => build(k, depth + 1, np));
+    const self = u.sp ? CW * 2 + SG : CW, kw = u.kids.reduce((s, k) => s + k.w, 0) + GAP * Math.max(0, u.kids.length - 1);
+    u.w = Math.max(self, kw); u.kw = kw; return u;
+  }
+  let x = PADX; const nodes = [], lines = [], links = [], labels = [], pos = {};
+  for (const r of roots){
+    const t = build(r, 0, new Set());
+    let off = 0; (function f(u){ if (u.stub && off === 0 && placed.get(u.p.id).abs != null){ off = placed.get(u.p.id).abs - u.depth; } u.kids.forEach(f); })(t);
+    (function place(u, x0){
+      u.abs = u.depth + off; u.cx = x0 + u.w / 2;
+      let kx = x0 + (u.w - (u.kw || 0)) / 2;
+      for (const k of u.kids){ place(k, kx); kx += k.w + GAP; }
+    })(t, x);
+    trees.push(t); x += t.w + TG;
+  }
+  let minD = 0, maxD = 0; (function walk(us){ for (const u of us){ minD = Math.min(minD, u.abs); maxD = Math.max(maxD, u.abs); walk(u.kids); } })(trees);
+  const Y = u => PADY + (u.abs - minD) * LV;
+  (function emit(us){ for (const u of us){
+    const y = Y(u), half = (CW + SG) / 2;
+    if (u.stub){ nodes.push({ m:u.p, x:u.cx - CW/2, y, stub:true }); links.push({ id:u.p.id, x:u.cx, y:y + CH/2 }); }
+    else if (u.sp){ nodes.push({ m:u.p, x:u.cx - half - CW/2, y }); nodes.push({ m:u.sp, x:u.cx + half - CW/2, y }); pos[u.p.id] = { x:u.cx - half, y:y + CH/2 }; pos[u.sp.id] = { x:u.cx + half, y:y + CH/2 }; lines.push(`M${u.cx - SG/2 - 2} ${y + 40}H${u.cx + SG/2 + 2}`); }
+    else { nodes.push({ m:u.p, x:u.cx - CW/2, y }); pos[u.p.id] = { x:u.cx, y:y + CH/2 }; }
+    if (u.kids.length){ const my = y + CH + (LV - CH) / 2; for (const k of u.kids){ const kx = (k.sp && !k.stub) ? k.cx - half : k.cx; lines.push(`M${u.cx} ${y + (u.sp ? 40 : CH)}V${my}H${kx}V${Y(k)}`); } }
+    emit(u.kids);
+  } })(trees);
+  for (const t of trees) labels.push({ x: t.cx - (t.sp ? CW + SG/2 : CW/2), y: Y(t) - 30, text: first(t.p) + (t.sp ? ' & ' + first(t.sp) : '') + "'s family" });
+  return { nodes, lines, links: links.filter(l => pos[l.id]).map(l => ({ a:l, b:pos[l.id] })), labels, loose, W: Math.max(x - TG + PADX, 320), H: PADY + (maxD - minD) * LV + CH + 40 };
+}
+function tCard(n){
+  const m = n.m, a = age(m);
+  return `<button class="tc ${m.id === st.db.me ? 'me' : ''} ${n.stub ? 'stub' : ''}" data-id="${m.id}" style="left:${n.x}px;top:${n.y}px" onclick="${n.stub ? `jumpTo('${m.id}')` : `profileSheet('${m.id}')`}">${av(m, 50)}<span>${esc(first(m))}</span><i>${n.stub ? 'see family ↗' : (m.country ? flag(m.country) + ' ' : '') + (isKid(m) && a != null ? a + ' yrs' : '')}&nbsp;</i></button>`;
+}
+function vTree(){
+  const t = treeModel(), z = st.zoom;
+  const body = t.nodes.length ? `<div class="treewrap"><div style="width:${t.W * z}px;height:${t.H * z}px"><div class="tree" style="width:${t.W}px;height:${t.H}px;transform:scale(${z})"><svg width="${t.W}" height="${t.H}"><path d="${t.lines.join('')}" fill="none" stroke="#C7C7CC" stroke-width="2"/>${t.links.map(l => `<path d="M${l.a.x} ${l.a.y}C${(l.a.x + l.b.x)/2} ${l.a.y - 90} ${(l.a.x + l.b.x)/2} ${l.b.y - 90} ${l.b.x} ${l.b.y - CH/2}" fill="none" stroke="#0088FF" stroke-width="2" stroke-dasharray="6 6"/>`).join('')}</svg>${t.labels.map(l => `<div class="tlabel" style="left:${l.x}px;top:${l.y}px">${esc(l.text)}</div>`).join('')}${t.nodes.map(tCard).join('')}</div></div></div>`
+    : `<div class="pad"><div class="card empty">The tree grows as people link their parents and spouse in their profile.</div></div>`;
+  return topBar('Family tree', st.db.members.length + ' people') +
+  `<div class="treebar"><button class="btn sm ghost" onclick="findMe()">Find me</button><button class="btn sm line" onclick="zoom(-.15)">−</button><button class="btn sm line" onclick="zoom(.15)">+</button><span class="grow"></span>${isKid(me()) ? '' : `<button class="btn sm" onclick="memberForm()">+ Add person</button>`}</div>` + body +
+  (t.loose.length ? `<div class="pad"><div class="sec"><h3>Not linked yet</h3></div><div class="small muted">Open a person and set their parents or spouse to place them in the tree.</div><div class="chips" style="margin-top:8px">${t.loose.map(m => `<button class="chip" onclick="profileSheet('${m.id}')">${esc(m.name)}</button>`).join('')}</div></div>` : '') +
+  `<div class="pad"><div class="sec"><h2>Everyone, by country</h2></div>${directory()}</div>`;
+}
+function directory(){
+  const g = {}; for (const m of [...st.db.members].sort((a, b) => String(a.name).localeCompare(b.name))) (g[m.country || 'Country not set'] ||= []).push(m);
+  return Object.keys(g).sort().map(c => `<div class="card"><div class="b" style="margin-bottom:6px">${flag(c)} ${esc(c)} <span class="muted small">${g[c].length}</span></div>${g[c].map(m => `<div class="row lrow" style="padding:8px 0" onclick="profileSheet('${m.id}')">${av(m, 36)}<div class="grow"><div class="b">${esc(m.name)}</div><div class="small muted">${esc(cap(relation(m.id)))}${m.city ? ' · ' + esc(m.city) : ''}</div></div></div>`).join('')}</div>`).join('');
+}
+function zoom(d){ st.zoom = Math.min(1.6, Math.max(.4, +(st.zoom + d).toFixed(2))); render(); }
+function jumpTo(id){ const els = document.querySelectorAll(`.tc[data-id="${id}"]:not(.stub)`); if (els[0]) els[0].scrollIntoView({ behavior:'smooth', block:'center', inline:'center' }); }
+function findMe(){ jumpTo(st.db.me); }
+
+/* ---------- FEED ---------- */
+function postCard(p){
+  const a = M(p.by) || { name:'Family member', id:p.by }, rs = st.db.reactions.filter(r => r.postId === p.id), mine = rs.some(r => r.by === st.db.me), cs = st.db.comments.filter(c => c.postId === p.id).length;
+  return `<div class="card post"><div class="row"><span onclick="profileSheet('${a.id}')">${av(a, 40)}</span><div class="grow"><div class="b">${esc(a.name)}</div><div class="small muted">${a.country ? flag(a.country) + ' ' : ''}${ago(p.ts)}</div></div>${(p.by === st.db.me || isAdmin()) ? `<button class="x" onclick="delPost('${p.id}')" aria-label="Delete">×</button>` : ''}</div>${p.text ? `<p>${esc(p.text)}</p>` : ''}${p.photo ? `<img class="ph" data-photo="${esc(p.photo)}" alt="">` : ''}<div class="acts"><button class="${mine ? 'on' : ''}" onclick="react('${p.id}')">${mine ? '♥' : '♡'} ${rs.length || ''} Love</button><button onclick="postSheet('${p.id}')">💬 ${cs || ''} Comment</button></div></div>`;
+}
+function vFeed(){
+  const ps = [...st.db.posts].sort((a, b) => b.ts - a.ts);
+  return topBar('Family feed', 'Photos and news') + `<button class="card row" style="width:100%;text-align:left;align-items:center;gap:12px" onclick="composeSheet()">${av(me(), 40)}<span class="grow muted">Share a photo or some news…</span><span class="btn sm">Post</span></button>` +
+  (ps.length ? ps.slice(0, st.feedN).map(postCard).join('') + (ps.length > st.feedN ? `<button class="btn ghost block" onclick="st.feedN+=20;render()">Show more</button>` : '') : `<div class="card empty">No posts yet.</div>`);
+}
+function react(id){ Motion.haptic(); const rid = id + '_' + st.db.me; st.db.reactions.some(r => r.id === rid) ? removeRow('Reactions', rid) : save('Reactions', { id:rid, postId:id, emoji:'❤️' }).catch(() => {}); }
+function delPost(id){ if (confirm('Delete this post?')) removeRow('Posts', id); }
+let pendingPhoto = null;
+function composeSheet(){
+  pendingPhoto = null;
+  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><label>Photo (optional)</label><input type="file" accept="image/*" onchange="pickPhoto(this)"><img id="prev" style="display:none;border-radius:14px;margin-top:10px" alt=""><p class="small muted">Photos are kept in the family's private Google Drive folder and only load for signed-in family.</p><button class="btn block" id="postBtn">Share with the family</button></form>`);
+}
+async function pickPhoto(inp){ if (!inp.files[0]) return; try { pendingPhoto = await compress(inp.files[0], 1280, .72); const p = $('#prev'); p.src = pendingPhoto; p.style.display = 'block'; } catch(e){ toast(e.message); } }
+async function submitPost(ev){
+  ev.preventDefault(); const text = ev.target.text.value.trim(); if (!text && !pendingPhoto) return false;
+  const btn = $('#postBtn'); btn.disabled = true; btn.textContent = 'Sharing…';
+  try { let photo = ''; if (pendingPhoto){ const up = await api('upload', { dataUrl: pendingPhoto }); photo = up.id; photoMem.set(photo, Promise.resolve(pendingPhoto)); } closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo }); }
+  catch(e){ toast(e.message); btn.disabled = false; btn.textContent = 'Share with the family'; }
+  return false;
+}
+function postSheet(id){
+  openSheet(() => { const p = st.db.posts.find(x => x.id === id); if (!p) return '<div class="empty">Post removed.</div>'; const cs = st.db.comments.filter(c => c.postId === id).sort((a, b) => a.ts - b.ts);
+    return `<div class="sh"><h2>Comments</h2><button class="x" onclick="closeSheet()">×</button></div>${cs.length ? cs.map(c => { const a = M(c.by) || {}; return `<div class="row" style="align-items:flex-start;padding:8px 0">${av(a, 34)}<div class="grow"><span class="b">${esc(first(a))}</span> <span class="small muted">${ago(c.ts)}</span><div style="overflow-wrap:anywhere">${esc(c.text)}</div></div>${(c.by === st.db.me || isAdmin()) ? `<button class="x" onclick="removeRow('Comments','${c.id}')">×</button>` : ''}</div>`; }).join('') : '<div class="empty">Be the first to comment.</div>'}<form class="row" style="margin-top:10px" onsubmit="event.preventDefault();const v=this.c.value.trim();if(v){save('Comments',{postId:'${id}',text:v}).catch(()=>{})}return false"><input type="text" name="c" placeholder="Write a comment" maxlength="500"><button class="btn sm">Send</button></form>`; }, true);
+}
+
+/* ---------- KIDS ---------- */
+function vKids(){
+  const kids = myKids(); if (!kids.some(k => k.id === st.kidId)) st.kidId = kids[0] ? kids[0].id : null;
+  const segs = [['today','Today'],['rewards','Rewards'],['corner','Cousins']];
+  return topBar('Kids', 'Habits, stars and cousins') + `<div class="seg">${segs.map(([k, l]) => `<button class="${st.seg === k ? 'on' : ''}" onclick="st.seg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
+    (st.seg === 'corner' ? vCorner() : kids.length ? kidPicker(kids) + (st.seg === 'today' ? vToday() : vRewards()) : `<div class="card empty">${isKid(me()) ? '' : 'Habits and rewards appear here for your children.<br><br><button class="btn" onclick="memberForm(null,{role:\'kid\',parentOf:1})">+ Add my child</button>'}</div>`);
+}
+const kidPicker = kids => kids.length > 1 ? `<div class="chips">${kids.map(k => `<button class="chip ${k.id === st.kidId ? 'sel' : ''}" style="--c:${colorOf(k.id)}" onclick="st.kidId='${k.id}';Motion.ringFrom=null;Motion.haptic();render()">${esc(first(k))}</button>`).join('')}</div>` : '';
+function vToday(){
+  const k = M(st.kidId), t = today(), dow = String(new Date().getDay()), hs = habitsFor(k.id), todays = hs.filter(h => String(h.days || '0,1,2,3,4,5,6').split(',').includes(dow));
+  const done = id => st.db.logs.some(l => l.id === `${id}_${k.id}_${t}`), adult = !isKid(me()), n = todays.filter(h => done(h.id)).length, all = todays.length > 0 && n === todays.length, pct = todays.length ? n / todays.length : 0, C = 2 * Math.PI * 30;
+  return `<div class="khero" style="--c:${colorOf(k.id)}"><svg class="ring" viewBox="0 0 76 76"><circle cx="38" cy="38" r="30" class="trk"/><circle cx="38" cy="38" r="30" class="prg" data-pct="${pct}" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}" transform="rotate(-90 38 38)"/><text x="38" y="44" text-anchor="middle">${all ? '★' : n + '/' + todays.length}</text></svg><div class="grow"><h2>${all ? 'All done, ' + esc(first(k)) + '! 🎉' : esc(first(k)) + "'s day"}</h2><p>${todays.length ? (all ? 'Every habit ticked today.' : (todays.length - n) + ' to go today') : 'Nothing planned for today'}</p></div></div>` +
+  `<div class="stats"><div class="stat" style="--c:#FF8D28"><b>⭐ ${balance(k.id)}</b><span class="small muted">stars to spend</span></div><div class="stat" style="--c:#FF383C"><b>🔥 ${streak(k.id)}</b><span class="small muted">day streak</span></div><div class="stat" style="--c:#0088FF"><b>${pointsOf(k.id, weekStart())}</b><span class="small muted">this week</span></div></div>` +
+  `<div class="sec"><h2>Today</h2>${adult ? `<a onclick="habitForm()">+ Add habit</a>` : ''}</div>` +
+  (todays.length ? todays.map(h => `<button class="habit ${done(h.id) ? 'done' : ''}" data-h="${h.id}" style="--c:${PAL[hue(h.id) % PAL.length]}" onclick="tick('${h.id}',event)"><span class="tile">${esc(h.emoji || '✅')}</span><span class="grow"><span class="b">${esc(h.title)}</span><br><span class="small muted">+${esc(h.points)} stars</span></span><span class="ck">${done(h.id) ? '✓' : ''}</span></button>`).join('') : `<div class="card empty">${hs.length ? 'Nothing planned for today. Enjoy the day off!' : adult ? 'No habits yet. Add the first one: reading, music practice, helping at home.' : 'Ask a grown-up to add your habits.'}</div>`) +
+  (adult && hs.length ? `<div class="sec"><h3>All habits</h3></div><div class="card">${hs.map(h => `<div class="row lrow" style="padding:7px 0" onclick="habitForm('${h.id}')"><span class="tile" style="--c:${PAL[hue(h.id) % PAL.length]};width:36px;height:36px;font-size:19px;border-radius:10px">${esc(h.emoji || '✅')}</span><div class="grow b">${esc(h.title)}</div></div>`).join('')}</div>` : '');
+}
+function tick(hid, ev){
+  const k = M(st.kidId), h = st.db.habits.find(x => x.id === hid), id = `${hid}_${k.id}_${today()}`;
+  Motion.haptic();
+  if (st.db.logs.some(l => l.id === id)){ removeRow('Logs', id); return; }
+  const p = document.createElement('div'); p.className = 'pop'; p.textContent = `+${h.points} ⭐`; p.style.left = (ev.clientX - 20) + 'px'; p.style.top = (ev.clientY - 20) + 'px'; document.body.appendChild(p); setTimeout(() => p.remove(), 900);
+  save('Logs', { id, habitId:hid, memberId:k.id, date:today(), points:String(h.points) }).catch(() => {});
+  Motion.bounce($(`.habit[data-h="${hid}"] .ck`));
+  const prg = $('.prg'); if (prg && +prg.dataset.pct === 1){ Motion.confetti(); try { if (!IOS && navigator.vibrate) navigator.vibrate([10, 60, 10, 60, 18]); } catch(e){} }
+}
+function vRewards(){
+  const k = M(st.kidId), bal = balance(k.id), adult = !isKid(me());
+  const rw = st.db.rewards.filter(r => r.active !== '0' && String(r.who).split(',').includes(k.id)), reqs = st.db.redemptions.filter(r => r.memberId === k.id).sort((a, b) => b.ts - a.ts);
+  const pend = reqs.filter(r => r.status === 'requested');
+  return `<div class="card row"><div class="grow"><div class="small muted">${esc(first(k))} has</div><h2>⭐ ${bal} stars</h2></div>${adult ? `<button class="btn sm" onclick="rewardForm()">+ Add reward</button>` : ''}</div>` +
+  (pend.length ? `<div class="sec"><h3>Waiting for a grown-up</h3></div>` + pend.map(r => `<div class="card row"><div class="grow"><div class="b">${esc(r.title)}</div><div class="small muted">⭐ ${esc(r.cost)} · ${ago(r.ts)}</div></div>${adult ? `<button class="btn sm" onclick="decide('${r.id}','approved')">Approve</button><button class="btn sm line" onclick="decide('${r.id}','declined')">No</button>` : '<span class="chip">Asked</span>'}</div>`).join('') : '') +
+  `<div class="sec"><h3>Rewards</h3></div>` + (rw.length ? rw.map(r => `<div class="card row"><span class="tile" style="--c:${PAL[hue(r.id) % PAL.length]}">${esc(r.emoji || '🎁')}</span><div class="grow"><div class="b">${esc(r.title)}</div><div class="small muted">⭐ ${esc(r.cost)} stars${adult ? ` · <span class="link" onclick="rewardForm('${r.id}')">Edit</span>` : ''}</div></div><button class="btn sm clay" ${bal < Number(r.cost) ? 'disabled' : ''} onclick="redeem('${r.id}')">${bal < Number(r.cost) ? 'Need ' + (Number(r.cost) - bal) : 'Get it'}</button></div>`).join('') : `<div class="card empty">${adult ? 'Add rewards your child can save up for: a movie night, choosing dinner, a video call with cousins.' : 'No rewards yet. Ask a grown-up!'}</div>`) +
+  (reqs.filter(r => r.status === 'approved').length ? `<div class="sec"><h3>Earned so far</h3></div><div class="card">${reqs.filter(r => r.status === 'approved').slice(0, 8).map(r => `<div class="row" style="padding:5px 0"><div class="grow">${esc(r.title)}</div><span class="small muted">${ago(r.ts)}</span></div>`).join('')}</div>` : '');
+}
+function redeem(rid){ const r = st.db.rewards.find(x => x.id === rid), k = M(st.kidId); if (!confirm(`Use ${r.cost} stars for "${r.title}"?`)) return; save('Redemptions', { rewardId:rid, memberId:k.id, title:r.title, cost:String(r.cost), status: isKid(me()) ? 'requested' : 'approved' }).then(() => { toast(isKid(me()) ? 'Asked! A grown-up will approve it.' : 'Reward given 🎉'); if (!isKid(me())) Motion.confetti(); }).catch(() => {}); }
+function decide(id, status){ save('Redemptions', { id, status }).catch(() => {}); }
+const EMO = ['📚','🎹','🧹','🛏️','🦷','🍽️','🐶','🏃','🙏','💛','✏️','🌱'];
+function whoPicker(sel){ const ks = isAdmin() ? kidsList() : kidsList().filter(k => isParentOf(me(), k)); const s = String(sel || st.kidId || '').split(','); return `<label>For</label>${ks.map(k => `<label class="check"><input type="checkbox" name="who" value="${k.id}" ${s.includes(k.id) ? 'checked' : ''}>${esc(k.name)}</label>`).join('')}`; }
+function habitForm(id){
+  const h = id ? st.db.habits.find(x => x.id === id) : { emoji:'📚', points:'5', days:'0,1,2,3,4,5,6' }, ds = String(h.days).split(',');
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit habit' : 'New habit'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitHabit(event,'${id || ''}')"><label>Habit</label><input type="text" name="title" required maxlength="60" value="${esc(h.title || '')}" placeholder="Read for 20 minutes"><div class="two"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(h.emoji)}"></div><div><label>Stars</label><input type="number" name="points" min="1" max="100" value="${esc(h.points)}"></div></div><div class="chips">${EMO.map(e => `<button type="button" class="chip" onclick="this.form.emoji.value='${e}'">${e}</button>`).join('')}</div><label>Days</label><div class="days">${['S','M','T','W','T','F','S'].map((d, i) => `<label><input type="checkbox" name="days" value="${i}" ${ds.includes(String(i)) ? 'checked' : ''}><span>${d}</span></label>`).join('')}</div>${whoPicker(h.who)}<button class="btn block">Save habit</button>${id ? `<button type="button" class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Habits','${id}')">Delete habit</button>` : ''}</form>`);
+}
+function submitHabit(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), who = f.getAll('who'); if (!who.length){ toast('Choose at least one child'); return false; } closeSheet(); save('Habits', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), points:String(f.get('points') || 5), days:f.getAll('days').join(','), who:who.join(','), active:'1' }).catch(() => {}); return false; }
+function rewardForm(id){
+  const r = id ? st.db.rewards.find(x => x.id === id) : { emoji:'🎁', cost:'50' };
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit reward' : 'New reward'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitReward(event,'${id || ''}')"><label>Reward</label><input type="text" name="title" required maxlength="60" value="${esc(r.title || '')}" placeholder="Movie night, you choose"><div class="two"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(r.emoji)}"></div><div><label>Cost in stars</label><input type="number" name="cost" min="1" max="10000" value="${esc(r.cost)}"></div></div>${whoPicker(r.who)}<button class="btn block">Save reward</button>${id ? `<button type="button" class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Rewards','${id}')">Delete reward</button>` : ''}</form>`);
+}
+function submitReward(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), who = f.getAll('who'); if (!who.length){ toast('Choose at least one child'); return false; } closeSheet(); save('Rewards', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), cost:String(f.get('cost') || 50), who:who.join(','), active:'1' }).catch(() => {}); return false; }
+
+/* cousins' corner */
+const weekKey = () => { const d = pDate(weekStart()); return ymd(d); };
+function vCorner(){
+  const others = st.db.members.filter(m => m.id !== st.db.me && !m.passed), pool = others.filter(isKid).length ? others.filter(isKid) : others;
+  if (!st.meet || !M(st.meet)) st.meet = pool.length ? pool[Math.floor(Math.random() * pool.length)].id : null;
+  const c = M(st.meet), wk = weekKey(), q = QUESTIONS[Math.floor(pDate(wk) / 6048e5) % QUESTIONS.length], ans = st.db.answers.filter(a => a.week === wk), mine = ans.find(a => a.memberId === st.db.me);
+  const ws = weekStart(), board = kidsList().map(k => [k, pointsOf(k.id, ws)]).sort((a, b) => b[1] - a[1]);
+  return (c ? `<div class="sec"><h2>Meet your family</h2><a onclick="st.meet=null;render()">Next person</a></div><div class="card meet" style="--c:${colorOf(c.id)}"><div class="row" onclick="profileSheet('${c.id}')">${av(c, 64)}<div class="grow"><h3>${esc(c.name)}</h3><span class="chip clay">Your ${esc(relation(c.id))}</span></div></div><div style="margin-top:12px">${facts(c)}</div></div>` : '') +
+  `<div class="sec"><h2>Question of the week</h2></div><div class="card qcard"><h3>${esc(q)}</h3><form class="row" style="margin-top:12px" onsubmit="event.preventDefault();const v=this.a.value.trim();if(v){save('Answers',{id:'${wk}_'+st.db.me,week:'${wk}',memberId:st.db.me,text:v}).catch(()=>{})}return false"><input type="text" name="a" maxlength="200" placeholder="Your answer" value="${esc(mine ? mine.text : '')}"><button class="btn sm">${mine ? 'Update' : 'Send'}</button></form>${ans.map(a => { const m = M(a.memberId) || {}; return `<div class="row" style="padding:8px 0 0;align-items:flex-start">${av(m, 30)}<div class="grow"><span class="b">${esc(first(m))}</span> ${m.country ? flag(m.country) : ''}<div>${esc(a.text)}</div></div></div>`; }).join('')}</div>` +
+  `<div class="sec"><h2>How well do you know us?</h2></div><div class="card quiz">${quizHtml()}</div>` +
+  (board.length ? `<div class="sec"><h2>Stars this week</h2></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div>` : '');
+}
+function facts(m){
+  const a = age(m), z = m.tz || (cInfo(m.country) || [])[2];
+  const rows = [['Lives in', [m.city, m.country].filter(Boolean).join(', ') + (m.country ? ' ' + flag(m.country) : '')], ['Time there', z && !m.passed ? timeIn(z) + ' (' + dayIn(z) + ')' : ''], ['Birthday', m.birth ? pDate(m.birth).getDate() + ' ' + MON[pDate(m.birth).getMonth()] + (isKid(m) && a != null ? ' · ' + a + ' years old' : '') : ''], ['Favourite food', m.favFood], ['Favourite colour', m.favColor], ['Loves', m.hobby], ['Ask me about', m.askMe], ['About', m.about]];
+  const h = rows.filter(r => r[1] && String(r[1]).trim()).map(r => `<div class="fact"><b>${r[0]}</b><span>${esc(r[1])}</span></div>`).join('');
+  return h || '<div class="small muted">No details added yet.</div>';
+}
+function newQuiz(){
+  const ms = st.db.members.filter(m => !m.passed), qs = [];
+  for (const m of ms){ if (m.favFood) qs.push([`Whose favourite food is ${m.favFood}?`, m, 'favFood']); if (m.hobby) qs.push([`Who loves ${m.hobby}?`, m, 'hobby']); if (m.city) qs.push([`Who lives in ${m.city}?`, m, 'city']); if (m.favColor) qs.push([`Whose favourite colour is ${m.favColor}?`, m, 'favColor']); }
+  if (!qs.length || ms.length < 3) return null;
+  const [q, right, key] = qs[Math.floor(Math.random() * qs.length)];
+  const wrong = ms.filter(m => m.id !== right.id && String(m[key] || '').toLowerCase() !== String(right[key]).toLowerCase()).sort(() => Math.random() - .5).slice(0, 2);
+  if (wrong.length < 2) return null;
+  return { q, right:right.id, opts:[right, ...wrong].sort(() => Math.random() - .5).map(m => m.id), pick:null };
+}
+function quizHtml(){
+  if (!st.quiz) st.quiz = newQuiz();
+  const z = st.quiz; if (!z) return '<div class="small muted">The quiz starts once a few people fill in their favourites in their profile.</div>';
+  return `<h3>${esc(z.q)}</h3>${z.opts.map(id => `<button class="opt ${z.pick ? (id === z.right ? 'right' : id === z.pick ? 'wrong' : '') : ''}" ${z.pick ? 'disabled' : ''} onclick="st.quiz.pick='${id}';Motion.haptic();if('${id}'===st.quiz.right)Motion.confetti();render()">${esc((M(id) || {}).name)}</button>`).join('')}${z.pick ? `<div class="row"><span class="grow b">${z.pick === z.right ? 'Yes! 🎉' : 'Not quite. Now you know!'}</span><button class="btn sm" onclick="st.quiz=null;render()">Next question</button></div>` : ''}`;
+}
+
+/* ---------- CALENDAR ---------- */
+function vCal(){
+  const up = upcoming(), g = {}; for (const e of up) (g[e.d.getFullYear() + '-' + pad(e.d.getMonth())] ||= []).push(e);
+  return topBar('Family dates', 'Birthdays, anniversaries and plans') + (isKid(me()) ? '' : `<button class="btn block" onclick="eventForm()">+ Add a date</button>`) +
+  (up.length ? Object.keys(g).sort().map(k => `<div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div>`).join('') : `<div class="card empty">No dates yet. Birthdays appear when people add them to their profile.</div>`);
+}
+function eventSheet(id){
+  const e = st.db.events.find(x => x.id === id); if (!e) return; const a = M(e.by) || {};
+  openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}<div class="small muted">Added by ${esc(first(a))}${e.yearly === '1' ? ' · every year' : ''}</div></div>${(e.by === st.db.me || isAdmin()) ? `<button class="btn ghost block" onclick="eventForm('${id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${id}')">Delete</button>` : ''}`);
+}
+function eventForm(id){
+  const e = id ? st.db.events.find(x => x.id === id) : { emoji:'🎉' }, d = e.at ? new Date(e.at) : null;
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit date' : 'Add a date'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitEvent(event,'${id || ''}')"><div class="two" style="grid-template-columns:80px 1fr"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(e.emoji || '')}"></div><div><label>What</label><input type="text" name="title" required maxlength="80" value="${esc(e.title || '')}" placeholder="Family video call"></div></div><div class="two"><div><label>Date</label><input type="date" name="date" required value="${esc(d ? ymd(d) : e.date || '')}"></div><div><label>Time (optional)</label><input type="time" name="time" value="${d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : ''}"></div></div><p class="small muted">Enter the time where you are. Everyone sees it in their own country's time.</p><label class="check"><input type="checkbox" name="yearly" ${e.yearly === '1' ? 'checked' : ''}>Repeats every year</label><label>Note</label><textarea name="note" maxlength="500">${esc(e.note || '')}</textarea><button class="btn block">Save</button></form>`);
+}
+function submitEvent(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), date = f.get('date'), time = f.get('time'); closeSheet(); save('Events', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), date, at: time ? new Date(date + 'T' + time).toISOString() : '', yearly: f.get('yearly') ? '1' : '0', note:f.get('note').trim() }).catch(() => {}); return false; }
+
+/* ---------- PROFILES ---------- */
+let sheetFn = null, sheetLive = false;
+function openSheet(fn, live){ sheetFn = fn; sheetLive = !!live; $('#sheet').innerHTML = fn(); $('#sheetWrap').classList.add('on'); $('#sheet').scrollTop = 0; loadPhotos(); Motion.arm($('#sheet')); }
+function closeSheet(){ sheetFn = null; $('#sheetWrap').classList.remove('on'); }
+function profileSheet(id){
+  openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
+    const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), ch = childrenOf(m), adult = !isKid(me());
+    const linkRow = (l, arr) => arr.length ? `<div class="fact"><b>${l}</b><span>${arr.map(x => `<a class="link" onclick="profileSheet('${x.id}')">${esc(first(x))}</a>`).join(', ')}</span></div>` : '';
+    return `<div class="sh"><span class="grow"></span><button class="x" onclick="closeSheet()">×</button></div><div style="text-align:center">${av(m, 96)}<h2 style="margin-top:10px">${esc(m.name)}</h2>${m.nick ? `<div class="muted">"${esc(m.nick)}"</div>` : ''}<div style="margin-top:8px"><span class="chip clay">${rel === 'you' ? 'This is you' : 'Your ' + esc(rel)}</span> ${m.passed ? '<span class="chip">In loving memory</span>' : ''}</div></div><div class="card">${facts(m)}${linkRow('Parents', ps)}${linkRow('Married to', sp ? [sp] : [])}${linkRow('Children', ch)}</div>` +
+    (canEdit(m) ? `<button class="btn block" onclick="memberForm('${id}')">Edit profile</button>` : '') +
+    (adult ? `<div class="chips" style="margin-top:10px;justify-content:center">${isKid(m) ? '' : `<button class="chip" onclick="memberForm(null,{childOf:'${id}'})">+ Child</button>`}${canEdit(m) && ps.length < 2 ? `<button class="chip" onclick="memberForm(null,{parentFor:'${id}'})">+ Parent</button>` : ''}${!sp && !isKid(m) ? `<button class="chip" onclick="memberForm(null,{spouseOf:'${id}'})">+ Spouse</button>` : ''}</div>` : '') +
+    (isAdmin() && id !== st.db.me ? `<div class="chips" style="margin-top:10px;justify-content:center"><button class="chip" onclick="save('Members',{id:'${id}',role:'${m.role === 'admin' ? 'adult' : 'admin'}'}).catch(()=>{})">${m.role === 'admin' ? 'Remove admin' : 'Make admin'}</button><button class="chip clay" onclick="if(confirm('Remove ${esc(first(m).replace(/[^\p{L}\p{N} ]/gu, ''))} from the family app?')){closeSheet();removeRow('Members','${id}')}">Remove person</button></div>` : ''); }, true);
+}
+let pendingAvatar = null, formPreset = null;
+function memberForm(id, preset){
+  const src = id ? M(id) : {}; formPreset = preset || {}; pendingAvatar = null;
+  const m = { ...src }; const P = formPreset;
+  if (P.role) m.role = P.role;
+  if (P.childOf){ const p = M(P.childOf), sp = spouseOf(p); const dad = p.gender === 'female' ? sp : p, mum = p.gender === 'female' ? p : sp; m.fatherId = dad ? dad.id : ''; m.motherId = mum ? mum.id : ''; m.country = p.country; m.city = p.city; m.role = 'kid'; }
+  if (P.parentOf){ const p = me(), sp = spouseOf(p); const dad = p.gender === 'female' ? sp : p, mum = p.gender === 'female' ? p : sp; m.fatherId = dad ? dad.id : ''; m.motherId = mum ? mum.id : ''; m.country = p.country; m.city = p.city; }
+  if (P.spouseOf) m.spouseId = P.spouseOf;
+  const others = st.db.members.filter(x => x.id !== id).sort((a, b) => String(a.name).localeCompare(b.name));
+  const sel = (name, val, list) => `<select name="${name}"><option value="">Not in the app yet</option>${list.map(x => `<option value="${x.id}" ${x.id === val ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`;
+  const sp = id ? spouseOf(src) : M(m.spouseId);
+  const title = id ? (id === st.db.me ? 'My profile' : 'Edit ' + first(src)) : P.childOf || P.parentOf ? 'Add a child' : P.parentFor ? 'Add a parent of ' + first(M(P.parentFor)) : P.spouseOf ? 'Add spouse of ' + first(M(P.spouseOf)) : 'Add a family member';
+  openSheet(() => `<div class="sh"><h2>${esc(title)}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitMember(event,'${id || ''}')">
+  <div class="row"><span id="avPrev">${av(m.name ? m : { name:'?' , id:'x'}, 64)}</span><div class="grow"><label style="margin-top:0">Photo</label><input type="file" accept="image/*" onchange="pickAvatar(this)"></div></div>
+  <label>Full name</label><input type="text" name="name" required maxlength="60" value="${esc(m.name || '')}">
+  <div class="two"><div><label>Called (nickname)</label><input type="text" name="nick" maxlength="30" value="${esc(m.nick || '')}"></div><div><label>I am</label><select name="gender"><option value="">Prefer not to say</option><option value="female" ${m.gender === 'female' ? 'selected' : ''}>Female</option><option value="male" ${m.gender === 'male' ? 'selected' : ''}>Male</option></select></div></div>
+  <div class="two"><div><label>Birthday</label><input type="date" name="birth" value="${esc(m.birth || '')}"></div><div><label>Type</label><select name="role" ${id === st.db.me && !isAdmin() ? 'disabled' : ''}><option value="adult" ${m.role !== 'kid' ? 'selected' : ''}>Grown-up</option><option value="kid" ${m.role === 'kid' ? 'selected' : ''}>Kid</option></select></div></div>
+  <div class="two"><div><label>Country</label><select name="country"><option value="">Choose</option>${COUNTRIES.map(c => `<option ${m.country === c[0] ? 'selected' : ''}>${c[0]}</option>`).join('')}</select></div><div><label>City</label><input type="text" name="city" maxlength="40" value="${esc(m.city || '')}"></div></div>
+  <h3 style="margin-top:20px">Family links</h3><p class="small muted" style="margin:4px 0 0">These place the person in the tree.</p>
+  <div class="two"><div><label>Father</label>${sel('fatherId', m.fatherId, others)}</div><div><label>Mother</label>${sel('motherId', m.motherId, others)}</div></div>
+  <div class="two"><div><label>Married to</label>${sel('spouseId', sp ? sp.id : '', others)}</div><div><label>Wedding date</label><input type="date" name="anniv" value="${esc(m.anniv || (sp && sp.anniv) || '')}"></div></div>
+  ${id !== st.db.me ? `<label class="check"><input type="checkbox" name="passed" ${m.passed ? 'checked' : ''}>Has passed away (kept in the tree, in loving memory)</label>` : ''}
+  <h3 style="margin-top:20px">Fun facts</h3><p class="small muted" style="margin:4px 0 0">Shown to cousins and used in the family quiz.</p>
+  <div class="two"><div><label>Favourite food</label><input type="text" name="favFood" maxlength="40" value="${esc(m.favFood || '')}"></div><div><label>Favourite colour</label><input type="text" name="favColor" maxlength="30" value="${esc(m.favColor || '')}"></div></div>
+  <label>Loves doing</label><input type="text" name="hobby" maxlength="60" value="${esc(m.hobby || '')}" placeholder="football, drawing, baking">
+  <label>Ask me about</label><input type="text" name="askMe" maxlength="80" value="${esc(m.askMe || '')}">
+  <label>About</label><textarea name="about" maxlength="400">${esc(m.about || '')}</textarea>
+  <button class="btn block" style="margin-top:14px">Save</button></form>`);
+}
+async function pickAvatar(inp){ if (!inp.files[0]) return; try { pendingAvatar = await squareAvatar(inp.files[0]); $('#avPrev').innerHTML = `<img class="av" src="${pendingAvatar}" style="width:64px;height:64px">`; } catch(e){ toast(e.message); } }
+async function submitMember(ev, id){
+  ev.preventDefault(); const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim(), P = formPreset || {};
+  const row = { name:g('name'), nick:g('nick'), gender:g('gender'), birth:g('birth'), country:g('country'), city:g('city'), fatherId:g('fatherId'), motherId:g('motherId'), spouseId:g('spouseId'), anniv:g('anniv'), favFood:g('favFood'), favColor:g('favColor'), hobby:g('hobby'), askMe:g('askMe'), about:g('about') };
+  if (f.has('role')) row.role = g('role'); else if (!id) row.role = 'adult';
+  if (id !== st.db.me) row.passed = f.get('passed') ? '1' : '';
+  if (pendingAvatar) row.avatar = pendingAvatar;
+  if (id === st.db.me) row.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; else if (!id || !M(id).claimed) row.tz = (cInfo(row.country) || [])[2] || '';
+  if (id) row.id = id; else row.claimed = false;
+  const old = id ? spouseOf(M(id)) : null;
+  closeSheet();
+  try {
+    const saved = await save('Members', row);
+    if (old && old.spouseId === saved.id && old.id !== row.spouseId) await save('Members', { id:old.id, spouseId:'' }).catch(() => {});
+    if (P.parentFor){ const c = M(P.parentFor); await save('Members', { id:c.id, [row.gender === 'female' ? 'motherId' : 'fatherId']: saved.id }); }
+    toast('Saved');
+  } catch(e){}
+  return false;
+}
+function meSheet(){
+  const s = st.db.settings || {}, url = location.href.split('#')[0];
+  openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div><button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
+  ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
+  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><button class="btn sm">Save settings</button></form></div>` : ''}
+  <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="pushEnable()">Turn on</button>'}</div>` : ''}</div>
+  <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="New PIN (4 to 8 digits)" required><button class="btn sm">Change</button></form></div>
+  <button class="btn line block" onclick="sync().then(()=>toast('Up to date')).catch(e=>toast(e.message))">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
+}
+function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
+function submitSettings(ev){ ev.preventDefault(); const f = new FormData(ev.target); api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim() }).then(() => sync()).then(() => toast('Saved')).catch(e => toast(e.message)); return false; }
+function submitPin(ev){ ev.preventDefault(); api('setPin', { pin: ev.target.pin.value }).then(() => { toast('PIN changed'); ev.target.reset(); }).catch(e => toast(e.message)); return false; }
+function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
+
+/* ---------- LOGIN ---------- */
+function renderLogin(){
+  const L = st.login, head = `<img src="icon-192.png" alt=""><h1>${esc(L.appName || CONFIG.APP_NAME)}</h1>`;
+  let body = '';
+  if (L.step === 'code') body = `<p class="muted">Enter your family code to come in.</p><form onsubmit="return loginCode(event)"><input type="text" name="code" placeholder="Family code" autocomplete="off" autocapitalize="characters" required style="text-align:center;font-weight:600;letter-spacing:.1em"><button class="btn block" style="margin-top:12px">Continue</button></form>`;
+  else if (L.step === 'who') body = `<p class="muted">Who are you?</p><div class="who">${L.members.map(m => `<button onclick="loginPick('${m.id}')">${av(m, 48)}<div style="margin-top:6px">${esc(first(m))}</div>${m.claimed ? '' : '<div class="small muted" style="font-weight:600">set up</div>'}</button>`).join('')}</div><button class="btn ghost block" onclick="st.login.step='new';render()">I'm new here</button>`;
+  else if (L.step === 'pin'){ const m = L.members.find(x => x.id === L.id); body = `<div>${av(m, 72)}</div><p class="b">${esc(m.name)}</p><p class="muted">${m.claimed ? 'Enter your PIN' : 'Your profile is waiting. Choose a PIN (4 to 8 digits) to make it yours.'}</p><form onsubmit="return loginPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required autofocus style="text-align:center;font-size:22px;letter-spacing:.3em"><button class="btn block" style="margin-top:12px">${m.claimed ? 'Sign in' : 'Set PIN and enter'}</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`; }
+  else if (L.step === 'new') body = `<p class="muted">Welcome! Add yourself to the family.</p><form onsubmit="return loginNew(event)" style="text-align:left"><label>Your full name</label><input type="text" name="name" required maxlength="60"><label>I am a</label><select name="role"><option value="adult">Grown-up</option><option value="kid">Kid</option></select><label>Choose a PIN (4 to 8 digits)</label><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required><button class="btn block" style="margin-top:14px">Join the family</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`;
+  $('#app').innerHTML = `<div class="login">${head}${body}</div>`;
+}
+async function loginCode(ev){ ev.preventDefault(); const code = ev.target.code.value.trim(); try { const d = await api('boot', { code }); st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; render(); } catch(e){ toast(e.message); } return false; }
+function loginPick(id){ st.login.id = id; st.login.step = 'pin'; render(); }
+async function enter(tok){ st.token = tok; LS.set('token', tok); await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
+async function loginPin(ev){ ev.preventDefault(); const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; try { const d = m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin }); await enter(d.token); } catch(e){ toast(e.message); } return false; }
+async function loginNew(ev){ ev.preventDefault(); const f = ev.target; try { const d = await api('join', { code:st.login.code, name:f.name.value.trim(), role:f.role.value, pin:f.pin.value }); await enter(d.token); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); } catch(e){ toast(e.message); } return false; }
+
+/* ---------- DEMO DATA (used only until API_URL is set) ---------- */
+let demoDb = null; const demoPhotos = {};
+function seedDemo(){
+  const y = new Date().getFullYear(), mk = (id, name, gender, role, birth, country, city, f, m, s, x = {}) => ({ id, name, gender, role, birth, country, city, tz:(cInfo(country) || [])[2], fatherId:f || '', motherId:m || '', spouseId:s || '', claimed:true, nick:'', avatar:'', ...x });
+  const d = pDate(today()), dd = n => { const z = new Date(d); z.setDate(z.getDate() + n); return ymd(z); }, soon = n => { const z = new Date(d); z.setDate(z.getDate() + n); return z; };
+  const bd = (yr, n) => { const z = soon(n); return (yr) + '-' + pad(z.getMonth() + 1) + '-' + pad(z.getDate()); };
+  const members = [
+    mk('g1','Mohan Sharma','male','adult','1952-03-11','India','Pune','','','g2',{ anniv:'1976-12-02', favFood:'masala dosa', hobby:'gardening' }),
+    mk('g2','Sita Sharma','female','adult','1955-08-21','India','Pune','','','g1',{ favFood:'mango pickle', hobby:'telling stories' }),
+    mk('g3','Leo Bennett','male','adult','1950-06-02','United Kingdom','Leeds','','','g4',{ hobby:'woodwork', favFood:'apple crumble' }),
+    mk('g4','Ana Bennett','female','adult','1953-01-15','United Kingdom','Leeds','','','g3',{ hobby:'baking', favFood:'lemon cake' }),
+    mk('m3','Arjun Sharma','male','admin','1984-05-09','United Arab Emirates','Dubai','g1','g2','m4',{ anniv:'2012-02-18', favFood:'biryani', hobby:'cycling', askMe:'my worst cooking disaster' }),
+    mk('m4','Maya Sharma','female','adult','1986-10-30','United Arab Emirates','Dubai','g3','g4','m3',{ favFood:'ramen', hobby:'photography' }),
+    mk('m5','Priya Rao','female','adult','1988-07-19','India','Bengaluru','g1','g2','m6',{ favFood:'pani puri', hobby:'singing' }),
+    mk('m6','Rohan Rao','male','adult','1985-11-03','India','Bengaluru','','','m5',{ hobby:'cricket' }),
+    mk('m7','Marco Bennett','male','adult','1989-04-25','United Kingdom','Manchester','g3','g4','m8',{ hobby:'football', favFood:'fish and chips' }),
+    mk('m8','Elena Bennett','female','adult','1990-09-12','United Kingdom','Manchester','','','m7',{ hobby:'painting' }),
+    mk('k1','Aanya Sharma','female','kid',bd(y - 9, 6),'United Arab Emirates','Dubai','m3','m4','',{ favFood:'pasta', favColor:'purple', hobby:'drawing comics', askMe:'my pet turtle' }),
+    mk('k2','Kabir Sharma','male','kid',(y - 6) + '-02-14','United Arab Emirates','Dubai','m3','m4','',{ favFood:'pancakes', favColor:'red', hobby:'building rockets' }),
+    mk('k3','Ishaan Rao','male','kid',(y - 11) + '-06-22','India','Bengaluru','m6','m5','',{ favFood:'butter chicken', favColor:'blue', hobby:'chess' }),
+    mk('k4','Sofia Bennett','female','kid',(y - 8) + '-09-05','United Kingdom','Manchester','m7','m8','',{ favFood:'pizza', favColor:'green', hobby:'swimming', askMe:'my football team' })
+  ];
+  const T = Date.now(), ts = h => String(T - h * 36e5);
+  const habits = [{ id:'h1', by:'m3', title:'Read for 20 minutes', emoji:'📚', points:'5', days:'0,1,2,3,4,5,6', who:'k1,k2', active:'1' }, { id:'h2', by:'m3', title:'Make your bed', emoji:'🛏️', points:'2', days:'0,1,2,3,4,5,6', who:'k1,k2', active:'1' }, { id:'h3', by:'m3', title:'Piano practice', emoji:'🎹', points:'5', days:'1,3,5', who:'k1', active:'1' }, { id:'h4', by:'m3', title:'Call a grandparent', emoji:'💛', points:'10', days:'0,6', who:'k1,k2', active:'1' }, { id:'h5', by:'m5', title:'Chess puzzle', emoji:'♟️', points:'5', days:'0,1,2,3,4,5,6', who:'k3', active:'1' }, { id:'h6', by:'m7', title:'Swim practice', emoji:'🏊', points:'8', days:'0,1,2,3,4,5,6', who:'k4', active:'1' }];
+  const logs = []; const add = (h, k, n, p) => logs.push({ id:`${h}_${k}_${dd(-n)}`, habitId:h, memberId:k, date:dd(-n), points:String(p), by:'m3', ts:ts(n * 24) });
+  for (let n = 1; n <= 4; n++){ add('h1','k1',n,5); add('h2','k1',n,2); add('h2','k2',n,2); add('h5','k3',n,5); if (n < 3) add('h6','k4',n,8); } add('h1','k1',0,5);
+  return { me:'m3', settings:{ appName:CONFIG.APP_NAME, familyCode:'DEMO-2468' }, members, habits, logs,
+    posts:[{ id:'p1', by:'m5', text:'Ishaan won his first chess tournament at school today! He wants to challenge all the cousins on the next video call.', photo:'', ts:ts(3) }, { id:'p2', by:'g4', text:'Lemon cake is out of the oven. Sofia helped with the icing. Wish we could send a slice to Dubai and Bengaluru!', photo:'', ts:ts(26) }],
+    comments:[{ id:'c1', postId:'p1', by:'m3', text:'Well done Ishaan! Kabir says he is ready.', ts:ts(2) }], reactions:[{ id:'p1_m4', postId:'p1', by:'m4', emoji:'❤️', ts:ts(2) }, { id:'p1_g1', postId:'p1', by:'g1', emoji:'❤️', ts:ts(1) }],
+    events:[{ id:'e1', by:'m3', title:'Cousins video call', emoji:'📞', date:dd(3), at:new Date(soon(3).getTime() + 17 * 36e5).toISOString(), yearly:'0', note:'Everyone bring one joke.', ts:ts(40) }, { id:'e2', by:'m5', title:'Diwali at Dadaji\'s house', emoji:'🪔', date:dd(40), at:'', yearly:'0', note:'', ts:ts(50) }],
+    rewards:[{ id:'r1', by:'m3', title:'Movie night, you choose', emoji:'🎬', cost:'20', who:'k1,k2', active:'1' }, { id:'r2', by:'m3', title:'Video call with cousins', emoji:'📞', cost:'10', who:'k1,k2', active:'1' }, { id:'r3', by:'m3', title:'Trip to the water park', emoji:'🌊', cost:'150', who:'k1,k2', active:'1' }],
+    redemptions:[], answers:[{ id:weekKey() + '_k3', week:weekKey(), memberId:'k3', text:'When Dadaji tried my chess app and lost to the easy level.', ts:ts(5) }] };
+}
+async function demoApi(action, p){
+  if (!demoDb) demoDb = seedDemo();
+  await new Promise(r => setTimeout(r, 60));
+  if (action === 'sync') return JSON.parse(JSON.stringify(demoDb));
+  if (action === 'put'){ const a = demoDb[p.table.toLowerCase()], i = a.findIndex(x => x.id === p.row.id); if (i >= 0) a[i] = { ...a[i], ...p.row }; else a.push({ ...p.row }); return p.row; }
+  if (action === 'del'){ const k = p.table.toLowerCase(); demoDb[k] = demoDb[k].filter(x => x.id !== p.id); return {}; }
+  if (action === 'upload'){ const id = uid(); demoPhotos[id] = p.dataUrl; return { id }; }
+  if (action === 'img') return { dataUrl: demoPhotos[p.id] };
+  if (action === 'settings'){ Object.assign(demoDb.settings, p); return {}; }
+  return {};
+}
+
+/* ---------- START ---------- */
+(async function start(){
+  if (DEMO){ st.token = 'demo'; await sync(); return; }
+  st.token = LS.get('token');
+  if (!st.token){ render(); return; }
+  st.db = LS.get('db'); if (st.db) render();
+  try { await sync(); } catch(e){ if (st.db) toast(e.message); else render(); }
+})();
+document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn) sync().catch(() => {}); });
+setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
+</script>
+</body>
+</html>
