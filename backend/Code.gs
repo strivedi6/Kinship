@@ -78,13 +78,13 @@ function route(q) {
     case 'boot': checkCode(q.code); return { appName: setting('appName'), members: readAll('Members').map(function (m) { return { id: m.id, name: m.name, nick: m.nick, avatar: m.avatar, claimed: !!m.pinHash, pinLen: m.pinLen || '' }; }) };
     case 'join': return join(q);
     case 'login': return login(q);
+    case 'msgs': return msgsPoll(q);
   }
   const me = auth(q.token);
   switch (q.action) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
       return syncAll(me);
-    case 'msgs': return messagesFor(me, Number(q.since) || 0);
     case 'link': return link(me, q);
     case 'put': return put(me, q.table, q.row || {});
     case 'del': return del(me, q.table, q.id);
@@ -92,7 +92,7 @@ function route(q) {
     case 'img': return img(q.id);
     case 'setPin': setPin(me, q.pin); return {};
     case 'settings': return saveSettings(me, q);
-    case 'signout': delRow('Sessions', q.token, 'token'); return {};
+    case 'signout': delRow('Sessions', q.token, 'token'); CacheService.getScriptCache().remove('s:' + q.token); return {};
   }
   throw new Error('Unknown action');
 }
@@ -141,9 +141,23 @@ function checkCode(code) { const c = setting('familyCode'); if (!c || String(cod
 function hash(pin, salt) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + pin, Utilities.Charset.UTF_8)); }
 function checkPin(pin) { if (!/^[0-9]{4,8}$/.test(String(pin || ''))) throw new Error('PIN must be 4 to 8 digits'); }
 function session(memberId) { const t = Utilities.getUuid() + Utilities.getUuid(); writeRow('Sessions', { token: t, memberId: memberId, ts: now() }); return { token: t, id: memberId, data: syncAll(findBy('Members', memberId)) }; }
+/** Sessions are remembered for a few minutes so chat checks do not have to read the sheet every time. */
+function sessionOf(token) {
+  if (!token) return null;
+  const c = CacheService.getScriptCache(), k = 's:' + token; let v = c.get(k);
+  if (!v) { const s = findBy('Sessions', token, 'token'); if (!s) return null; v = s.memberId + '|' + s.ts; c.put(k, v, 600); }
+  const p = v.split('|'); return { memberId: p[0], ts: Number(p[1]) };
+}
+function sessionHours() {
+  const c = CacheService.getScriptCache(); let v = c.get('sessionHours');
+  if (v === null) { v = String(Number(setting('sessionHours')) || 0); c.put('sessionHours', v, 600); }
+  return Number(v) || 0;
+}
+function expired(sess) { const h = sessionHours(); return h > 0 && Date.now() - sess.ts > h * 3600000; }
 function auth(token) {
-  const s = token && findBy('Sessions', token, 'token');
-  const m = s && findBy('Members', s.memberId);
+  const sess = sessionOf(token);
+  if (sess && expired(sess)) { delRow('Sessions', token, 'token'); CacheService.getScriptCache().remove('s:' + token); throw new Error('Session expired, please sign in again'); }
+  const m = sess && findBy('Members', sess.memberId);
   if (!m) throw new Error('Session expired, please sign in again');
   return m;
 }
@@ -169,7 +183,7 @@ function join(q) {
   const m = { id: newId(), name: name, birth: birth, role: firstEver ? 'admin' : roleFor(birth, q.role), ts: now(), salt: salt, pinHash: hash(q.pin, salt), pinLen: String(String(q.pin).length) };
   m.by = m.id;
   writeRow('Members', m);
-  if (!firstEver) push(readAll('Members').filter(function (x) { return x.role === 'admin'; }).map(function (x) { return x.id; }), name + ' joined the family', 'Say hello and help them find their place in the tree.');
+  if (!firstEver) push(readAll('Members').filter(function (x) { return x.role === 'admin'; }).map(function (x) { return x.id; }), name + ' joined the family', 'Say hello and help them find their place in the tree.', 'profile:' + m.id);
   return session(m.id);
 }
 function login(q) {
@@ -192,11 +206,28 @@ function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinH
 /* ---------------- data ---------------- */
 function pub(name, r) { const o = {}; SCHEMA[name].forEach(function (h) { if (SECRET.indexOf(h) < 0) o[h] = r[h]; }); if (name === 'Members') o.claimed = !!r.pinHash; return o; }
 function syncAll(me) {
-  const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId') } };
+  const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId'), sessionHours: String(Number(setting('sessionHours')) || 0) } };
   if (me.role !== 'kid') d.settings.familyCode = setting('familyCode');
   DATA_TABLES.forEach(function (t) { if (t !== 'Messages') d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
   d.messages = messagesFor(me, 0).slice(-600);
   return d;
+}
+/** Chat check. With wait=1 it holds the line for up to 14 seconds and answers the moment a new message is written,
+    so messages arrive almost at once without reading the sheet on every check. */
+function msgsPoll(q) {
+  const sess = sessionOf(q.token);
+  if (!sess || expired(sess)) throw new Error('Session expired, please sign in again');
+  const c = CacheService.getScriptCache(), since = Number(q.since) || 0, until = Date.now() + (q.wait ? 14000 : 0);
+  let latest;
+  for (;;) {
+    latest = c.get('msgTs');
+    if (latest === null) { delete MEMO.Messages; latest = String(readAll('Messages').reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0); }, 0)); c.put('msgTs', latest, 21600); }
+    if (Number(latest) > since || Date.now() >= until) break;
+    Utilities.sleep(350);
+  }
+  if (Number(latest) <= since) return { messages: [], ts: Number(latest) };
+  delete MEMO.Messages;
+  return { messages: messagesFor({ id: sess.memberId }, since - 2000), ts: Number(latest) };
 }
 /** Chat: the family group plus this person's own one-to-one messages. Nobody else's are ever sent. */
 function messagesFor(me, since) {
@@ -274,6 +305,7 @@ function put(me, table, row) {
   }
   const target = (r.id !== clean.id) ? findBy(table, r.id) : old;
   writeRow(table, r, target ? target._row : 0);
+  if (table === 'Messages') CacheService.getScriptCache().put('msgTs', String(r.ts), 21600);
   announce(me, table, r, target);
   return pub(table, r);
 }
@@ -315,46 +347,56 @@ function img(id) {
 }
 
 /* ---------------- notifications (OneSignal) ---------------- */
-function push(ids, title, body) {
+/** title = the first line people see (always specific, never the app name); go = what the notification opens. */
+function push(ids, title, body, go) {
   try {
     const app = setting('oneSignalAppId'), key = setting('oneSignalKey');
     ids = (ids || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     if (!app || !key || !ids.length) return;
-    const payload = { app_id: app, target_channel: 'push', include_aliases: { external_id: ids }, headings: { en: String(title).slice(0, 64) }, contents: { en: String(body || '').slice(0, 170) || ' ' } };
-    const url = setting('appUrl'); if (url) payload.url = url;
+    const payload = { app_id: app, target_channel: 'push', include_aliases: { external_id: ids }, headings: { en: String(title).slice(0, 64) }, contents: { en: String(body || '').slice(0, 170) || ' ' }, data: { go: go || 'home' } };
+    const url = setting('appUrl'); if (url) payload.url = url.split('?')[0] + '?go=' + encodeURIComponent(go || 'home');
     const res = UrlFetchApp.fetch('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', headers: { Authorization: 'Key ' + key }, payload: JSON.stringify(payload), muteHttpExceptions: true });
     if (res.getResponseCode() >= 300) console.log('OneSignal: ' + res.getContentText());
   } catch (e) { console.log('push failed: ' + e); }
 }
 function everyoneBut(id) { return readAll('Members').filter(function (m) { return m.pinHash && m.id !== id; }).map(function (m) { return m.id; }); }
 function shortName(m) { return m.nick || String(m.name || '').split(' ')[0]; }
+function niceDate(d) { const p = String(d).split('-'); return p.length === 3 ? Number(p[2]) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1]) - 1] : String(d); }
 function announce(me, table, r, old) {
   const who = shortName(me);
-  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + ' shared something', r.text || 'A new photo');
+  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + (r.photo ? ' shared a photo' : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
   else if ((table === 'Comments' || table === 'Reactions') && !old) {
     const p = findBy('Posts', r.postId);
-    if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : p.text);
+    if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : (p.text || 'Your photo'), 'post:' + p.id);
   }
-  else if (table === 'Events' && !old) push(everyoneBut(me.id), (r.emoji || '📅') + ' ' + r.title, who + ' added a family date: ' + r.date);
-  else if (table === 'Messages' && !old) push(r.to === 'all' ? everyoneBut(me.id) : [r.to], r.to === 'all' ? who + ' in Family chat' : who, r.text);
+  else if (table === 'Events' && !old) push(everyoneBut(me.id), 'New family date: ' + r.title, niceDate(r.date) + ', added by ' + who, 'cal');
+  else if (table === 'Messages' && !old) push(r.to === 'all' ? everyoneBut(me.id) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text, r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
   else if (table === 'Wishes') {
     const k = findBy('Members', r.memberId) || {};
-    if (!old && me.id === r.memberId) push([k.fatherId, k.motherId], shortName(k) + ' added a wish', r.title + '. Set how many stars it needs.');
-    else if (r.cost && (!old || old.cost !== r.cost) && r.memberId !== me.id) push([r.memberId], 'Your wish has a star goal ⭐', r.title + ': ' + r.cost + ' stars');
+    if (!old && me.id === r.memberId) push([k.fatherId, k.motherId], shortName(k) + ' added a wish: ' + r.title, 'Set how many stars it needs.', 'kids:wishes:' + r.memberId);
+    else if (r.cost && (!old || old.cost !== r.cost) && r.memberId !== me.id) push([r.memberId], 'Your wish needs ' + r.cost + ' stars ⭐', r.title, 'kids:wishes:' + r.memberId);
   }
   else if (table === 'Redemptions') {
-    const kid = findBy('Members', r.memberId) || {};
-    if (!old && r.status === 'requested') push([kid.fatherId, kid.motherId], shortName(kid) + ' asked for a reward', r.title + ' (' + r.cost + ' stars)');
-    else if (old && old.status !== r.status && r.memberId !== me.id) push([r.memberId], r.status === 'approved' ? 'Reward approved 🎉' : 'Not this time', r.title);
+    const kid = findBy('Members', r.memberId) || {}, seg = String(r.rewardId).indexOf('wish:') === 0 ? 'wishes' : 'rewards';
+    if (!old && r.status === 'requested') push([kid.fatherId, kid.motherId], shortName(kid) + ' is asking for: ' + r.title, r.cost + ' stars. Tap to approve.', 'kids:' + seg + ':' + r.memberId);
+    else if (old && old.status !== r.status && r.memberId !== me.id) push([r.memberId], r.status === 'approved' ? 'Yes! You got: ' + r.title + ' 🎉' : 'Not this time: ' + r.title, r.status === 'approved' ? who + ' approved it.' : 'Your stars are back.', 'kids:' + seg + ':' + r.memberId);
   }
 }
 /** Runs every morning (trigger created by setup): birthdays and family dates happening today. */
 function dailyDigest() {
-  const tz = Session.getScriptTimeZone(), md = Utilities.formatDate(new Date(), tz, 'MM-dd'), ymd = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  readAll('Members').filter(function (m) { return m.birth && !m.passed && m.birth.slice(5) === md; })
-    .forEach(function (m) { push(everyoneBut(m.id), '🎂 ' + shortName(m) + "'s birthday is today", 'Send your wishes in the family feed.'); });
+  const tz = Session.getScriptTimeZone(), md = Utilities.formatDate(new Date(), tz, 'MM-dd'), ymd = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), yr = Number(ymd.slice(0, 4));
+  const ms = readAll('Members'), seen = {};
+  ms.filter(function (m) { return m.birth && !m.passed && m.birth.slice(5) === md; })
+    .forEach(function (m) { push(everyoneBut(m.id), "It's " + shortName(m) + "'s birthday today 🎂", 'Tap to send your wishes.', 'home'); push([m.id], 'Happy birthday, ' + shortName(m) + '! 🎉', 'With love from the whole family.', 'home'); });
+  ms.forEach(function (m) {
+    const sp = ms.filter(function (x) { return x.id === m.spouseId || x.spouseId === m.id; })[0], an = m.anniv || (sp && sp.anniv);
+    if (!sp || !an || an.slice(5) !== md || m.passed || sp.passed) return;
+    const key = [m.id, sp.id].sort().join(); if (seen[key]) return; seen[key] = 1;
+    const yrs = yr - Number(an.slice(0, 4));
+    push(everyoneBut(''), "It's " + shortName(m) + ' & ' + shortName(sp) + "'s anniversary today 💍", yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together.' : 'Send your wishes.', 'home');
+  });
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
-    .forEach(function (e) { push(everyoneBut(''), (e.emoji || '📅') + ' Today: ' + e.title, e.note || ''); });
+    .forEach(function (e) { push(everyoneBut(''), 'Today: ' + e.title + ' ' + (e.emoji || ''), e.note || 'Tap to see the details.', 'cal'); });
 }
 
 /* ---------------- relatives: link two people already in the family ---------------- */
@@ -397,7 +439,7 @@ function link(me, q) {
     if (!mayEdit && !mayFill) throw new Error('Ask ' + shortName(t) + ' to add this from their own profile, or ask the family admin');
   });
   plan.forEach(function (c) { const t = findBy('Members', c.id); t[c.field] = c.value; writeRow('Members', t, t._row); });
-  if (q.b !== me.id) push([String(q.b)], shortName(me) + ' linked you in the family tree', 'Open Kinship to see how everyone is connected.');
+  if (q.b !== me.id) push([String(q.b)], shortName(me) + ' added you as family in the tree', 'Tap to see how everyone is connected.', 'tree');
   return {};
 }
 
@@ -406,5 +448,6 @@ function saveSettings(me, q) {
   if (me.role !== 'admin') throw new Error('Only an admin can change settings');
   if (q.appName) setSetting('appName', String(q.appName).slice(0, 30));
   if (q.familyCode) { const c = String(q.familyCode).trim(); if (c.length < 6) throw new Error('Family code needs at least 6 characters'); setSetting('familyCode', c); }
+  if (q.sessionHours !== undefined) { const h = Math.max(0, Math.min(8760, Math.round(Number(q.sessionHours) || 0))); setSetting('sessionHours', String(h)); CacheService.getScriptCache().put('sessionHours', String(h), 600); }
   return {};
 }

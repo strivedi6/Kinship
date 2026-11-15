@@ -322,6 +322,13 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 [hidden]{display:none!important}
 .msg{animation:none}.msg.new{animation:msgin .4s var(--ease) both}
 .seg.four button{font-size:13px}
+/* chat thread: fixed full-height column, composer sits right above the home indicator */
+.thread{position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:18;display:flex;flex-direction:column;background:var(--page)}
+@media(min-width:900px){.thread{left:300px}}
+.tbar{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;box-shadow:0 .5px 0 var(--sep);flex:none;width:100%;max-width:852px;margin:0 auto}
+.thread #msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 10px;justify-content:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;width:100%;max-width:852px;margin:0 auto}
+.thread #msgs>:first-child{margin-top:auto}
+.thread .composer{position:static;flex:none;margin:4px auto max(8px,env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:828px}
 </style>
 </head>
 <body>
@@ -366,11 +373,13 @@ async function api(action, payload = {}){
     const r = await fetch(CONFIG.API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action, token: st.token, ...payload }) });
     j = await r.json();
   } catch(e){ throw new Error('No connection. Please try again.'); }
-  if (!j.ok){ if (/session/i.test(j.error)) signOut(true); throw new Error(j.error); }
+  if (!j.ok){ if (/session/i.test(j.error) && st.token){ signOut(true); freshReload(); } throw new Error(j.error); }
   return j.data;
 }
 const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
-function useData(d){ normDb(d); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); }
+function useData(d){ normDb(d); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
+/* A session ended: clear the stored app shell and reload, so the newest version comes in with the next sign-in. */
+async function freshReload(){ try { if (window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('kinship-')).map(k => caches.delete(k))); } } catch(e){} location.reload(); }
 let syncing = null;
 function sync(){
   if (syncing) return syncing;
@@ -491,6 +500,18 @@ const Motion = (() => {
   return M;
 })();
 
+/* ---------- open the right screen from a notification ---------- */
+function routeGo(g){
+  if (!st.db || !g) return; const p = String(g).split(':'); closeSheet();
+  if (p[0] === 'chat' && (p[1] === 'all' || M(p[1]))) openThread(p[1]);
+  else if (p[0] === 'post'){ go('feed'); if (st.db.posts.some(x => x.id === p[1])) postSheet(p[1]); }
+  else if (p[0] === 'kids'){ if (['today', 'rewards', 'wishes', 'corner'].includes(p[1])) st.seg = p[1]; if (M(p[2])) st.kidId = p[2]; go('kids'); }
+  else if (p[0] === 'profile'){ go('tree'); if (M(p[1])) profileSheet(p[1]); }
+  else if (['home', 'tree', 'feed', 'cal'].includes(p[0])) go(p[0]);
+}
+function tryGo(){ if (st.pendingGo && st.db){ const g = st.pendingGo; st.pendingGo = null; setTimeout(() => routeGo(g), 60); } }
+try { const g = new URLSearchParams(location.search).get('go'); if (g){ st.pendingGo = g; history.replaceState(null, '', location.pathname); } } catch(e){}
+
 /* ---------- notifications (OneSignal web push) ---------- */
 const PUSH = { ready:null };
 const pushAppId = () => (st.db && st.db.settings && st.db.settings.oneSignalAppId) || CONFIG.ONESIGNAL_APP_ID || '';
@@ -499,7 +520,7 @@ function pushInit(){
   if (PUSH.ready) return PUSH.ready;
   PUSH.ready = new Promise(res => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async OneSignal => { try { const base = location.pathname.replace(/[^/]*$/, ''); await OneSignal.init({ appId: pushAppId(), serviceWorkerPath: base.slice(1) + 'OneSignalSDKWorker.js', serviceWorkerParam: { scope: base } }); res(OneSignal); } catch(e){ console.warn('OneSignal', e); res(null); } });
+    window.OneSignalDeferred.push(async OneSignal => { try { const base = location.pathname.replace(/[^/]*$/, ''); await OneSignal.init({ appId: pushAppId(), serviceWorkerPath: base.slice(1) + 'OneSignalSDKWorker.js', serviceWorkerParam: { scope: base } }); try { OneSignal.Notifications.addEventListener('click', ev => { const d = ev && ev.notification && ev.notification.additionalData; if (d && d.go){ st.pendingGo = d.go; sync().catch(() => {}).then(tryGo); } }); } catch(e){} res(OneSignal); } catch(e){ console.warn('OneSignal', e); res(null); } });
     const sc = document.createElement('script'); sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; sc.defer = true; sc.onerror = () => res(null); document.head.appendChild(sc);
   });
   return PUSH.ready;
@@ -850,10 +871,10 @@ function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length 
 const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" ${n ? '' : 'hidden'}>${n || ''}</i>`; };
 function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
 const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .5)}px">👪</span>`;
-function openChat(){ if (st.tab !== 'chat') Motion.enter = true; Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); }
-function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); scrollMsgs(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
+function openChat(){ if (st.tab !== 'chat') Motion.enter = true; Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); wakePoll(); }
+function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
 function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; window.scrollTo(0, 0); render(); }
-const scrollMsgs = () => window.scrollTo(0, document.documentElement.scrollHeight);
+const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
 function vChat(){
   if (st.chatWith) return vThread();
   const last = t => { const ms = threadMsgs(t); return ms[ms.length - 1]; };
@@ -876,15 +897,29 @@ function msgsHtml(){
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="bar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div><form class="composer glass" onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div><form class="composer glass" onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
-function updateMsgs(){ const el = $('#msgs'), near = innerHeight + scrollY >= document.documentElement.scrollHeight - 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
+/* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
+function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v) return; t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; scrollMsgs(); }
+if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
+function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
 function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
-async function pollMsgs(){
-  if (!st.db || DEMO || document.hidden || pollMsgs.busy) return; pollMsgs.busy = true;
-  try { const r = await api('msgs', { since: st.msgSince || 0 }); if (r && r.length){ for (const m of r){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0) st.db.messages[i] = m; else st.db.messages.push(m); st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); } LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); } } catch(e){} finally { pollMsgs.busy = false; }
+async function pollMsgs(wait){
+  const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
+  let fresh = 0;
+  for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0) st.db.messages[i] = m; else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
+  if (r && r.ts) st.msgSince = Math.max(st.msgSince || 0, Number(r.ts));
+  if (fresh){ LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); if (!(st.tab === 'chat' && st.chatWith)) Motion.haptic(); }
 }
-let pollN = 0; setInterval(() => { pollN++; if (st.db && (st.tab === 'chat' || pollN % 8 === 0)) pollMsgs(); }, 5000);
+let wakePoll = () => {};
+const nap = ms => new Promise(r => { const t = setTimeout(r, ms); wakePoll = () => { clearTimeout(t); r(); }; });
+(async function pollLoop(){
+  for (;;){
+    if (!st.db || !st.token || DEMO || document.hidden){ await nap(3000); continue; }
+    const live = st.tab === 'chat';
+    try { await pollMsgs(live); await nap(live ? 120 : 20000); } catch(e){ await nap(5000); }
+  }
+})();
 
 /* ---------- WISH LIST (kids add wishes, a parent sets the stars) ---------- */
 const wishRed = w => st.db.redemptions.filter(r => r.rewardId === 'wish:' + w.id).sort((a, b) => b.ts - a.ts)[0];
@@ -1045,13 +1080,13 @@ function meSheet(){
   const s = st.db.settings || {}, url = location.href.split('#')[0];
   openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div><button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
   ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
-  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><button class="btn sm">Save settings</button></form></div>` : ''}
+  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form></div>` : ''}
   <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}</div>
   <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="New 4-digit PIN" required><button class="btn sm">Change</button></form></div>
   <button class="btn line block" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
 }
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
-function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim() }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
+function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim(), sessionHours:f.get('sessionHours') }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
 function submitPin(ev){ const f = ev.target, pin = f.pin.value; busy(ev, async () => { await api('setPin', { pin }); toast('PIN changed'); f.reset(); }, 'Changing…'); return false; }
 function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; warmLogin(); closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
 
@@ -1066,13 +1101,13 @@ function renderLogin(){
   const L = st.login, m = lockMember(), rip = '<span class="ripple"></span>'.repeat(3);
   const ident = who => `<div class="ident">${rip}${who ? av(who, 84) : '<img class="app-ic" src="icon-192.png" alt="">'}</div>`;
   const back = (to, label) => `<button class="back" onclick="lockGo('${to}',-1)"><svg viewBox="0 0 24 24">${ICO.back}</svg>${label || 'Back'}</button>`;
-  const keypad = to => `<div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="pinPress('${n}')">${n}</button>`).join('')}<button class="fn" onclick="lockGo('${to}',-1)">Back</button><button onclick="pinPress('0')">0</button><button class="fn" onclick="pinDel()" aria-label="Delete">⌫</button></div>`;
+  const keypad = (to, label) => `<div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="pinPress('${n}')">${n}</button>`).join('')}<button class="fn" onclick="st.login.known=false;lockGo('${to}',-1)">${label || 'Back'}</button><button onclick="pinPress('0')">0</button><button class="fn" onclick="pinDel()" aria-label="Delete">⌫</button></div>`;
   const pinBlock = `<div class="pin-dots" id="dots">${dotsHtml()}</div><div class="pin-msg ${A.err ? 'neg' : ''}" id="pinmsg">${esc(A.err)}</div><div class="actions" style="margin-top:0"><button class="btn sm" id="pinok" hidden onclick="pinSubmit()" style="align-self:center">Sign in</button></div>`;
   const name = esc(L.appName || CONFIG.APP_NAME);
   let c = '';
   if (L.step === 'code') c = `${ident()}<h1>${name}</h1><p class="sub">One place for the whole family. Enter your family code to come in.</p><form class="form" onsubmit="return loginCode(event)"><input type="text" name="code" placeholder="Family code" autocomplete="off" autocapitalize="characters" required style="text-align:center;font-weight:600;letter-spacing:.12em;text-transform:uppercase"><div class="actions" style="margin-top:6px"><button class="btn block">Continue</button></div></form>`;
   else if (L.step === 'who') c = `${ident()}<h1>Who are you?</h1><p class="sub">Tap your name to sign in.</p><div class="who">${L.members.map(x => `<button onclick="loginPick('${x.id}')">${av(x, 48)}<div style="margin-top:6px">${esc(first(x))}</div>${x.claimed ? '' : '<div class="small muted" style="font-weight:400">set up</div>'}</button>`).join('')}</div><div class="actions"><button class="btn block" onclick="lockGo('new')">I'm new here</button><button class="btn block soft" onclick="LS.del('boot');lockGo('code',-1)">Use another family code</button></div>`;
-  else if (L.step === 'pin') c = `${ident(m)}<div class="hello-s">Welcome back</div><h1>${esc(first(m))}</h1><p class="sub">Enter your PIN</p>${pinBlock}${keypad('who')}`;
+  else if (L.step === 'pin') c = `${ident(m)}<div class="hello-s">Welcome back</div><h1>${esc(first(m))}</h1><p class="sub">Enter your PIN</p>${pinBlock}${keypad('who', L.known ? 'Not you?' : 'Back')}`;
   else if (L.step === 'new') c = `${back('who')}${ident()}<h1>Join the family</h1><p class="sub">Tell us who you are.</p><form class="form" onsubmit="return loginNew(event)"><input type="text" name="name" placeholder="Full name" required maxlength="60" autocomplete="name" value="${esc(L.name || '')}"><label>Date of birth</label><input type="date" name="birth" required max="${today()}" value="${esc(L.birth || '')}"><div class="actions" style="margin-top:6px"><button class="btn block">Continue</button></div></form>`;
   else if (L.step === 'newpin') c = `${ident(L.claim ? m : null)}<div class="hello-s">${L.claim ? 'Your profile is waiting' : 'Almost there'}</div><h1>Choose a PIN</h1><p class="sub">4 digits. You will use it to sign in.</p>${pinBlock}${keypad(L.claim ? 'who' : 'new')}`;
   else if (L.step === 'newpin2') c = `${ident(L.claim ? m : null)}<div class="hello-s">One more time</div><h1>Confirm your PIN</h1><p class="sub">Enter the same 4 digits again.</p>${pinBlock}${keypad('newpin')}`;
@@ -1113,12 +1148,14 @@ function bootDone(d, code){ const keep = st.login || {}; st.login = { step: d.me
 function loginCode(ev){ const code = ev.target.code.value.trim().toUpperCase(); busy(ev, async () => { bootDone(await api('boot', { code }), code); A.dir = 1; render(); }, 'Checking…'); return false; }
 function loginPick(id){ const L = st.login; L.id = id; L.claim = !lockMember().claimed; lockGo(L.claim ? 'newpin' : 'pin'); }
 function loginNew(ev){ ev.preventDefault(); const f = ev.target, L = st.login; L.name = f.name.value.trim(); L.birth = f.birth.value; if (!L.name || !L.birth) return false; L.id = null; L.claim = false; lockGo('newpin'); return false; }
-async function enter(d){ st.token = d.token; LS.set('token', d.token); if (d.data) useData(d.data); else await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
+async function enter(d){ st.token = d.token; LS.set('token', d.token); LS.set('last', { id:d.id }); if (d.data) useData(d.data); else await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
 /* Returning to the sign-in screen: show the family list straight away from this device, refresh it quietly. */
 function warmLogin(){
   const b = LS.get('boot'); if (!b || !b.code) return;
   st.login = { step: b.members.length ? 'who' : 'new', code:b.code, members:b.members, appName:b.appName };
-  api('boot', { code:b.code }).then(d => { const was = st.login; bootDone(d, b.code); if (was.step !== 'who' && was.step !== 'code') Object.assign(st.login, { step:was.step, id:was.id, claim:was.claim, name:was.name, birth:was.birth }); else if (!st.db){ A.dir = 0; render(); } })
+  const last = LS.get('last'), known = last && b.members.find(x => x.id === last.id && x.claimed);
+  if (known){ st.login.step = 'pin'; st.login.id = known.id; st.login.claim = false; st.login.known = true; }   // this device has signed in before: ask only for the PIN
+  api('boot', { code:b.code }).then(d => { const was = st.login; bootDone(d, b.code); if (was.step !== 'who' && was.step !== 'code') Object.assign(st.login, { step:was.step, id:was.id, claim:was.claim, name:was.name, birth:was.birth, known:was.known }); else if (!st.db){ A.dir = 0; render(); } })
     .catch(e => { if (/code/i.test(e.message)){ LS.del('boot'); st.login = { step:'code' }; if (!st.db) render(); } });
 }
 document.addEventListener('keydown', e => {
@@ -1181,7 +1218,7 @@ async function demoApi(action, p){
   st.token = LS.get('token');
   if (!st.token){ warmLogin(); render(); return; }
   st.db = normDb(LS.get('db'));
-  if (st.db) render();                                   // saved data first: the app opens at once
+  if (st.db){ render(); tryGo(); }                       // saved data first: the app opens at once
   else $('#app').innerHTML = `<div class="splash"><img src="icon-192.png" alt=""><div>Opening ${esc(CONFIG.APP_NAME)}…</div></div>`;
   try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
@@ -1191,7 +1228,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') addEventList
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive:false });
 addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
 addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 16), { passive:true });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); else if (!document.hidden) pollMsgs(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); if (!document.hidden) wakePoll(); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
 </script>
 </body>
