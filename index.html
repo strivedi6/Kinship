@@ -12,6 +12,8 @@
 <meta name="apple-mobile-web-app-title" content="Kinship">
 <meta name="robots" content="noindex,nofollow">
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <style>
@@ -196,6 +198,12 @@ form .btn.block{margin-top:16px}
 .cf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:90;pointer-events:none}
 [data-haptic]{position:absolute;inset:0;z-index:5;border-radius:inherit;touch-action:manipulation;cursor:pointer;margin:0;padding:0;background:none}
 [data-haptic] input{position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;visibility:hidden;pointer-events:none;min-height:0}
+#syncbar{position:fixed;left:0;right:0;top:0;height:2.5px;z-index:95;pointer-events:none;opacity:0;transition:opacity .3s;background:linear-gradient(90deg,transparent,var(--accent),#CB30E0,transparent) 0 0/50% 100% no-repeat}
+#syncbar.on{opacity:1;animation:syncrun 1.1s linear infinite}
+@keyframes syncrun{from{background-position:-60% 0}to{background-position:160% 0}}
+.splash{height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:var(--muted);font-size:15px}
+.splash img{width:96px;height:96px;border-radius:22px;animation:breathe 1.6s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.06)}}
 /* busy buttons: locked while saving, with a filling wave and a spinning ring (as in Orbit) */
 .btn.is-busy{position:relative;overflow:visible;pointer-events:none;opacity:1!important;background:var(--accent)!important;color:rgba(255,255,255,.75)!important}
 .btn.is-busy:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 0 20%,rgba(255,255,255,.38) 50%,transparent 80%) 0 0/220% 100% no-repeat;animation:fillwave 1.25s var(--ease) infinite}
@@ -213,6 +221,7 @@ form .btn.block{margin-top:16px}
 <nav class="nav" id="nav" hidden><div class="glass"></div></nav>
 <div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
 <div id="toast"></div>
+<div id="syncbar"></div>
 <script>
 /* ============ SETTINGS: change these two lines ============ */
 const CONFIG = {
@@ -249,11 +258,13 @@ async function api(action, payload = {}){
   if (!j.ok){ if (/session/i.test(j.error)) signOut(true); throw new Error(j.error); }
   return j.data;
 }
-async function sync(){
-  const d = await api('sync', { appUrl: location.href.split(/[?#]/)[0] });
-  st.db = d; LS.set('db', d); pushLogin();
-  if (d.settings && d.settings.appName) document.title = d.settings.appName;
-  render();
+function useData(d){ st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); }
+let syncing = null;
+function sync(){
+  if (syncing) return syncing;
+  $('#syncbar').classList.add('on');
+  syncing = api('sync', { appUrl: location.href.split(/[?#]/)[0] }).then(useData).finally(() => { syncing = null; $('#syncbar').classList.remove('on'); });
+  return syncing;
 }
 async function save(table, row){
   const arr = st.db[table.toLowerCase()];
@@ -295,7 +306,8 @@ const parentsOf = m => m ? [M(m.fatherId), M(m.motherId)].filter(Boolean) : [];
 const byBirth = (a, b) => String(a.birth || '9').localeCompare(String(b.birth || '9')) || String(a.name).localeCompare(String(b.name));
 const childrenOf = m => st.db.members.filter(c => c.fatherId === m.id || c.motherId === m.id).sort(byBirth);
 const isParentOf = (p, k) => !!k && (k.fatherId === p.id || k.motherId === p.id);
-const canEdit = m => m.id === me().id || isAdmin() || (!isKid(me()) && (!m.claimed || isParentOf(me(), m)));
+const canEdit = m => m.id === me().id || isAdmin() || isParentOf(me(), m);   // self, parents, family admin
+const roleFor = birth => { if (!/^\d{4}-\d{2}-\d{2}$/.test(birth || '')) return 'adult'; const b = pDate(birth), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) a--; return a < 18 ? 'kid' : 'adult'; };
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const today = () => ymd(new Date());
@@ -721,10 +733,10 @@ let pendingAvatar = null, formPreset = null;
 function memberForm(id, preset){
   const src = id ? M(id) : {}; formPreset = preset || {}; pendingAvatar = null;
   const m = { ...src }; const P = formPreset;
-  if (P.role) m.role = P.role;
-  if (P.childOf){ const p = M(P.childOf), sp = spouseOf(p); const dad = p.gender === 'female' ? sp : p, mum = p.gender === 'female' ? p : sp; m.fatherId = dad ? dad.id : ''; m.motherId = mum ? mum.id : ''; m.country = p.country; m.city = p.city; m.role = 'kid'; }
+  if (P.childOf){ const p = M(P.childOf), sp = spouseOf(p); const dad = p.gender === 'female' ? sp : p, mum = p.gender === 'female' ? p : sp; m.fatherId = dad ? dad.id : ''; m.motherId = mum ? mum.id : ''; m.country = p.country; m.city = p.city; }
   if (P.parentOf){ const p = me(), sp = spouseOf(p); const dad = p.gender === 'female' ? sp : p, mum = p.gender === 'female' ? p : sp; m.fatherId = dad ? dad.id : ''; m.motherId = mum ? mum.id : ''; m.country = p.country; m.city = p.city; }
   if (P.spouseOf) m.spouseId = P.spouseOf;
+  const kidFlow = !!(P.childOf || P.parentOf);
   const others = st.db.members.filter(x => x.id !== id).sort((a, b) => String(a.name).localeCompare(b.name));
   const sel = (name, val, list) => `<select name="${name}"><option value="">Not in the app yet</option>${list.map(x => `<option value="${x.id}" ${x.id === val ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`;
   const sp = id ? spouseOf(src) : M(m.spouseId);
@@ -733,7 +745,7 @@ function memberForm(id, preset){
   <div class="row"><span id="avPrev">${av(m.name ? m : { name:'?' , id:'x'}, 64)}</span><div class="grow"><label style="margin-top:0">Photo</label><input type="file" accept="image/*" onchange="pickAvatar(this)"></div></div>
   <label>Full name</label><input type="text" name="name" required maxlength="60" value="${esc(m.name || '')}">
   <div class="two"><div><label>Called (nickname)</label><input type="text" name="nick" maxlength="30" value="${esc(m.nick || '')}"></div><div><label>I am</label><select name="gender"><option value="">Prefer not to say</option><option value="female" ${m.gender === 'female' ? 'selected' : ''}>Female</option><option value="male" ${m.gender === 'male' ? 'selected' : ''}>Male</option></select></div></div>
-  <div class="two"><div><label>Birthday</label><input type="date" name="birth" value="${esc(m.birth || '')}"></div><div><label>Type</label><select name="role" ${id === st.db.me && !isAdmin() ? 'disabled' : ''}><option value="adult" ${m.role !== 'kid' ? 'selected' : ''}>Grown-up</option><option value="kid" ${m.role === 'kid' ? 'selected' : ''}>Kid</option></select></div></div>
+  <label>Date of birth${kidFlow ? '' : ' (if you know it)'}</label><input type="date" name="birth" max="${today()}" value="${esc(m.birth || '')}" ${kidFlow || id === st.db.me ? 'required' : ''}><p class="small muted" style="margin:6px 16px 0">Anyone under 18 is set up as a kid automatically.</p>
   <div class="two"><div><label>Country</label><select name="country"><option value="">Choose</option>${COUNTRIES.map(c => `<option ${m.country === c[0] ? 'selected' : ''}>${c[0]}</option>`).join('')}</select></div><div><label>City</label><input type="text" name="city" maxlength="40" value="${esc(m.city || '')}"></div></div>
   <h3 style="margin-top:20px">Family links</h3><p class="small muted" style="margin:4px 0 0">These place the person in the tree.</p>
   <div class="two"><div><label>Father</label>${sel('fatherId', m.fatherId, others)}</div><div><label>Mother</label>${sel('motherId', m.motherId, others)}</div></div>
@@ -750,7 +762,7 @@ async function pickAvatar(inp){ if (!inp.files[0]) return; try { pendingAvatar =
 function submitMember(ev, id){
   const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim(), P = formPreset || {};
   const row = { name:g('name'), nick:g('nick'), gender:g('gender'), birth:g('birth'), country:g('country'), city:g('city'), fatherId:g('fatherId'), motherId:g('motherId'), spouseId:g('spouseId'), anniv:g('anniv'), favFood:g('favFood'), favColor:g('favColor'), hobby:g('hobby'), askMe:g('askMe'), about:g('about') };
-  if (f.has('role')) row.role = g('role'); else if (!id) row.role = 'adult';
+  if (!id || M(id).role !== 'admin') row.role = roleFor(row.birth);
   if (id !== st.db.me) row.passed = f.get('passed') ? '1' : '';
   if (pendingAvatar) row.avatar = pendingAvatar;
   if (id === st.db.me) row.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; else if (!id || !M(id).claimed) row.tz = (cInfo(row.country) || [])[2] || '';
@@ -776,7 +788,7 @@ function meSheet(){
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
 function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim() }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
 function submitPin(ev){ const f = ev.target, pin = f.pin.value; busy(ev, async () => { await api('setPin', { pin }); toast('PIN changed'); f.reset(); }, 'Changing…'); return false; }
-function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
+function signOut(silent){ if (!silent && !confirm('Sign out on this device?')) return; if (!silent && !DEMO) api('signout').catch(() => {}); try { if (window.OneSignal && OneSignal.logout) OneSignal.logout(); } catch(e){} LS.del('token'); LS.del('db'); st.token = null; st.db = null; st.login = { step:'code' }; warmLogin(); closeSheet(); $('#nav').hidden = true; $('#side').hidden = true; $('#app').classList.remove('wide', 'shell'); if (DEMO) location.reload(); else render(); }
 
 /* ---------- LOGIN ---------- */
 function renderLogin(){
@@ -785,14 +797,17 @@ function renderLogin(){
   if (L.step === 'code') body = `<p class="muted">Enter your family code to come in.</p><form onsubmit="return loginCode(event)"><input type="text" name="code" placeholder="Family code" autocomplete="off" autocapitalize="characters" required style="text-align:center;font-weight:600;letter-spacing:.1em"><button class="btn block" style="margin-top:12px">Continue</button></form>`;
   else if (L.step === 'who') body = `<p class="muted">Who are you?</p><div class="who">${L.members.map(m => `<button onclick="loginPick('${m.id}')">${av(m, 48)}<div style="margin-top:6px">${esc(first(m))}</div>${m.claimed ? '' : '<div class="small muted" style="font-weight:600">set up</div>'}</button>`).join('')}</div><button class="btn ghost block" onclick="st.login.step='new';render()">I'm new here</button>`;
   else if (L.step === 'pin'){ const m = L.members.find(x => x.id === L.id); body = `<div>${av(m, 72)}</div><p class="b">${esc(m.name)}</p><p class="muted">${m.claimed ? 'Enter your PIN' : 'Your profile is waiting. Choose a PIN (4 to 8 digits) to make it yours.'}</p><form onsubmit="return loginPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required autofocus style="text-align:center;font-size:22px;letter-spacing:.3em"><button class="btn block" style="margin-top:12px">${m.claimed ? 'Sign in' : 'Set PIN and enter'}</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`; }
-  else if (L.step === 'new') body = `<p class="muted">Welcome! Add yourself to the family.</p><form onsubmit="return loginNew(event)" style="text-align:left"><label>Your full name</label><input type="text" name="name" required maxlength="60"><label>I am a</label><select name="role"><option value="adult">Grown-up</option><option value="kid">Kid</option></select><label>Choose a PIN (4 to 8 digits)</label><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required><button class="btn block" style="margin-top:14px">Join the family</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`;
+  else if (L.step === 'new') body = `<p class="muted">Welcome! Add yourself to the family.</p><form onsubmit="return loginNew(event)" style="text-align:left"><label>Your full name</label><input type="text" name="name" required maxlength="60"><label>Date of birth</label><input type="date" name="birth" required max="${today()}"><label>Choose a PIN (4 to 8 digits)</label><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" required><button class="btn block" style="margin-top:14px">Join the family</button></form><p><a class="link" onclick="st.login.step='who';render()">Back</a></p>`;
   $('#app').innerHTML = `<div class="login">${head}${body}</div>`;
 }
-function loginCode(ev){ const code = ev.target.code.value.trim(); busy(ev, async () => { const d = await api('boot', { code }); st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; render(); }, 'Checking…'); return false; }
+function bootDone(d, code){ st.login = { step: d.members.length ? 'who' : 'new', code, members:d.members, appName:d.appName }; LS.set('boot', { code, members:d.members.map(m => ({ ...m, avatar:'' })), appName:d.appName }); }
+function loginCode(ev){ const code = ev.target.code.value.trim(); busy(ev, async () => { bootDone(await api('boot', { code }), code); render(); }, 'Checking…'); return false; }
 function loginPick(id){ st.login.id = id; st.login.step = 'pin'; render(); }
-async function enter(tok){ st.token = tok; LS.set('token', tok); await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
-function loginPin(ev){ const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; busy(ev, async () => { const d = m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin }); await enter(d.token); }, 'Signing in…'); return false; }
-function loginNew(ev){ const f = ev.target, body = { code:st.login.code, name:f.name.value.trim(), role:f.role.value, pin:f.pin.value }; busy(ev, async () => { const d = await api('join', body); await enter(d.token); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); }, 'Joining…'); return false; }
+async function enter(d){ st.token = d.token; LS.set('token', d.token); if (d.data) useData(d.data); else await sync(); const m = me(); if (!m.tz) save('Members', { id:m.id, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }).catch(() => {}); }
+function loginPin(ev){ const L = st.login, m = L.members.find(x => x.id === L.id), pin = ev.target.pin.value; busy(ev, async () => { await enter(m.claimed ? await api('login', { code:L.code, id:L.id, pin }) : await api('join', { code:L.code, claimId:L.id, pin })); }, 'Signing in…'); return false; }
+function loginNew(ev){ const f = ev.target, body = { code:st.login.code, name:f.name.value.trim(), birth:f.birth.value, role:roleFor(f.birth.value), pin:f.pin.value }; busy(ev, async () => { await enter(await api('join', body)); memberForm(st.db.me); toast('Welcome! Tell the family about you.'); }, 'Joining…'); return false; }
+/* Returning to the sign-in screen: show the family list straight away from this device, refresh it quietly. */
+function warmLogin(){ const b = LS.get('boot'); if (!b || !b.code) return; st.login = { step: b.members.length ? 'who' : 'new', code:b.code, members:b.members, appName:b.appName }; api('boot', { code:b.code }).then(d => { const at = st.login.step, id = st.login.id; bootDone(d, b.code); if (at === 'pin' || at === 'new'){ st.login.step = at; st.login.id = id; } if (!st.db && at === 'who') render(); }).catch(e => { if (/code/i.test(e.message)){ LS.del('boot'); st.login = { step:'code' }; if (!st.db) render(); } }); }
 
 /* ---------- DEMO DATA (used only until API_URL is set) ---------- */
 let demoDb = null; const demoPhotos = {};
@@ -843,10 +858,13 @@ async function demoApi(action, p){
 (async function start(){
   if (DEMO){ st.token = 'demo'; await sync(); return; }
   st.token = LS.get('token');
-  if (!st.token){ render(); return; }
-  st.db = LS.get('db'); if (st.db) render();
-  try { await sync(); } catch(e){ if (st.db) toast(e.message); else render(); }
+  if (!st.token){ warmLogin(); render(); return; }
+  st.db = LS.get('db');
+  if (st.db) render();                                   // saved data first: the app opens at once
+  else $('#app').innerHTML = `<div class="splash"><img src="icon-192.png" alt=""><div>Opening ${esc(CONFIG.APP_NAME)}…</div></div>`;
+  try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
+if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('OneSignalSDKWorker.js').catch(() => {}));
 document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn) sync().catch(() => {}); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
 </script>

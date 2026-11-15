@@ -96,7 +96,9 @@ function route(q) {
 /* ---------------- sheet helpers ---------------- */
 function sh(name) { const s = SpreadsheetApp.getActive().getSheetByName(name); if (!s) throw new Error('Run setup first'); return s; }
 function str(v) { if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return v === null || v === undefined ? '' : String(v); }
+let MEMO = {};   // each tab is read once per request
 function readAll(name) {
+  if (MEMO[name]) return MEMO[name];
   const v = sh(name).getDataRange().getValues(), head = SCHEMA[name], rows = [];
   for (let i = 1; i < v.length; i++) {
     if (v[i][0] === '') continue;
@@ -104,17 +106,22 @@ function readAll(name) {
     for (let j = 0; j < head.length; j++) o[head[j]] = str(v[i][j]);
     rows.push(o);
   }
+  MEMO[name] = rows;
   return rows;
 }
+function dropRow(name, row) { sh(name).deleteRow(row); delete MEMO[name]; }
+function ageOf(birth) { const p = String(birth).split('-').map(Number), n = new Date(); let a = n.getFullYear() - p[0]; if (n.getMonth() + 1 < p[1] || (n.getMonth() + 1 === p[1] && n.getDate() < p[2])) a--; return a; }
+function roleFor(birth, fallback) { return /^\d{4}-\d{2}-\d{2}$/.test(String(birth || '')) ? (ageOf(birth) < 18 ? 'kid' : 'adult') : (fallback === 'kid' ? 'kid' : 'adult'); }
 function safe(v, max) { let s = str(v).slice(0, max || 3000); if (/^[=+\-@]/.test(s)) s = "'" + s; return s; }
 function writeRow(name, obj, rowNum) {
   const s = sh(name), head = SCHEMA[name];
   const vals = head.map(function (h) { return safe(obj[h], h === 'avatar' ? 48000 : 3000); });
   const r = rowNum || s.getLastRow() + 1;
   s.getRange(r, 1, 1, head.length).setNumberFormat('@').setValues([vals]);
+  delete MEMO[name];
 }
 function findBy(name, id, key) { key = key || 'id'; const all = readAll(name); for (let i = 0; i < all.length; i++) if (all[i][key] === id) return all[i]; return null; }
-function delRow(name, id, key) { const r = findBy(name, id, key); if (r) sh(name).deleteRow(r._row); }
+function delRow(name, id, key) { const r = findBy(name, id, key); if (r) dropRow(name, r._row); }
 function setting(k) { const r = findBy('Settings', k, 'key'); return r ? r.value : ''; }
 function setSetting(k, v) { const r = findBy('Settings', k, 'key'); writeRow('Settings', { key: k, value: v }, r ? r._row : 0); }
 function now() { return String(Date.now()); }
@@ -124,7 +131,7 @@ function newId() { return Utilities.getUuid().replace(/-/g, '').slice(0, 14); }
 function checkCode(code) { const c = setting('familyCode'); if (!c || String(code || '').trim().toUpperCase() !== c.toUpperCase()) throw new Error('That family code is not right'); }
 function hash(pin, salt) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + pin, Utilities.Charset.UTF_8)); }
 function checkPin(pin) { if (!/^[0-9]{4,8}$/.test(String(pin || ''))) throw new Error('PIN must be 4 to 8 digits'); }
-function session(memberId) { const t = Utilities.getUuid() + Utilities.getUuid(); writeRow('Sessions', { token: t, memberId: memberId, ts: now() }); return { token: t, id: memberId }; }
+function session(memberId) { const t = Utilities.getUuid() + Utilities.getUuid(); writeRow('Sessions', { token: t, memberId: memberId, ts: now() }); return { token: t, id: memberId, data: syncAll(findBy('Members', memberId)) }; }
 function auth(token) {
   const s = token && findBy('Sessions', token, 'token');
   const m = s && findBy('Members', s.memberId);
@@ -149,7 +156,8 @@ function join(q) {
   for (let i = 0; i < same.length; i++) if (same[i].pinHash && hash(q.pin, same[i].salt) === same[i].pinHash) return session(same[i].id);
   if (same.length) throw new Error(name + ' is already in the family. Go back and tap your name, or add a middle name if you are someone else.');
   const firstEver = readAll('Members').filter(function (m) { return m.pinHash; }).length === 0;
-  const m = { id: newId(), name: name, role: firstEver ? 'admin' : (q.role === 'kid' ? 'kid' : 'adult'), ts: now(), salt: salt, pinHash: hash(q.pin, salt) };
+  const birth = /^\d{4}-\d{2}-\d{2}$/.test(String(q.birth || '')) ? q.birth : '';
+  const m = { id: newId(), name: name, birth: birth, role: firstEver ? 'admin' : roleFor(birth, q.role), ts: now(), salt: salt, pinHash: hash(q.pin, salt) };
   m.by = m.id;
   writeRow('Members', m);
   if (!firstEver) push(readAll('Members').filter(function (x) { return x.role === 'admin'; }).map(function (x) { return x.id; }), name + ' joined the family', 'Say hello and help them find their place in the tree.');
@@ -197,12 +205,14 @@ function put(me, table, row) {
   switch (table) {
     case 'Members':
       if (!String(r.name || '').trim()) throw new Error('Name is needed');
-      if (!old) { adultOnly(me); r.by = me.id; r.role = r.role === 'kid' ? 'kid' : 'adult'; }
+      if (!old) { adultOnly(me); r.by = me.id; r.role = roleFor(r.birth, r.role); }
       else {
-        const ok = old.id === me.id || me.role === 'admin' || (me.role !== 'kid' && (!old.pinHash || old.fatherId === me.id || old.motherId === me.id));
-        if (!ok) throw new Error('You can only edit your own profile');
-        if (me.role !== 'admin') r.role = (old.role === 'admin') ? 'admin' : (old.id === me.id ? old.role : (r.role === 'kid' ? 'kid' : 'adult'));
-        else if (['admin', 'adult', 'kid'].indexOf(r.role) < 0) r.role = old.role;
+        // Only the person, their parents, or the family admin may edit a profile.
+        if (!(old.id === me.id || me.role === 'admin' || old.fatherId === me.id || old.motherId === me.id)) throw new Error('Only this person, their parents or the family admin can edit this profile');
+        // Role comes from the date of birth (under 18 = kid). Only an admin can give or remove the admin role.
+        if (me.role === 'admin' && clean.role === 'admin') r.role = 'admin';
+        else if (old.role === 'admin' && !(me.role === 'admin' && clean.role && clean.role !== 'admin')) r.role = 'admin';
+        else r.role = roleFor(r.birth, old.role);
         if (old.id === me.id && old.role === 'admin' && r.role !== 'admin') {
           const others = readAll('Members').filter(function (m) { return m.role === 'admin' && m.id !== me.id; });
           if (!others.length) r.role = 'admin';
@@ -245,9 +255,9 @@ function del(me, table, id) {
   else if (table === 'Reactions') { if (old.by !== me.id) throw new Error('Not allowed'); }
   else if (table === 'Answers') { if (old.memberId !== me.id && me.role !== 'admin') throw new Error('Not allowed'); }
   else ownerOnly(me, old);
-  sh(table).deleteRow(old._row);
+  dropRow(table, old._row);
   if (table === 'Posts' && old.photo) try { DriveApp.getFileById(old.photo).setTrashed(true); } catch (e) {}
-  if (table === 'Members') readAll('Sessions').filter(function (s) { return s.memberId === id; }).reverse().forEach(function (s) { sh('Sessions').deleteRow(s._row); });
+  if (table === 'Members') readAll('Sessions').filter(function (s) { return s.memberId === id; }).reverse().forEach(function (s) { sh('Sessions').deleteRow(s._row); }); delete MEMO.Sessions;
   return {};
 }
 
