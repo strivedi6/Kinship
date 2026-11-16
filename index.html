@@ -340,6 +340,53 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .mdots{display:flex;justify-content:center;gap:6px;margin:10px 0 0}
 .mdots i{width:7px;height:7px;border-radius:50%;background:var(--tert)}
 .mdots i.on{background:var(--ink)}
+/* celebration tiles and overlay, in the style of Hearts */
+.bday{color:#13294B;background:linear-gradient(135deg,#FFE1EA 0%,#FFF1D2 55%,#E4EEFF 100%);transition:transform .2s}
+.bday:active{transform:scale(.985)}
+.bday.anniv{background:linear-gradient(135deg,#F1E4FF 0%,#FFE1EA 60%,#FFF1D2 100%);color:#13294B}
+.bday.me{background:linear-gradient(135deg,#2B2F8F 0%,#B0306A 100%);color:#fff}
+.bday.fest{background:var(--g,linear-gradient(135deg,#0088FF,#6155F5));color:#fff}
+.bday .balloons{position:absolute;right:-4px;top:-6px;width:92px;height:92px;z-index:1;animation:floaty 5s ease-in-out infinite}
+.bday .bd-in{padding-right:60px}
+.bday .ey{color:#B23A62;font-size:12px;letter-spacing:.1em;font-weight:700;opacity:1}
+.bday.me .ey{color:#FFE7A3}.bday.fest .ey{color:rgba(255,255,255,.92)}
+.bday .bd-sub{color:#4A5263;opacity:1}.bday.me .bd-sub,.bday.fest .bd-sub{color:rgba(255,255,255,.85)}
+.bday .av{box-shadow:0 0 0 3px #fff,0 0 0 5px #E8577E}
+.bday .bd-note{padding-right:56px}
+.bday .festico{font-size:46px;line-height:56px;width:56px;text-align:center;flex:none}
+.bday-circle{position:absolute;right:14px;bottom:14px;width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14),inset 0 0 0 1px rgba(0,0,0,.04);display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;z-index:3}
+.bday-circle.pulse{animation:bdayWobble 2.6s ease-in-out infinite}
+.bday-circle.pulse:after{content:"";position:absolute;inset:0;border-radius:50%;animation:bdayPulse 2s ease-out infinite}
+.bday-circle.sent{background:linear-gradient(135deg,#FFF4D9,#FFE7B3)}
+.bday-circle.recv{background:linear-gradient(135deg,#FDEBF1,#F7D6E2)}
+.wc-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:linear-gradient(135deg,#E8577E,#C2416B);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;letter-spacing:0}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+@keyframes bdayPulse{0%{box-shadow:0 0 0 0 rgba(216,72,122,.5)}70%{box-shadow:0 0 0 14px rgba(216,72,122,0)}100%{box-shadow:0 0 0 0 rgba(216,72,122,0)}}
+@keyframes bdayWobble{0%,82%,100%{transform:scale(1) rotate(0)}86%{transform:scale(1.12) rotate(-9deg)}90%{transform:scale(1.12) rotate(9deg)}94%{transform:scale(1.12) rotate(-6deg)}98%{transform:scale(1.06) rotate(0)}}
+.celebrate{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(10px) saturate(110%);backdrop-filter:blur(10px) saturate(110%);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .3s ease}
+.celebrate.out{opacity:0;transition:opacity .3s}
+.celebrate canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cel-card{position:relative;z-index:1;overflow:hidden;width:100%;max-width:380px;border-radius:28px;padding:36px 26px 26px;background:linear-gradient(160deg,#FFE1EA 0%,#FFF4D9 60%,#E4EEFF 100%);color:#13294B;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:celpop .5s cubic-bezier(.2,1.4,.4,1)}
+.cel-card.fest{background:var(--g);color:#fff}
+.cel-card .balloons{position:absolute;width:110px;height:110px;right:-10px;top:-6px}
+.cel-ey{font-size:13px;font-weight:700;color:#B23A62;letter-spacing:.08em;text-transform:uppercase}
+.cel-card.fest .cel-ey,.cel-card.fest p{color:rgba(255,255,255,.9)}
+.cel-card h2{font-size:34px;line-height:1.1;letter-spacing:-.4px}
+.cel-card p{margin:0;font-size:16px;line-height:22px;color:#4A5263}
+.cel-card .btn{background:#13294B;color:#fff}.cel-card.fest .btn{background:#fff;color:#13294B}
+.cel-card .big{font-size:64px;line-height:1}
+@keyframes celpop{from{transform:scale(.8);opacity:0}}
+.wish-card{background:var(--sheet);color:var(--ink);padding:22px 22px 16px;max-width:340px}
+.wish-card h3{font-size:19px;line-height:24px}
+.wp-row{display:flex;gap:14px;justify-content:center;margin:4px 0}
+.wp-em{width:66px;height:66px;border-radius:50%;background:var(--fill3);font-size:32px;line-height:1;transition:transform .2s}
+.wp-em:active{transform:scale(.9)}
+/* pull down to refresh */
+#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 6px);width:38px;height:38px;border-radius:50%;z-index:30;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-60px);opacity:0;pointer-events:none}
+#ptr svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round}
+#ptr.spin svg{animation:ringspin2 .8s linear infinite}
+#ptr.ease{transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .3s}
+@keyframes ringspin2{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -351,6 +398,7 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 <div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
 <div id="toast"></div>
 <div id="syncbar"></div>
+<div id="ptr" class="glass"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></div>
 <script>
 /* ============ SETTINGS: change these two lines ============ */
 const CONFIG = {
@@ -388,7 +436,7 @@ async function api(action, payload = {}){
   return j.data;
 }
 const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
-function useData(d){ normDb(d); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
+function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
 /* A session ended: clear the stored app shell and reload, so the newest version comes in with the next sign-in. */
 async function freshReload(){ try { if (window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('kinship-')).map(k => caches.delete(k))); } } catch(e){} location.reload(); }
 let syncing = null;
@@ -585,13 +633,17 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 
 /* ---------- events ---------- */
 function nextOcc(s){ const d = pDate(s), n = pDate(today()); let c = new Date(n.getFullYear(), d.getMonth(), d.getDate()); if (c < n) c = new Date(n.getFullYear() + 1, d.getMonth(), d.getDate()); return c; }
-function upcoming(){
-  const out = [], t0 = pDate(today()), seen = new Set();
+function upcomingPeople(){
+  const out = [], seen = new Set();
   for (const m of st.db.members){
     if (m.birth && !m.passed){ const d = nextOcc(m.birth); const turn = d.getFullYear() - pDate(m.birth).getFullYear(); out.push({ d, emoji:'🎂', title: first(m) + "'s birthday", sub: isKid(m) && turn > 0 ? 'Turning ' + turn : (m.country ? flag(m.country) + ' ' + m.country : ''), mid:m.id }); }
     const sp = spouseOf(m); const an = m.anniv || (sp && sp.anniv);
     if (sp && an && !m.passed && !sp.passed){ const key = [m.id, sp.id].sort().join(); if (!seen.has(key)){ seen.add(key); const d = nextOcc(an); out.push({ d, emoji:'💍', title: first(m) + ' & ' + first(sp) + "'s anniversary", sub: (d.getFullYear() - pDate(an).getFullYear()) + ' years', mid:m.id }); } }
   }
+  return out.sort((a, b) => a.d - b.d);
+}
+function upcomingCelebrations(){
+  const out = festList(), t0 = pDate(today());
   for (const e of st.db.events){
     const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
     const d = e.yearly === '1' ? nextOcc(base) : pDate(base); if (d < t0) continue;
@@ -599,6 +651,7 @@ function upcoming(){
   }
   return out.sort((a, b) => a.d - b.d);
 }
+const upcoming = () => [...upcomingPeople(), ...upcomingCelebrations()].sort((a, b) => a.d - b.d);
 const inDays = d => { const n = Math.round((d - pDate(today())) / 864e5); return n === 0 ? 'Today 🎉' : n === 1 ? 'Tomorrow' : 'in ' + n + ' days'; };
 function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
 function evRow(e){
@@ -890,28 +943,104 @@ function quizHtml(){
 }
 function quizPick(i){ const z = st.quiz; if (!z || z.pick != null) return; z.pick = i; const ok = z.opts[i] === z.right; st.quizScore.n++; if (ok){ st.quizScore.ok++; Motion.confetti(); } Motion.haptic(); render(); }
 
-/* ---------- CELEBRATION TILES (birthday / anniversary today, as in Hearts) ---------- */
-const BALLOONS = '<span class="bln" style="--x:14px;--y:8px;--d:4.6s">🎈</span><span class="bln" style="--x:58px;--y:30px;--s:24px;--d:5.8s">🎈</span><span class="bln" style="--x:22px;--y:64px;--s:20px;--d:6.6s">🎉</span>';
+/* ---------- CELEBRATIONS: festivals, tiles, wishes and the birthday screen (as in Hearts) ---------- */
+const BALLOONS = `<svg class="balloons" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 70 Q32 95 26 118" stroke="#C9A46A" stroke-width="1.4" fill="none"/><path d="M62 58 Q60 90 66 118" stroke="#C9A46A" stroke-width="1.4" fill="none"/><path d="M94 72 Q92 96 98 118" stroke="#C9A46A" stroke-width="1.4" fill="none"/><ellipse cx="30" cy="48" rx="17" ry="21" fill="#E8577E"/><path d="M27 69l3-4 3 4z" fill="#E8577E"/><ellipse cx="62" cy="34" rx="19" ry="23" fill="#F2B640"/><path d="M59 57l3-4 3 4z" fill="#F2B640"/><ellipse cx="94" cy="50" rx="16" ry="20" fill="#4C8DDB"/><path d="M91 70l3-4 3 4z" fill="#4C8DDB"/><ellipse cx="24" cy="40" rx="4" ry="7" fill="#fff" opacity=".35"/><ellipse cx="56" cy="25" rx="4.5" ry="8" fill="#fff" opacity=".35"/><ellipse cx="89" cy="42" rx="4" ry="7" fill="#fff" opacity=".35"/></svg>`;
+/* key, name, emoji, date rule, tile colours. Rule: 'MM-DD' fixed · 'sun:M:N' Nth Sunday of month M · 'easter' · {year:'MM-DD'} for festivals that follow the moon. */
+const FEST = [
+  ['newyear', "New Year's Day", '🎆', '01-01', '#6155F5,#0088FF'], ['valentine', "Valentine's Day", '❤️', '02-14', '#FF2D55,#FF8D28'], ['womens', "Women's Day", '🌸', '03-08', '#CB30E0,#FF2D55'],
+  ['holi', 'Holi', '🎨', { 2027:'03-22' }, '#FF2D55,#FFCC00'], ['eidfitr', 'Eid al-Fitr', '🌙', { 2027:'03-10', 2028:'02-27' }, '#00C8B3,#34C759'], ['easter', 'Easter', '🐣', 'easter', '#FFCC00,#FF8D28'],
+  ['mothers', "Mother's Day", '💐', 'sun:5:2', '#FF2D55,#CB30E0'], ['eidadha', 'Eid al-Adha', '🕌', { 2027:'05-17' }, '#34C759,#00C3D0'], ['fathers', "Father's Day", '👔', 'sun:6:3', '#0088FF,#00C8B3'],
+  ['rakhi', 'Raksha Bandhan', '🧵', { 2027:'08-17' }, '#FF8D28,#FF2D55'], ['halloween', 'Halloween', '🎃', '10-31', '#FF8D28,#6155F5'], ['diwali', 'Diwali', '🪔', { 2026:'11-08', 2027:'10-29', 2028:'10-17' }, '#FF8D28,#CB30E0'],
+  ['childrenin', "Children's Day", '🧒', '11-14', '#00C0E8,#34C759'], ['childrenw', "World Children's Day", '🌍', '11-20', '#0088FF,#34C759'], ['christmas', 'Christmas', '🎄', '12-25', '#34C759,#FF383C'], ['nye', "New Year's Eve", '🥂', '12-31', '#6155F5,#CB30E0']
+];
+const MOON = ['holi', 'eidfitr', 'eidadha', 'rakhi', 'diwali'];
+function festDate(f, y){
+  const r = f[3];
+  if (typeof r === 'object') return r[y] ? pDate(y + '-' + r[y]) : null;
+  if (r === 'easter'){ const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, g = Math.floor((8 * b + 13) / 25), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 19 * l) / 433), mo = Math.floor((h + l - 7 * m + 90) / 25), da = (h + l - 7 * m + 33 * mo + 19) % 32; return new Date(y, mo - 1, da); }
+  if (r.startsWith('sun:')){ const [, mo, n] = r.split(':').map(Number), d = new Date(y, mo - 1, 1); d.setDate(1 + ((7 - d.getDay()) % 7) + (n - 1) * 7); return d; }
+  return pDate(y + '-' + r);
+}
+const festOn = () => { const v = st.db.settings && st.db.settings.celebrations; return v ? String(v).split(',') : FEST.map(f => f[0]); };
+function festNext(f){ const t0 = pDate(today()), y = t0.getFullYear(); for (const yr of [y, y + 1]){ const d = festDate(f, yr); if (d && d >= t0) return d; } return null; }
+const festList = () => { const on = festOn(); return FEST.filter(f => on.includes(f[0])).map(f => ({ f, d: festNext(f) })).filter(x => x.d).map(x => ({ d:x.d, emoji:x.f[2], title:x.f[1], sub: MOON.includes(x.f[0]) ? 'Follows the moon, so the date can shift by a day' : '', fest:x.f[0] })); };
+const festToday = () => { const on = festOn(), t = today(); return FEST.filter(f => on.includes(f[0]) && (d => d && ymd(d) === t)(festDate(f, new Date().getFullYear()))); };
+
+/* wishes sent today are remembered on this device, so the tile shows what you sent */
+const wishedKey = () => 'wished_' + st.db.me;
+const wished = k => { const w = LS.get(wishedKey()) || {}; return (w.day === today() && w[k]) || ''; };
+function setWished(k, e){ let w = LS.get(wishedKey()) || {}; if (w.day !== today()) w = { day: today() }; w[k] = e; LS.set(wishedKey(), w); }
+function myWishes(){ const m = me(), fn = first(m).toLowerCase(), t = today(); return st.db.messages.filter(x => x.by !== m.id && ymd(new Date(Number(x.ts))) === t && /happy birthday/i.test(x.text) && (x.to === m.id || (x.to === 'all' && x.text.toLowerCase().includes(fn)))); }
+const circle = (k, face) => { const e = wished(k); return `<span class="bday-circle ${e ? 'sent' : 'pulse'}">${e || face}</span>`; };
 function todayTiles(){
   const md = today().slice(5), yr = new Date().getFullYear(), out = [], seen = new Set();
   for (const m of st.db.members){
     if (m.birth && !m.passed && m.birth.slice(5) === md){
-      const mine = m.id === st.db.me, turn = yr - Number(m.birth.slice(0, 4));
-      out.push(`<button class="bday" onclick="wish('${m.id}','b')">${BALLOONS}<div class="bd-in"><span class="ey">🎂 ${mine ? 'Happy birthday to you' : 'Birthday today'}</span><div class="row" style="gap:14px;margin-top:8px">${av(m, 56)}<div class="grow"><div class="bd-nm">${esc(mine ? 'Happy birthday, ' + first(m) + '!' : m.name)}</div><div class="bd-sub">${esc(isKid(m) && turn > 0 ? 'Turning ' + turn : mine ? '' : 'Your ' + relation(m.id))}</div></div></div><p class="bd-note">${mine ? 'Wishing you a wonderful year ahead, from all of us.' : `Tap to wish <b>${esc(first(m))}</b> a happy birthday!`}</p></div></button>`);
+      const mine = m.id === st.db.me, turn = yr - Number(m.birth.slice(0, 4)), n = mine ? new Set(myWishes().map(x => x.by)).size : 0;
+      out[mine ? 'unshift' : 'push'](`<button class="bday ${mine ? 'me' : ''}" onclick="${mine ? 'wishesSheet()' : `wishPick('b','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">🎂 ${mine ? 'Happy birthday to you' : 'Birthday today'}</span><div class="row" style="gap:14px;margin-top:8px">${av(m, 52)}<div class="grow"><div class="bd-nm">${esc(mine ? 'Happy birthday, ' + first(m) + '!' : m.name)}</div><div class="bd-sub">${esc(isKid(m) && turn > 0 ? 'Turning ' + turn : mine ? '' : 'Your ' + relation(m.id))}</div></div></div><p class="bd-note">${mine ? 'Wishing you a wonderful year ahead, from all of us.' : `Tap to wish <b>${esc(first(m))}</b> a happy birthday today!`}</p></div>${mine ? `<span class="bday-circle recv ${n ? '' : 'pulse'}">🎉${n ? `<span class="wc-badge">${n}</span>` : ''}</span>` : circle('b' + m.id, '🎉')}</button>`);
     }
     const sp = spouseOf(m), an = m.anniv || (sp && sp.anniv);
     if (sp && an && an.slice(5) === md && !m.passed && !sp.passed){
       const key = [m.id, sp.id].sort().join(); if (seen.has(key)) continue; seen.add(key);
       const yrs = yr - Number(an.slice(0, 4)), mine = m.id === st.db.me || sp.id === st.db.me;
-      out.push(`<button class="bday anniv" onclick="wish('${m.id}','a')">${BALLOONS.replace(/🎈/g, '💜')}<div class="bd-in"><span class="ey">💍 Anniversary today</span><div class="row" style="gap:10px;margin-top:8px">${av(m, 48)}${av(sp, 48)}<div class="grow"><div class="bd-nm">${esc(first(m) + ' & ' + first(sp))}</div><div class="bd-sub">${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together' : ''}</div></div></div><p class="bd-note">${mine ? 'Happy anniversary to you both!' : 'Tap to send your wishes.'}</p></div></button>`);
+      out.push(`<button class="bday anniv" onclick="${mine ? `celebrate({ ey:'💍 ${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') : 'Anniversary'}', title:'Happy anniversary!', text:'To many more years together, from all of us.' })` : `wishPick('a','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">💍 Anniversary today</span><div class="row" style="gap:12px;margin-top:8px">${av(m, 46)}${av(sp, 46)}<div class="grow"><div class="bd-nm">${esc(first(m) + ' & ' + first(sp))}</div><div class="bd-sub">${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together' : ''}</div></div></div><p class="bd-note">${mine ? 'Happy anniversary to you both!' : 'Tap to send your wishes.'}</p></div>${mine ? '' : circle('a' + key, '💍')}</button>`);
     }
   }
+  for (const f of festToday()) out.push(`<button class="bday fest" style="--g:linear-gradient(135deg,${f[4]})" onclick="wishPick('f','${f[0]}')"><div class="bd-in"><span class="ey">Today</span><div class="row" style="gap:12px;margin-top:6px"><span class="festico">${f[2]}</span><div class="grow"><div class="bd-nm">Happy ${esc(f[1])}!</div><div class="bd-sub">From our family to yours</div></div></div><p class="bd-note">Tap to send your wishes to the family.</p></div>${circle('f' + f[0], f[2])}</button>`);
   return out.join('');
 }
-function wish(id, kind){
-  const m = M(id), sp = spouseOf(m); Motion.confetti(); Motion.haptic();
-  if (kind === 'b'){ if (id === st.db.me) return; openThread(m.claimed ? id : 'all', `Happy birthday, ${first(m)}! 🎂🎉`); }
-  else if (m.id !== st.db.me && !(sp && sp.id === st.db.me)) openThread('all', `Happy anniversary, ${first(m)} & ${first(sp)}! 💍🎉`);
+/* confetti on a canvas: one burst from the middle, then a steady fall */
+function confettiCanvas(canvas, loop){
+  const ctx = canvas.getContext('2d'), dpr = Math.min(window.devicePixelRatio || 1, 2), C = ['#E8577E', '#F2B640', '#4C8DDB', '#3FB58A', '#9B6BD6', '#FF8A3D'], rnd = (a, b) => a + Math.random() * (b - a);
+  let w = 0, h = 0, alive = true; const size = () => { const r = canvas.getBoundingClientRect(); w = r.width; h = r.height; canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, h * dpr); }; size();
+  const spawn = burst => ({ x: burst ? w / 2 + rnd(-40, 40) : rnd(0, w), y: burst ? h * .35 : rnd(-60, -8), vx: burst ? rnd(-9, 9) : rnd(-.6, .6), vy: burst ? rnd(-14, -4) : rnd(1, 2.4), r: rnd(0, 6.28), vr: rnd(-.2, .2), w: rnd(5, 9), h: rnd(8, 14), c: C[Math.floor(Math.random() * C.length)] });
+  const ps = Array.from({ length: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160 }, () => spawn(true));
+  (function frame(){ if (!alive) return; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    for (const p of ps){ p.vy = Math.min(p.vy + .22, 3.4); p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; if (p.y > h + 20 && loop) Object.assign(p, spawn(false)); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); }
+    requestAnimationFrame(frame); })();
+  return () => { alive = false; };
+}
+/* the full-screen greeting: your own birthday or anniversary, or a festival, once that day */
+function celebrate(o){
+  if ($('.celebrate')) return;
+  const el = document.createElement('div'); el.className = 'celebrate';
+  el.innerHTML = `<canvas></canvas><div class="cel-card ${o.g ? 'fest' : ''}" ${o.g ? `style="--g:linear-gradient(160deg,${o.g})"` : ''}>${o.big ? `<span class="big">${o.big}</span>` : BALLOONS}<span class="cel-ey">${esc(o.ey)}</span><h2>${o.title}</h2><p>${esc(o.text)}</p><button class="btn" type="button">${esc(o.btn || 'Thank you')}</button></div>`;
+  document.body.appendChild(el);
+  const stop = confettiCanvas(el.querySelector('canvas'), true); try { if (!IOS && navigator.vibrate) navigator.vibrate([10, 60, 10, 60, 18]); } catch(e){}
+  const close = () => { stop(); el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+  el.querySelector('.btn').onclick = close; el.addEventListener('click', e => { if (e.target === el) close(); }); Motion.arm(el);
+}
+function maybeCelebrate(){
+  if (!st.db || !st.db.me || $('.celebrate')) return; const m = me(), t = today(), key = 'cel_' + m.id, seen = LS.get(key) || {}; if (seen.day !== t){ seen.day = t; seen.k = []; }
+  const once = (k, o) => { if (seen.k.includes(k)) return false; seen.k.push(k); LS.set(key, seen); setTimeout(() => celebrate(o), 700); return true; };
+  const d = new Date(), niceDay = d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear();
+  if (m.birth && m.birth.slice(5) === t.slice(5) && once('b', { ey:'🎂 ' + niceDay, title:'Happy birthday,<br>' + esc(first(m)) + '!', text:'Wishing you a wonderful year ahead, from all of us.' })) return;
+  const sp = spouseOf(m), an = m.anniv || (sp && sp.anniv);
+  if (sp && an && an.slice(5) === t.slice(5) && once('a', { ey:'💍 ' + niceDay, title:'Happy anniversary,<br>' + esc(first(m)) + ' & ' + esc(first(sp)) + '!', text:'To many more years together, from all of us.' })) return;
+  const f = festToday()[0]; if (f) once('f' + f[0], { ey: niceDay, big: f[2], g: f[4], title:'Happy ' + esc(f[1]) + '!', text:'Wishing the whole family a joyful day.', btn:'Celebrate' });
+}
+/* send a wish: pick one of three, it goes as a chat message and the tile remembers it */
+function wishPick(kind, id){
+  const m = kind === 'f' ? null : M(id), sp = m && spouseOf(m), f = kind === 'f' ? FEST.find(x => x[0] === id) : null;
+  const k = kind === 'a' ? 'a' + [m.id, sp.id].sort().join() : kind + id;
+  if (wished(k)){ Motion.confetti(); Motion.haptic(); toast('You already sent ' + wished(k)); return; }
+  const emo = kind === 'b' ? ['🎉', '🎂', '🥳'] : kind === 'a' ? ['💍', '❤️', '🥂'] : [f[2], '🎉', '❤️'];
+  const title = kind === 'b' ? `Wish ${esc(first(m))} a happy birthday` : kind === 'a' ? `Wish ${esc(first(m))} & ${esc(first(sp))} a happy anniversary` : `Wish the family a happy ${esc(f[1])}`;
+  const el = document.createElement('div'); el.className = 'celebrate';
+  el.innerHTML = `<div class="cel-card wish-card"><span class="cel-ey">Send a wish</span><h3>${title}</h3><div class="wp-row">${emo.map(e => `<button type="button" class="wp-em" data-e="${e}">${e}</button>`).join('')}</div><button type="button" class="link" style="background:none;margin-top:2px" data-x="1">Cancel</button></div>`;
+  document.body.appendChild(el);
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+  el.addEventListener('click', e => {
+    if (e.target === el || e.target.dataset.x){ close(); return; }
+    const emoji = e.target.dataset.e; if (!emoji) return;
+    const text = kind === 'b' ? `${emoji} Happy birthday, ${first(m)}!` : kind === 'a' ? `${emoji} Happy anniversary, ${first(m)} & ${first(sp)}!` : `${emoji} Happy ${f[1]}, everyone!`;
+    setWished(k, emoji); save('Messages', { to: kind === 'b' && m.claimed ? m.id : 'all', text }).catch(() => {});
+    Motion.confetti(); Motion.haptic(); close(); toast('Wish sent ' + emoji);
+  });
+}
+function wishesSheet(){
+  const ws = myWishes().sort((a, b) => a.ts - b.ts); Motion.confetti();
+  openSheet(() => `<div class="sh"><h2>Your birthday wishes</h2><button class="x" onclick="closeSheet()">×</button></div>${ws.length ? `<div class="card">${ws.map(w => { const a = M(w.by) || {}; return `<div class="row lrow" style="padding:8px 0" onclick="closeSheet();openThread('${w.to === 'all' ? 'all' : w.by}')">${av(a, 40)}<div class="grow"><div class="b">${esc(first(a))}</div><div>${esc(w.text)}</div></div></div>`; }).join('')}</div>` : '<div class="card empty">Wishes from the family will appear here through the day. 🎈</div>'}<button class="btn block" onclick="closeSheet();celebrate({ ey:'🎂 Today', title:'Happy birthday,<br>${esc(first(me()))}!', text:'Wishing you a wonderful year ahead, from all of us.' })">Play my birthday greeting</button>`);
 }
 
 /* ---------- CHAT (family group + one to one) ---------- */
@@ -1001,10 +1130,19 @@ function redeemWish(id){ const w = st.db.wishes.find(x => x.id === id), kid = is
 
 /* ---------- CALENDAR ---------- */
 function vCal(){
-  const up = upcoming(), g = {}; for (const e of up) (g[e.d.getFullYear() + '-' + pad(e.d.getMonth())] ||= []).push(e);
-  return topBar('Family dates', 'Birthdays, anniversaries and plans') + (isKid(me()) ? '' : `<button class="btn block" onclick="eventForm()">+ Add a date</button>`) +
-  (up.length ? Object.keys(g).sort().map(k => `<div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div>`).join('') : `<div class="card empty">No dates yet. Birthdays appear when people add them to their profile.</div>`);
+  const seg = st.calSeg === 'cele' ? 'cele' : 'people', up = seg === 'people' ? upcomingPeople() : upcomingCelebrations(), g = {};
+  for (const e of up) (g[e.d.getFullYear() + '-' + pad(e.d.getMonth())] ||= []).push(e);
+  const months = Object.keys(g).sort().map(k => `<div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div>`).join('');
+  return topBar('Family dates', 'Birthdays, anniversaries and celebrations') +
+    `<div class="seg">${[['people', 'Birthdays & anniversaries'], ['cele', 'Celebrations']].map(([k, l]) => `<button class="${seg === k ? 'on' : ''}" onclick="st.calSeg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
+    (seg === 'cele' && !isKid(me()) ? `<div class="row" style="margin:8px 0 0"><button class="btn sm grow" onclick="eventForm()">+ Add a date</button>${isAdmin() ? `<button class="btn sm line grow" onclick="festSheet()">Choose celebrations</button>` : ''}</div>` : '') +
+    (up.length ? months : `<div class="card empty">${seg === 'people' ? 'Birthdays and anniversaries appear here when people add them to their profile.' : 'No celebrations yet. Add a family date or choose celebrations.'}</div>`);
 }
+function festSheet(){
+  const on = festOn();
+  openSheet(() => `<div class="sh"><h2>Celebrations</h2><button class="x" onclick="closeSheet()">×</button></div><p class="small muted" style="margin:0 16px 4px">Choose the ones your family celebrates. They show in Dates, in Coming up on Home, and as a greeting on the day.</p><form onsubmit="return submitFest(event)">${FEST.map(f => `<label class="check"><input type="checkbox" name="k" value="${f[0]}" ${on.includes(f[0]) ? 'checked' : ''}><span class="grow">${f[2]} ${esc(f[1])}</span>${MOON.includes(f[0]) ? '<span class="small muted">moon</span>' : ''}</label>`).join('')}<button class="btn block">Save</button></form>`);
+}
+function submitFest(ev){ const v = new FormData(ev.target).getAll('k').join(',') || 'none'; busy(ev, async () => { if (DEMO) st.db.settings.celebrations = v; else { await api('settings', { celebrations: v }); await sync(); } closeSheet(); render(); toast('Saved'); }, 'Saving…'); return false; }
 function eventSheet(id){
   const e = st.db.events.find(x => x.id === id); if (!e) return; const a = M(e.by) || {};
   openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}<div class="small muted">Added by ${esc(first(a))}${e.yearly === '1' ? ' · every year' : ''}</div></div>${(e.by === st.db.me || isAdmin()) ? `<button class="btn ghost block" onclick="eventForm('${id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${id}')">Delete</button>` : ''}`);
@@ -1278,7 +1416,7 @@ async function demoApi(action, p){
   st.token = LS.get('token');
   if (!st.token){ warmLogin(); render(); return; }
   st.db = normDb(LS.get('db'));
-  if (st.db){ render(); tryGo(); }                       // saved data first: the app opens at once
+  if (st.db){ render(); tryGo(); setTimeout(maybeCelebrate, 600); }                       // saved data first: the app opens at once
   else $('#app').innerHTML = `<div class="splash"><img src="icon-192.png" alt=""><div>Opening ${esc(CONFIG.APP_NAME)}…</div></div>`;
   try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
@@ -1308,6 +1446,28 @@ const backEnd = () => {
   else if (el){ el.style.transition = ease; el.style.transform = ''; }
 };
 document.addEventListener('touchend', backEnd, { passive:true }); document.addEventListener('touchcancel', backEnd, { passive:true });
+
+/* ---------- pull down to refresh ---------- */
+const PTR = { on:false, x0:0, y0:0, dist:0, busy:false };
+const ptrSet = (y, o, ease) => { const el = $('#ptr'); el.classList.toggle('ease', !!ease); el.style.transform = `translate(-50%,${y}px) rotate(${y * 4}deg)`; el.style.opacity = String(o); };
+document.addEventListener('touchstart', e => {
+  if (PTR.busy || Back.on || !st.db || sheetFn || $('.celebrate') || (st.tab === 'chat' && st.chatWith) || window.scrollY > 0 || e.touches.length !== 1) return;
+  const tw = e.target.closest && e.target.closest('.treewrap'); if (tw && tw.scrollTop > 0) return;
+  PTR.on = true; PTR.x0 = e.touches[0].clientX; PTR.y0 = e.touches[0].clientY; PTR.dist = 0;
+}, { passive:true });
+document.addEventListener('touchmove', e => {
+  if (!PTR.on) return; const dy = e.touches[0].clientY - PTR.y0, dx = Math.abs(e.touches[0].clientX - PTR.x0);
+  if (Back.on || window.scrollY > 0 || (PTR.dist === 0 && (dy < 0 || dx > Math.abs(dy)))){ PTR.on = false; ptrSet(-60, 0, true); return; }
+  PTR.dist = Math.max(0, Math.min(110, dy * .5)); if (dy > 6) e.preventDefault(); ptrSet(PTR.dist - 44, Math.min(1, PTR.dist / 50));
+}, { passive:false });
+const ptrEnd = async () => {
+  if (!PTR.on) return; PTR.on = false;
+  if (PTR.dist < 60){ ptrSet(-60, 0, true); return; }
+  PTR.busy = true; Motion.haptic(); const el = $('#ptr'); el.classList.add('ease'); el.style.transform = 'translate(-50%,22px)'; el.style.opacity = '1'; el.classList.add('spin');
+  try { await Promise.all([sync(), new Promise(r => setTimeout(r, 650))]); } catch(e){ toast(e.message); }
+  el.classList.remove('spin'); ptrSet(-60, 0, true); PTR.busy = false;
+};
+document.addEventListener('touchend', ptrEnd, { passive:true }); document.addEventListener('touchcancel', ptrEnd, { passive:true });
 
 /* No pinch or double-tap zoom: the app keeps one size, like a native app. */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));

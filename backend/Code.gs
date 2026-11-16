@@ -206,7 +206,7 @@ function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinH
 /* ---------------- data ---------------- */
 function pub(name, r) { const o = {}; SCHEMA[name].forEach(function (h) { if (SECRET.indexOf(h) < 0) o[h] = r[h]; }); if (name === 'Members') o.claimed = !!r.pinHash; return o; }
 function syncAll(me) {
-  const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId'), sessionHours: String(Number(setting('sessionHours')) || 0) } };
+  const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId'), sessionHours: String(Number(setting('sessionHours')) || 0), celebrations: setting('celebrations') || '' } };
   if (me.role !== 'kid') d.settings.familyCode = setting('familyCode');
   DATA_TABLES.forEach(function (t) { if (t !== 'Messages') d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
   d.messages = messagesFor(me, 0).slice(-600);
@@ -447,6 +447,7 @@ function link(me, q) {
 function saveSettings(me, q) {
   if (me.role !== 'admin') throw new Error('Only an admin can change settings');
   if (q.appName) setSetting('appName', String(q.appName).slice(0, 30));
+  if (q.celebrations !== undefined) setSetting('celebrations', String(q.celebrations).replace(/[^a-z,]/g, '').slice(0, 400));
   if (q.familyCode) { const c = String(q.familyCode).trim(); if (c.length < 6) throw new Error('Family code needs at least 6 characters'); setSetting('familyCode', c); }
   if (q.sessionHours !== undefined) { const h = Math.max(0, Math.min(8760, Math.round(Number(q.sessionHours) || 0))); setSetting('sessionHours', String(h)); CacheService.getScriptCache().put('sessionHours', String(h), 600); }
   return {};
