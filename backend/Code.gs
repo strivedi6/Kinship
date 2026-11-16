@@ -387,16 +387,16 @@ function dailyDigest() {
   const tz = Session.getScriptTimeZone(), md = Utilities.formatDate(new Date(), tz, 'MM-dd'), ymd = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), yr = Number(ymd.slice(0, 4));
   const ms = readAll('Members'), seen = {};
   ms.filter(function (m) { return m.birth && !m.passed && m.birth.slice(5) === md; })
-    .forEach(function (m) { push(everyoneBut(m.id), "It's " + shortName(m) + "'s birthday today 🎂", 'Tap to send your wishes.', 'home'); push([m.id], 'Happy birthday, ' + shortName(m) + '! 🎉', 'With love from the whole family.', 'home'); });
+    .forEach(function (m) { push(everyoneBut(m.id), "It's " + shortName(m) + "'s birthday today", 'Tap to send your wishes.', 'home'); push([m.id], 'Happy birthday, ' + shortName(m) + '!', 'With love from the whole family.', 'home'); });
   ms.forEach(function (m) {
     const sp = ms.filter(function (x) { return x.id === m.spouseId || x.spouseId === m.id; })[0], an = m.anniv || (sp && sp.anniv);
     if (!sp || !an || an.slice(5) !== md || m.passed || sp.passed) return;
     const key = [m.id, sp.id].sort().join(); if (seen[key]) return; seen[key] = 1;
     const yrs = yr - Number(an.slice(0, 4));
-    push(everyoneBut(''), "It's " + shortName(m) + ' & ' + shortName(sp) + "'s anniversary today 💍", yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together.' : 'Send your wishes.', 'home');
+    push(everyoneBut(''), "It's " + shortName(m) + ' & ' + shortName(sp) + "'s anniversary today", yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together.' : 'Send your wishes.', 'home');
   });
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
-    .forEach(function (e) { push(everyoneBut(''), 'Today: ' + e.title + ' ' + (e.emoji || ''), e.note || 'Tap to see the details.', 'cal'); });
+    .forEach(function (e) { push(everyoneBut(''), 'Today: ' + e.title, e.note || 'Tap to see the details.', 'cal'); });
 }
 
 /* ---------------- relatives: link two people already in the family ---------------- */
