@@ -397,6 +397,15 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 .tog:before{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .3s cubic-bezier(.32,.72,0,1)}
 .tog:checked{background:var(--green)}.tog:checked:before{transform:translateX(20px)}.tog:disabled{opacity:.4}
 #sheet label.acc{color:var(--ink);font-size:17px;font-weight:400;margin:0;text-transform:none;letter-spacing:0}
+.fx-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.bday>.bd-in,.bday>.bday-circle{z-index:2}.bday>.bd-in{position:relative}
+.celebrate canvas+canvas{z-index:0}
+.bday{border-radius:22px;padding:14px 16px}
+.bday .ey{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em}
+.bday .bd-nm{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:21px;line-height:1.15;letter-spacing:0}
+.bday .bd-sub{font-size:13px;line-height:18px}.bday .bd-note{font-size:14px;line-height:1.4;margin-top:8px}
+.bday .row .av{width:46px!important;height:46px!important}
+.cel-card h2{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:36px}
 </style>
 </head>
 <body>
@@ -429,6 +438,8 @@ const LS = {
 const st = { token:null, db:null, tab:'home', seg:'today', kidId:null, zoom:1, code:'', feedN:20, quiz:null, meet:null, login:{step:'code'} };
 const TABLES = ['members','posts','comments','reactions','events','habits','logs','rewards','redemptions','answers'];
 
+const SHORT = { 'United Arab Emirates':'UAE', 'United Kingdom':'UK', 'United States':'USA' };
+const cname = c => SHORT[c] || c;
 const COUNTRIES = [['India','IN','Asia/Kolkata'],['United Arab Emirates','AE','Asia/Dubai'],['Philippines','PH','Asia/Manila'],['United Kingdom','GB','Europe/London'],['United States','US','America/New_York'],['Canada','CA','America/Toronto'],['Australia','AU','Australia/Sydney'],['New Zealand','NZ','Pacific/Auckland'],['Singapore','SG','Asia/Singapore'],['Saudi Arabia','SA','Asia/Riyadh'],['Qatar','QA','Asia/Qatar'],['Oman','OM','Asia/Muscat'],['Kuwait','KW','Asia/Kuwait'],['Bahrain','BH','Asia/Bahrain'],['Germany','DE','Europe/Berlin'],['France','FR','Europe/Paris'],['Spain','ES','Europe/Madrid'],['Italy','IT','Europe/Rome'],['Netherlands','NL','Europe/Amsterdam'],['Ireland','IE','Europe/Dublin'],['Portugal','PT','Europe/Lisbon'],['Switzerland','CH','Europe/Zurich'],['South Africa','ZA','Africa/Johannesburg'],['Kenya','KE','Africa/Nairobi'],['Malaysia','MY','Asia/Kuala_Lumpur'],['Sri Lanka','LK','Asia/Colombo'],['Nepal','NP','Asia/Kathmandu'],['Pakistan','PK','Asia/Karachi'],['Bangladesh','BD','Asia/Dhaka'],['Japan','JP','Asia/Tokyo'],['Hong Kong','HK','Asia/Hong_Kong'],['Thailand','TH','Asia/Bangkok'],['Indonesia','ID','Asia/Jakarta']];
 const cInfo = n => COUNTRIES.find(c => c[0] === n);
 const flag = n => { const c = cInfo(n); return c ? String.fromCodePoint(...[...c[1]].map(ch => 127397 + ch.charCodeAt(0))) : '🌍'; };
@@ -652,7 +663,7 @@ function nextOcc(s){ const d = pDate(s), n = pDate(today()); let c = new Date(n.
 function upcomingPeople(){
   const out = [], seen = new Set();
   for (const m of st.db.members){
-    if (m.birth && !m.passed){ const d = nextOcc(m.birth); const turn = d.getFullYear() - pDate(m.birth).getFullYear(); out.push({ d, emoji:'🎂', title: first(m) + "'s birthday", sub: isKid(m) && turn > 0 ? 'Turning ' + turn : (m.country ? flag(m.country) + ' ' + m.country : ''), mid:m.id }); }
+    if (m.birth && !m.passed){ const d = nextOcc(m.birth); const turn = d.getFullYear() - pDate(m.birth).getFullYear(); out.push({ d, emoji:'🎂', title: first(m) + "'s birthday", sub: isKid(m) && turn > 0 ? 'Turning ' + turn : (m.country ? flag(m.country) + ' ' + cname(m.country) : ''), mid:m.id }); }
     const sp = spouseOf(m); const an = m.anniv || (sp && sp.anniv);
     if (sp && an && !m.passed && !sp.passed){ const key = [m.id, sp.id].sort().join(); if (!seen.has(key)){ seen.add(key); const d = nextOcc(an); out.push({ d, emoji:'💍', title: first(m) + ' & ' + first(sp) + "'s anniversary", sub: (d.getFullYear() - pDate(an).getFullYear()) + ' years', mid:m.id }); } }
   }
@@ -700,7 +711,7 @@ const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
 function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
-  document.body.classList.toggle('ro', ro());
+  document.body.classList.toggle('ro', ro()); FX.stop();
   $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
   const inThread = st.tab === 'chat' && !!st.chatWith;
   $('#nav').hidden = false; $('#nav').classList.toggle('off', inThread); $('#navblur').hidden = inThread;
@@ -713,7 +724,7 @@ function render(){
   const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
   app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal, chat:vChat })[st.tab]();
   if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
-  loadPhotos();
+  loadPhotos(); FX.start(app);
   if (sheetLive && sheetFn) { $('#sheet').innerHTML = sheetFn(); loadPhotos(); Motion.arm($('#sheet')); }
   Motion.after();
 }
@@ -730,7 +741,7 @@ function vHome(){
   return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) + todayTiles() +
   `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
   (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
-  (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock"><div class="small b">${flag(z.country)} ${esc(z.country)}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
+  (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock"><div class="small b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
   `<div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Add birthdays to profiles and they will show up here.</div>'}</div>` +
   (board.length ? `<div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div>` : '') +
   `<div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">Open feed</a></div>` + (last ? postCard(last) : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
@@ -801,7 +812,7 @@ function vTree(){
 }
 function directory(){
   const g = {}; for (const m of [...st.db.members].sort((a, b) => String(a.name).localeCompare(b.name))) (g[m.country || 'Country not set'] ||= []).push(m);
-  return Object.keys(g).sort().map(c => `<div class="card"><div class="b" style="margin-bottom:6px">${flag(c)} ${esc(c)} <span class="muted small">${g[c].length}</span></div>${g[c].map(m => `<div class="row lrow" style="padding:8px 0" onclick="profileSheet('${m.id}')">${av(m, 36)}<div class="grow"><div class="b">${esc(m.name)}</div><div class="small muted">${esc(cap(relation(m.id)))}${m.city ? ' · ' + esc(m.city) : ''}</div></div></div>`).join('')}</div>`).join('');
+  return Object.keys(g).sort().map(c => `<div class="card"><div class="b" style="margin-bottom:6px">${flag(c)} ${esc(cname(c))} <span class="muted small">${g[c].length}</span></div>${g[c].map(m => `<div class="row lrow" style="padding:8px 0" onclick="profileSheet('${m.id}')">${av(m, 36)}<div class="grow"><div class="b">${esc(m.name)}</div><div class="small muted">${esc(cap(relation(m.id)))}${m.city ? ' · ' + esc(m.city) : ''}</div></div></div>`).join('')}</div>`).join('');
 }
 function zoom(d){ st.zoom = Math.min(1.6, Math.max(.4, +(st.zoom + d).toFixed(2))); render(); }
 function jumpTo(id){ const els = document.querySelectorAll(`.tc[data-id="${id}"]:not(.stub)`); if (els[0]) els[0].scrollIntoView({ behavior:'smooth', block:'center', inline:'center' }); }
@@ -899,7 +910,7 @@ function vCorner(){
 }
 function facts(m){
   const a = age(m), z = m.tz || (cInfo(m.country) || [])[2];
-  const rows = [['Lives in', [m.city, m.country].filter(Boolean).join(', ') + (m.country ? ' ' + flag(m.country) : '')], ['Time there', z && !m.passed ? timeIn(z) + ' (' + dayIn(z) + ')' : ''], ['Birthday', m.birth ? pDate(m.birth).getDate() + ' ' + MON[pDate(m.birth).getMonth()] + (isKid(m) && a != null ? ' · ' + a + ' years old' : '') : ''], ['Favourite food', m.favFood], ['Favourite colour', m.favColor], ['Loves', m.hobby], ['Ask me about', m.askMe], ['About', m.about]];
+  const rows = [['Lives in', [m.city, cname(m.country)].filter(Boolean).join(', ') + (m.country ? ' ' + flag(m.country) : '')], ['Time there', z && !m.passed ? timeIn(z) + ' (' + dayIn(z) + ')' : ''], ['Birthday', m.birth ? pDate(m.birth).getDate() + ' ' + MON[pDate(m.birth).getMonth()] + (isKid(m) && a != null ? ' · ' + a + ' years old' : '') : ''], ['Favourite food', m.favFood], ['Favourite colour', m.favColor], ['Loves', m.hobby], ['Ask me about', m.askMe], ['About', m.about]];
   const h = rows.filter(r => r[1] && String(r[1]).trim()).map(r => `<div class="fact"><b>${r[0]}</b><span>${esc(r[1])}</span></div>`).join('');
   return h || '<div class="small muted">No details added yet.</div>';
 }
@@ -968,9 +979,12 @@ const FEST = [
   ['holi', 'Holi', '🎨', { 2027:'03-22' }, '#FF2D55,#FFCC00'], ['eidfitr', 'Eid al-Fitr', '🌙', { 2027:'03-10', 2028:'02-27' }, '#00C8B3,#34C759'], ['easter', 'Easter', '🐣', 'easter', '#FFCC00,#FF8D28'],
   ['mothers', "Mother's Day", '💐', 'sun:5:2', '#FF2D55,#CB30E0'], ['eidadha', 'Eid al-Adha', '🕌', { 2027:'05-17' }, '#34C759,#00C3D0'], ['fathers', "Father's Day", '👔', 'sun:6:3', '#0088FF,#00C8B3'],
   ['rakhi', 'Raksha Bandhan', '🧵', { 2027:'08-17' }, '#FF8D28,#FF2D55'], ['halloween', 'Halloween', '🎃', '10-31', '#FF8D28,#6155F5'], ['diwali', 'Diwali', '🪔', { 2026:'11-08', 2027:'10-29', 2028:'10-17' }, '#FF8D28,#CB30E0'],
-  ['childrenin', "Children's Day", '🧒', '11-14', '#00C0E8,#34C759'], ['childrenw', "World Children's Day", '🌍', '11-20', '#0088FF,#34C759'], ['christmas', 'Christmas', '🎄', '12-25', '#34C759,#FF383C'], ['nye', "New Year's Eve", '🥂', '12-31', '#6155F5,#CB30E0']
+  ['childrenin', "Children's Day", '🧒', '11-14', '#00C0E8,#34C759'], ['childrenw', "World Children's Day", '🌍', '11-20', '#0088FF,#34C759'], ['christmas', 'Christmas', '🎄', '12-25', '#7E1A1E,#B4232A'], ['nye', "New Year's Eve", '🥂', '12-31', '#6155F5,#CB30E0']
 ];
 const MOON = ['holi', 'eidfitr', 'eidadha', 'rakhi', 'diwali'];
+/* the animation on each festival's tile and greeting; the first one also picks its sound */
+const FEST_FX = { newyear:'fireworks sparkle', valentine:'hearts', womens:'petals', holi:'confetti', eidfitr:'sparkle lights', easter:'petals', mothers:'petals hearts', eidadha:'sparkle lights', fathers:'confetti', rakhi:'sparkle', halloween:'lights', diwali:'lights sparkle', childrenin:'bubbles confetti-soft', childrenw:'bubbles', christmas:'snow sparkle', nye:'fireworks sparkle' };
+const fxOf = k => FEST_FX[k] || 'sparkle';
 function festDate(f, y){
   const r = f[3];
   if (typeof r === 'object') return r[y] ? pDate(y + '-' + r[y]) : null;
@@ -988,6 +1002,9 @@ const wishedKey = () => 'wished_' + st.db.me;
 const wished = k => { const w = LS.get(wishedKey()) || {}; return (w.day === today() && w[k]) || ''; };
 function setWished(k, e){ let w = LS.get(wishedKey()) || {}; if (w.day !== today()) w = { day: today() }; w[k] = e; LS.set(wishedKey(), w); }
 function myWishes(){ const m = me(), fn = first(m).toLowerCase(), t = today(); return st.db.messages.filter(x => x.by !== m.id && ymd(new Date(Number(x.ts))) === t && /happy birthday/i.test(x.text) && (x.to === m.id || (x.to === 'all' && x.text.toLowerCase().includes(fn)))); }
+const ICO_CAKE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21h16v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 16c1.5 1 3 1 4 0s2.5-1 4 0 2.5 1 4 0 2.5-1 4 0"/><path d="M12 11V8"/><path d="M12 5.5c.8-.8.8-1.7 0-2.5-.8.8-.8 1.7 0 2.5z"/></svg>';
+const ICO_RINGS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" aria-hidden="true"><circle cx="9" cy="14" r="5.5"/><circle cx="15" cy="14" r="5.5"/><path d="M7.5 4.5h3l-1.5 2.5zM13.5 4.5h3l-1.5 2.5z" stroke-linejoin="round"/></svg>';
+const ICO_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>';
 const ICO_GIFT = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#C2416B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9" width="17" height="11.5" rx="2"/><path d="M2.5 9h19M12 9v11.5M12 9c-1.6-3.6-6-4.2-6-1.6C6 9 9.5 9 12 9zm0 0c1.6-3.6 6-4.2 6-1.6C18 9 14.5 9 12 9z"/></svg>';
 const ICO_SENT = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#B26A00" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const ICO_HEART = '<svg viewBox="0 0 24 24" width="22" height="22" fill="#C2416B"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.6 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/></svg>';
@@ -997,36 +1014,121 @@ function todayTiles(){
   for (const m of st.db.members){
     if (m.birth && !m.passed && m.birth.slice(5) === md){
       const mine = m.id === st.db.me, turn = yr - Number(m.birth.slice(0, 4)), n = mine ? new Set(myWishes().map(x => x.by)).size : 0;
-      out[mine ? 'unshift' : 'push'](`<button class="bday ${mine ? 'me' : ''}" onclick="${mine ? 'wishesSheet()' : `wishPick('b','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">${mine ? 'Happy birthday to you' : 'Birthday today'}</span><div class="row" style="gap:14px;margin-top:8px">${av(m, 52)}<div class="grow"><div class="bd-nm">${esc(mine ? 'Happy birthday, ' + first(m) + '!' : m.name)}</div><div class="bd-sub">${esc(isKid(m) && turn > 0 ? 'Turning ' + turn : mine ? '' : 'Your ' + relation(m.id))}</div></div></div><p class="bd-note">${mine ? 'Wishing you a wonderful year ahead, from all of us.' : `Tap to wish <b>${esc(first(m))}</b> a happy birthday today!`}</p></div>${mine ? `<span class="bday-circle recv ${n ? '' : 'pulse'}">${ICO_HEART}${n ? `<span class="wc-badge">${n}</span>` : ''}</span>` : circle('b' + m.id)}</button>`);
+      out[mine ? 'unshift' : 'push'](`<button class="bday ${mine ? 'me' : ''}" data-fx="confetti" onclick="${mine ? 'wishesSheet()' : `wishPick('b','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">${ICO_CAKE} ${mine ? 'Happy birthday to you' : 'Birthday today'}</span><div class="row" style="gap:14px;margin-top:8px">${av(m, 52)}<div class="grow"><div class="bd-nm">${esc(mine ? 'Happy birthday, ' + first(m) + '!' : m.name)}</div><div class="bd-sub">${esc(isKid(m) && turn > 0 ? 'Turning ' + turn : mine ? '' : 'Your ' + relation(m.id))}</div></div></div><p class="bd-note">${mine ? 'Wishing you a wonderful year ahead, from all of us.' : `Tap to wish <b>${esc(first(m))}</b> a happy birthday today!`}</p></div>${mine ? `<span class="bday-circle recv ${n ? '' : 'pulse'}">${ICO_HEART}${n ? `<span class="wc-badge">${n}</span>` : ''}</span>` : circle('b' + m.id)}</button>`);
     }
     const sp = spouseOf(m), an = m.anniv || (sp && sp.anniv);
     if (sp && an && an.slice(5) === md && !m.passed && !sp.passed){
       const key = [m.id, sp.id].sort().join(); if (seen.has(key)) continue; seen.add(key);
       const yrs = yr - Number(an.slice(0, 4)), mine = m.id === st.db.me || sp.id === st.db.me;
-      out.push(`<button class="bday anniv" onclick="${mine ? `celebrate({ ey:'${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') : 'Anniversary'}', title:'Happy anniversary!', text:'To many more years together, from all of us.' })` : `wishPick('a','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">Anniversary today</span><div class="row" style="gap:12px;margin-top:8px">${av(m, 46)}${av(sp, 46)}<div class="grow"><div class="bd-nm">${esc(first(m) + ' & ' + first(sp))}</div><div class="bd-sub">${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together' : ''}</div></div></div><p class="bd-note">${mine ? 'Happy anniversary to you both!' : 'Tap to send your wishes.'}</p></div>${mine ? '' : circle('a' + key)}</button>`);
+      out.push(`<button class="bday anniv" data-fx="confetti-soft hearts" onclick="${mine ? `celebrate({ ey:'${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') : 'Anniversary'}', title:'Happy anniversary!', text:'To many more years together, from all of us.' })` : `wishPick('a','${m.id}')`}">${BALLOONS}<div class="bd-in"><span class="ey">${ICO_RINGS} Anniversary today</span><div class="row" style="gap:12px;margin-top:8px">${av(m, 46)}${av(sp, 46)}<div class="grow"><div class="bd-nm">${esc(first(m) + ' & ' + first(sp))}</div><div class="bd-sub">${yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together' : ''}</div></div></div><p class="bd-note">${mine ? 'Happy anniversary to you both!' : 'Tap to send your wishes.'}</p></div>${mine ? '' : circle('a' + key)}</button>`);
     }
   }
-  for (const f of festToday()) out.push(`<button class="bday fest" style="--g:linear-gradient(135deg,${f[4]})" onclick="wishPick('f','${f[0]}')"><div class="bd-in"><span class="ey">Today</span><div class="row" style="gap:12px;margin-top:6px"><div class="grow"><div class="bd-nm">Happy ${esc(f[1])}!</div><div class="bd-sub">From our family to yours</div></div></div><p class="bd-note">Tap to send your wishes to the family.</p></div>${circle('f' + f[0])}</button>`);
+  for (const f of festToday()) out.push(`<button class="bday fest" data-fx="${fxOf(f[0])}" style="--g:linear-gradient(135deg,${f[4]})" onclick="wishPick('f','${f[0]}')"><div class="bd-in"><span class="ey">${ICO_STAR} Today</span><div class="row" style="gap:12px;margin-top:6px"><div class="grow"><div class="bd-nm">Happy ${esc(f[1])}!</div><div class="bd-sub">From our family to yours</div></div></div><p class="bd-note">Tap to send your wishes to the family.</p></div>${circle('f' + f[0])}</button>`);
   return out.join('');
 }
-/* confetti on a canvas: one burst from the middle, then a steady fall */
-function confettiCanvas(canvas, loop){
-  const ctx = canvas.getContext('2d'), dpr = Math.min(window.devicePixelRatio || 1, 2), C = ['#E8577E', '#F2B640', '#4C8DDB', '#3FB58A', '#9B6BD6', '#FF8A3D'], rnd = (a, b) => a + Math.random() * (b - a);
-  let w = 0, h = 0, alive = true; const size = () => { const r = canvas.getBoundingClientRect(); w = r.width; h = r.height; canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, h * dpr); }; size();
-  const spawn = burst => ({ x: burst ? w / 2 + rnd(-40, 40) : rnd(0, w), y: burst ? h * .35 : rnd(-60, -8), vx: burst ? rnd(-9, 9) : rnd(-.6, .6), vy: burst ? rnd(-14, -4) : rnd(1, 2.4), r: rnd(0, 6.28), vr: rnd(-.2, .2), w: rnd(5, 9), h: rnd(8, 14), c: C[Math.floor(Math.random() * C.length)] });
-  const ps = Array.from({ length: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160 }, () => spawn(true));
-  (function frame(){ if (!alive) return; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
-    for (const p of ps){ p.vy = Math.min(p.vy + .22, 3.4); p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; if (p.y > h + 20 && loop) Object.assign(p, spawn(false)); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); }
-    requestAnimationFrame(frame); })();
-  return () => { alive = false; };
-}
+/* ---------- FX: canvas animations (same engine as the DXBAIPI app) ---------- */
+const FX = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stops = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const PAL = {
+    confetti: ['#E8577E', '#F2B640', '#4C8DDB', '#3FB58A', '#9B6BD6', '#FF8A3D'],
+    sparkle: ['#FFE7A3', '#FFFFFF', '#F7D27A'],
+    lights: ['#FFD27A', '#FFB36B', '#FFF1C2', '#FF9DB0'],
+    fireworks: ['#FFD54F', '#FF6E6E', '#7FD3FF', '#B9F6CA', '#FFFFFF'],
+    bubbles: ['#CFE8FF', '#E6F4FF', '#BFE3F2', '#FFFFFF'],
+    hearts: ['#FF6E8E', '#FF9DB0', '#F26D8B', '#FFC2D1', '#E8577E'],
+    petals: ['#FFC9D6', '#FAD7A0', '#F8BBD0', '#FDE2B8', '#F6A5C0']
+  };
+  function make(type, w, h, o){ const n = { confetti: o.burst ? (o.once ? 70 : 160) : o.soft ? 14 : 40, sparkle: 26, snow: 60, lights: 18, fireworks: 0, bubbles: 28, hearts: 20, petals: 36 }[type] || 0; const ps = []; for (let i = 0; i < n; i++) ps.push(spawn(type, w, h, o, true)); return ps; }
+  function spawn(type, w, h, o, initial){
+    const c = PAL[type] ? PAL[type][Math.floor(Math.random() * PAL[type].length)] : '#fff';
+    if (type === 'confetti' && o.soft) return { x: rnd(0, w), y: initial ? rnd(-h, h) : rnd(-40, -8), vx: rnd(-.35, .35), vy: rnd(.45, 1.05), r: rnd(0, 6.28), vr: rnd(-.08, .08), w: rnd(3.5, 6), h: rnd(6, 9), c, a: rnd(.55, .85) };
+    if (type === 'confetti') return { x: o.burst && initial ? w / 2 + rnd(-40, 40) : rnd(0, w), y: o.burst && initial ? h * .35 : rnd(-h, 0), vx: o.burst && initial ? rnd(-9, 9) : rnd(-.6, .6), vy: o.burst && initial ? rnd(-14, -4) : rnd(1, 2.4), r: rnd(0, 6.28), vr: rnd(-.2, .2), w: rnd(5, 9), h: rnd(8, 14), c };
+    if (type === 'snow') return { x: rnd(0, w), y: initial ? rnd(0, h) : -6, r: rnd(1.2, 3.4), vy: rnd(.4, 1.3), ph: rnd(0, 6.28), c: '#fff' };
+    if (type === 'sparkle') return { x: rnd(0, w), y: rnd(0, h), s: rnd(3, 8), ph: rnd(0, 6.28), sp: rnd(.03, .07), c };
+    if (type === 'lights') return { x: rnd(0, w), y: initial ? rnd(0, h) : h + 20, r: rnd(10, 26), vy: rnd(.15, .45), ph: rnd(0, 6.28), c };
+    if (type === 'bubbles') return { x: rnd(0, w), y: initial ? rnd(0, h) : h + 20, r: rnd(5, 16), vy: rnd(.5, 1.4), ph: rnd(0, 6.28), sw: rnd(.6, 1.4), c };
+    if (type === 'hearts') return { x: rnd(0, w), y: initial ? rnd(0, h) : h + 16, s: rnd(9, 18), vy: rnd(.5, 1.1), ph: rnd(0, 6.28), sw: rnd(.5, 1.2), c, a: rnd(.7, 1) };
+    if (type === 'petals') return { x: rnd(0, w), y: initial ? rnd(-h, h) : rnd(-30, -6), s: rnd(6, 11), vy: rnd(.6, 1.5), vx: rnd(-.3, .3), r: rnd(0, 6.28), vr: rnd(-.05, .05), ph: rnd(0, 6.28), c };
+    return null;
+  }
+  function heart(ctx, x, y, s){ ctx.beginPath(); ctx.moveTo(x, y + s * .35); ctx.bezierCurveTo(x + s, y - s * .6, x + s * 1.1, y + s * .3, x, y + s); ctx.bezierCurveTo(x - s * 1.1, y + s * .3, x - s, y - s * .6, x, y + s * .35); ctx.fill(); }
+  function star(ctx, x, y, s){ ctx.beginPath(); ctx.moveTo(x, y - s); ctx.quadraticCurveTo(x, y, x + s, y); ctx.quadraticCurveTo(x, y, x, y + s); ctx.quadraticCurveTo(x, y, x - s, y); ctx.quadraticCurveTo(x, y, x, y - s); ctx.fill(); }
+  /* Runs one animation on a canvas; returns a stop function. */
+  function run(canvas, type, o){
+    o = o || {}; const ctx = canvas.getContext('2d'); let w = 0, h = 0, raf = 0, ps = [], bursts = [], t = 0, alive = true; const dpr = Math.min(devicePixelRatio || 1, 2);
+    function size(){ const r = canvas.getBoundingClientRect(); w = r.width; h = r.height; canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    size(); ps = make(type, w, h, o);
+    function frame(){
+      if (!alive) return; t++; ctx.clearRect(0, 0, w, h);
+      if (type === 'confetti'){ ps.forEach((p, i) => { p.vy += o.burst ? .25 : 0; if (o.burst){ p.vx *= .985; p.vy = Math.min(p.vy, 4); } p.x += p.vx; p.y += p.vy; p.r += p.vr;
+          if (p.y > h + 20){ if (o.soft) ps[i] = spawn(type, w, h, { soft:true }, false); else if (!o.burst || (!o.once && t < 260)) ps[i] = spawn(type, w, h, {}, false); }
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = p.a || 1; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2)) + 2); ctx.restore(); }); }
+      else if (type === 'snow'){ ps.forEach((p, i) => { p.y += p.vy; p.x += Math.sin(t / 40 + p.ph) * .4; if (p.y > h + 5) ps[i] = spawn(type, w, h, {}, false); ctx.globalAlpha = .85; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill(); }); ctx.globalAlpha = 1; }
+      else if (type === 'sparkle'){ ps.forEach((p, i) => { p.ph += p.sp; const a = Math.max(0, Math.sin(p.ph)); if (p.ph > 6.28){ ps[i] = spawn(type, w, h, {}, true); ps[i].ph = 0; } ctx.globalAlpha = a; ctx.fillStyle = p.c; star(ctx, p.x, p.y, p.s * (.6 + a * .6)); }); ctx.globalAlpha = 1; }
+      else if (type === 'lights'){ ps.forEach((p, i) => { p.y -= p.vy; p.ph += .02; if (p.y < -30) ps[i] = spawn(type, w, h, {}, false); const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); g.addColorStop(0, p.c); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.globalAlpha = .35 + Math.sin(p.ph) * .2; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill(); }); ctx.globalAlpha = 1; }
+      else if (type === 'bubbles'){ ps.forEach((p, i) => { p.y -= p.vy; p.x += Math.sin(t / 36 + p.ph) * p.sw; if (p.y < -20) ps[i] = spawn(type, w, h, {}, false); ctx.globalAlpha = .5; ctx.strokeStyle = p.c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.stroke(); ctx.globalAlpha = .18; ctx.fillStyle = p.c; ctx.fill(); ctx.globalAlpha = .6; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x - p.r * .3, p.y - p.r * .3, Math.max(1, p.r * .18), 0, 6.28); ctx.fill(); }); ctx.globalAlpha = 1; }
+      else if (type === 'hearts'){ ps.forEach((p, i) => { p.y -= p.vy; p.x += Math.sin(t / 34 + p.ph) * p.sw; if (p.y < -24) ps[i] = spawn(type, w, h, {}, false); ctx.globalAlpha = p.a; ctx.fillStyle = p.c; heart(ctx, p.x, p.y, p.s); }); ctx.globalAlpha = 1; }
+      else if (type === 'petals'){ ps.forEach((p, i) => { p.y += p.vy; p.x += p.vx + Math.sin(t / 40 + p.ph) * .5; p.r += p.vr; if (p.y > h + 20) ps[i] = spawn(type, w, h, {}, false); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = .85; ctx.fillStyle = p.c; ctx.beginPath(); ctx.ellipse(0, 0, p.s, p.s * .55, 0, 0, 6.28); ctx.fill(); ctx.restore(); }); ctx.globalAlpha = 1; }
+      else if (type === 'fireworks'){ if (t % 55 === 1){ const cx = rnd(w * .15, w * .85), cy = rnd(h * .15, h * .55), c = PAL.fireworks[Math.floor(Math.random() * 5)]; for (let k = 0; k < 36; k++){ const a = k / 36 * 6.28, sp = rnd(1.2, 3.2); bursts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, c }); } }
+        bursts = bursts.filter(b => b.life > 0); bursts.forEach(b => { b.x += b.vx; b.y += b.vy; b.vy += .03; b.vx *= .985; b.life -= .014; ctx.globalAlpha = Math.max(0, b.life); ctx.fillStyle = b.c; ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, 6.28); ctx.fill(); }); ctx.globalAlpha = 1; }
+      if (reduce) return; raf = requestAnimationFrame(frame);
+    }
+    if (reduce && type === 'confetti' && o.burst) ps.forEach(p => { p.y = rnd(0, h); p.x = rnd(0, w); });
+    frame(); const onResize = () => size(); addEventListener('resize', onResize);
+    return () => { alive = false; cancelAnimationFrame(raf); removeEventListener('resize', onResize); };
+  }
+  /* Adds an animation layer to every [data-fx] element on screen. Several types can be given, e.g. "snow sparkle". */
+  function start(root){
+    root.querySelectorAll('[data-fx]').forEach(el => {
+      if (el.querySelector(':scope > canvas.fx-layer')) return;
+      for (const type of (el.getAttribute('data-fx') || '').split(' ').filter(x => x && x !== 'none')){
+        const layers = type === 'confetti-soft' ? [['confetti', { soft:true }]] : type === 'confetti-celebrate' ? [['confetti', { soft:true }], ['confetti', { burst:true, once:true }]] : [[type, {}]];
+        layers.forEach(([t, o]) => { const cv = document.createElement('canvas'); cv.className = 'fx-layer'; cv.setAttribute('aria-hidden', 'true'); el.prepend(cv); stops.push(run(cv, t, o)); });
+      }
+    });
+  }
+  function stop(){ stops.forEach(f => f()); stops = []; }
+  return { start, stop, run };
+})();
+
+/* ---------- Sounds (made in the browser, same as the DXBAIPI app): the confetti pop and festival sounds ---------- */
+const Sound = {
+  ctx:null, out:null,
+  unlock(){ try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (!this.ctx){ this.ctx = new AC(); const comp = this.ctx.createDynamicsCompressor(); this.out = this.ctx.createGain(); this.out.gain.value = .45; this.out.connect(comp); comp.connect(this.ctx.destination); } if (this.ctx.state !== 'running') this.ctx.resume(); const b = this.ctx.createBufferSource(); b.buffer = this.ctx.createBuffer(1, 1, 22050); b.connect(this.ctx.destination); b.start(0); } catch(e){} },
+  env(g, t, peak, a, d){ g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); },
+  tone(f, t, d, o){ o = o || {}; const c = this.ctx, osc = c.createOscillator(), g = c.createGain(); osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t); if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d); this.env(g, t, o.gain || .2, o.a || .005, d); osc.connect(g); if (o.lp){ const f2 = c.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = o.lp; g.connect(f2); f2.connect(this.out); } else g.connect(this.out); osc.start(t); osc.stop(t + (o.a || .005) + d + .05); },
+  bell(f, t, d, gain){ this.tone(f, t, d, { gain }); this.tone(f * 2.76, t, d * .45, { gain: gain * .28 }); this.tone(f * 5.4, t, d * .2, { gain: gain * .12 }); },
+  noise(t, d, o){ o = o || {}; const c = this.ctx, len = Math.max(1, Math.floor(c.sampleRate * (d + .1))); const buf = c.createBuffer(1, len, c.sampleRate), ch = buf.getChannelData(0); for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(), flt = c.createBiquadFilter(), g = c.createGain(); src.buffer = buf; flt.type = o.filter || 'bandpass'; flt.Q.value = o.q || 1; flt.frequency.setValueAtTime(o.f || 1500, t); if (o.to) flt.frequency.exponentialRampToValueAtTime(o.to, t + d); this.env(g, t, o.gain || .2, o.a || .004, d); src.connect(flt); flt.connect(g); g.connect(this.out); src.start(t); src.stop(t + d + .1); },
+  rnd(a, b){ return a + Math.random() * (b - a); },
+  play(kind){ if (!this.ctx) return; try { if (this.ctx.state !== 'running') this.ctx.resume(); const t = this.ctx.currentTime + .05; (this.KINDS[kind] || this.KINDS.none).call(this, t); } catch(e){} },
+  KINDS: {
+    // Party popper: a pop, a thump, a bright run up and the paper fluttering down.
+    confetti(t){ this.noise(t, .07, { f:1900, q:.8, gain:.55, a:.002 }); this.tone(190, t, .14, { to:55, gain:.45, a:.002 }); [1047, 1319, 1568, 2093].forEach((f, i) => this.tone(f, t + .08 + i * .06, .32, { type:'triangle', gain:.1 })); for (let i = 0; i < 18; i++) this.noise(t + .15 + this.rnd(0, .9), .025, { f:this.rnd(3000, 7000), q:6, gain:this.rnd(.03, .08) * (1 - i / 22) }); },
+    // Twinkling chimes, high and light.
+    sparkle(t){ const n = [1568, 1760, 2093, 2349, 2637, 3136, 3520]; for (let i = 0; i < 9; i++) this.bell(n[Math.floor(Math.random() * n.length)], t + i * .11 + this.rnd(0, .05), .9, .07 * (1 - i / 14)); this.tone(523, t, 1.4, { type:'sine', gain:.04, a:.25 }); },
+    // A rocket whoosh, a boom and crackles, then a second smaller one.
+    fireworks(t){ const shot = (s, size) => { this.noise(s, .55, { filter:'highpass', f:500, to:3200, gain:.12 * size, a:.45 }); this.tone(110, s + .58, .9, { to:38, gain:.55 * size, a:.004 }); this.noise(s + .58, .8, { filter:'lowpass', f:900, to:120, gain:.4 * size, a:.004 }); for (let i = 0; i < 26; i++) this.noise(s + .75 + this.rnd(0, .9), .012, { f:this.rnd(2500, 6500), q:4, gain:this.rnd(.05, .14) * size }); }; shot(t, 1); shot(t + 1.1, .6); },
+    // A soft music box, falling slowly, over a breath of wind.
+    snow(t){ this.noise(t, 2, { filter:'lowpass', f:600, to:300, gain:.05, a:.8 }); [1568, 1319, 1175, 1047, 1319, 1568].forEach((f, i) => this.bell(f, t + i * .26, 1.3, .08)); },
+    // A warm chord that glows in, with a glint on top.
+    lights(t){ [220, 277, 330, 440].forEach(f => this.tone(f, t, 1.6, { type:'triangle', gain:.07, a:.45, lp:1600 })); this.bell(1760, t + .5, 1.2, .06); this.bell(2637, t + .75, 1, .045); },
+    none(t){ this.bell(1319, t, .9, .12); this.bell(1976, t + .14, 1.1, .1); }
+  }
+};
+// Browsers only allow sound after a tap, so the first touch anywhere wakes the sound up.
+['touchend', 'pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { if (!Sound.ctx || Sound.ctx.state !== 'running') Sound.unlock(); }, { passive:true, capture:true }));
+
 /* the full-screen greeting: your own birthday or anniversary, or a festival, once that day */
 function celebrate(o){
   if ($('.celebrate')) return;
   const el = document.createElement('div'); el.className = 'celebrate';
   el.innerHTML = `<canvas></canvas><div class="cel-card ${o.g ? 'fest' : ''}" ${o.g ? `style="--g:linear-gradient(160deg,${o.g})"` : ''}>${o.g ? '' : BALLOONS}<span class="cel-ey">${esc(o.ey)}</span><h2>${o.title}</h2><p>${esc(o.text)}</p><button class="btn" type="button">${esc(o.btn || 'Thank you')}</button></div>`;
   document.body.appendChild(el);
-  const stop = confettiCanvas(el.querySelector('canvas'), true); try { if (!IOS && navigator.vibrate) navigator.vibrate([10, 60, 10, 60, 18]); } catch(e){}
+  const fx = (o.fx || 'confetti').split(' '), stops = fx.map((t, i) => { let cv = el.querySelector('canvas'); if (i){ cv = document.createElement('canvas'); el.prepend(cv); } const k = t.replace(/-.*/, ''); return FX.run(cv, k, k === 'confetti' && !/-soft/.test(t) ? { full:true, burst:true } : { soft: /-soft/.test(t) }); });
+  const stop = () => stops.forEach(f => f()); Sound.play(fx[0] === 'confetti' ? 'confetti' : (Sound.KINDS[fx[0]] ? fx[0] : 'sparkle')); try { if (!IOS && navigator.vibrate) navigator.vibrate([10, 60, 10, 60, 18]); } catch(e){}
   const close = () => { stop(); el.classList.add('out'); setTimeout(() => el.remove(), 300); };
   el.querySelector('.btn').onclick = close; el.addEventListener('click', e => { if (e.target === el) close(); }); Motion.arm(el);
 }
@@ -1037,7 +1139,7 @@ function maybeCelebrate(){
   if (m.birth && m.birth.slice(5) === t.slice(5) && once('b', { ey: niceDay, title:'Happy birthday,<br>' + esc(first(m)) + '!', text:'Wishing you a wonderful year ahead, from all of us.' })) return;
   const sp = spouseOf(m), an = m.anniv || (sp && sp.anniv);
   if (sp && an && an.slice(5) === t.slice(5) && once('a', { ey: niceDay, title:'Happy anniversary,<br>' + esc(first(m)) + ' & ' + esc(first(sp)) + '!', text:'To many more years together, from all of us.' })) return;
-  const f = festToday()[0]; if (f) once('f' + f[0], { ey: niceDay, g: f[4], title:'Happy ' + esc(f[1]) + '!', text:'Wishing the whole family a joyful day.', btn:'Celebrate' });
+  const f = festToday()[0]; if (f) once('f' + f[0], { ey: niceDay, g: f[4], fx: fxOf(f[0]), title:'Happy ' + esc(f[1]) + '!', text:'Wishing the whole family a joyful day.', btn:'Celebrate' });
 }
 /* send a wish: pick one of three, it goes as a chat message and the tile remembers it */
 function wishPick(kind, id){
@@ -1058,7 +1160,7 @@ function wishPick(kind, id){
     if (e.target === el || (b && b.dataset.x)){ close(); return; }
     if (!b || b.dataset.i === undefined) return;
     setWished(k, '1'); save('Messages', { to: kind === 'b' && m.claimed ? m.id : 'all', text: opts[Number(b.dataset.i)] }).catch(() => {});
-    Motion.confetti(); Motion.haptic(); close(); toast('Wish sent');
+    Motion.confetti(); Motion.haptic(); Sound.play('confetti'); close(); toast('Wish sent');
   });
 }
 function wishesSheet(){
@@ -1210,7 +1312,7 @@ function relHtml(){
   const R = st.rel, A = M(R.a), B = M(R.b), mine = R.a === st.db.me, whose = mine ? 'my' : first(A) + "'s";
   if (!B){
     const list = st.db.members.filter(x => x.id !== R.a).sort((a, b) => String(a.name).localeCompare(b.name));
-    return `<div class="sh"><h2>Add a relative</h2><button class="x" onclick="closeSheet()">×</button></div><input type="text" placeholder="Search the family" oninput="relFilter(this.value)" autocomplete="off"><div class="card" id="relList" style="max-height:44vh;overflow:auto">${list.length ? list.map(x => `<div class="row lrow" data-n="${esc(String(x.name + ' ' + (x.nick || '')).toLowerCase())}" style="padding:8px 0" onclick="st.rel.b='${x.id}';$('#sheet').innerHTML=relHtml();Motion.arm($('#sheet'))">${av(x, 40)}<div class="grow"><div class="b">${esc(x.name)}</div><div class="small muted">${esc(cap(relation(x.id)))}${x.country ? ' · ' + flag(x.country) + ' ' + esc(x.country) : ''}</div></div></div>`).join('') : '<div class="empty">Nobody else has joined yet.</div>'}</div><div class="sec"><h3>Someone not in the app yet</h3></div><div class="chips">${isKid(A) ? '' : `<button class="chip" onclick="memberForm(null,{childOf:'${A.id}'})">+ New child</button>`}${parentsOf(A).length < 2 ? `<button class="chip" onclick="memberForm(null,{parentFor:'${A.id}'})">+ New parent</button>` : ''}${!spouseOf(A) && !isKid(A) ? `<button class="chip" onclick="memberForm(null,{spouseOf:'${A.id}'})">+ New husband / wife</button>` : ''}</div>`;
+    return `<div class="sh"><h2>Add a relative</h2><button class="x" onclick="closeSheet()">×</button></div><input type="text" placeholder="Search the family" oninput="relFilter(this.value)" autocomplete="off"><div class="card" id="relList" style="max-height:44vh;overflow:auto">${list.length ? list.map(x => `<div class="row lrow" data-n="${esc(String(x.name + ' ' + (x.nick || '')).toLowerCase())}" style="padding:8px 0" onclick="st.rel.b='${x.id}';$('#sheet').innerHTML=relHtml();Motion.arm($('#sheet'))">${av(x, 40)}<div class="grow"><div class="b">${esc(x.name)}</div><div class="small muted">${esc(cap(relation(x.id)))}${x.country ? ' · ' + flag(x.country) + ' ' + esc(cname(x.country)) : ''}</div></div></div>`).join('') : '<div class="empty">Nobody else has joined yet.</div>'}</div><div class="sec"><h3>Someone not in the app yet</h3></div><div class="chips">${isKid(A) ? '' : `<button class="chip" onclick="memberForm(null,{childOf:'${A.id}'})">+ New child</button>`}${parentsOf(A).length < 2 ? `<button class="chip" onclick="memberForm(null,{parentFor:'${A.id}'})">+ New parent</button>` : ''}${!spouseOf(A) && !isKid(A) ? `<button class="chip" onclick="memberForm(null,{spouseOf:'${A.id}'})">+ New husband / wife</button>` : ''}</div>`;
   }
   const g = B.gender, opts = [['father', 'Father'], ['mother', 'Mother'], ['sibling', g === 'female' ? 'Sister' : g === 'male' ? 'Brother' : 'Brother / sister'], ['spouse', g === 'female' ? 'Wife' : g === 'male' ? 'Husband' : 'Husband / wife'], ['child', g === 'female' ? 'Daughter' : g === 'male' ? 'Son' : 'Son / daughter']]
     .filter(o => !(isKid(A) && (o[0] === 'spouse' || o[0] === 'child')) && !(isKid(B) && (o[0] === 'father' || o[0] === 'mother' || o[0] === 'spouse')) && !(g === 'female' && o[0] === 'father') && !(g === 'male' && o[0] === 'mother'));
