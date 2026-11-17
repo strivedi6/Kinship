@@ -393,6 +393,10 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 @keyframes ringspin2{to{transform:rotate(360deg)}}
 .ro-note{justify-content:center;color:var(--muted);font-size:15px;padding:14px}
 body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body.ro [onclick^="habitForm"],body.ro [onclick^="rewardForm"],body.ro [onclick^="wishForm"],body.ro [onclick^="festSheet"],body.ro [onclick^="relativeSheet"],body.ro [onclick^="composeSheet"],body.ro [onclick^="invite"],body.ro .bday-circle{display:none!important}
+.tog{appearance:none;-webkit-appearance:none;flex:none;width:51px;height:31px;border-radius:999px;background:var(--fill);position:relative;transition:background .25s;margin:0;cursor:pointer}
+.tog:before{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.tog:checked{background:var(--green)}.tog:checked:before{transform:translateX(20px)}.tog:disabled{opacity:.4}
+#sheet label.acc{color:var(--ink);font-size:17px;font-weight:400;margin:0;text-transform:none;letter-spacing:0}
 </style>
 </head>
 <body>
@@ -1226,6 +1230,19 @@ function linkRel(rel, ev){
 }
 function relationOf(aId, bId){ const keep = st.db.me; st.db.me = aId; try { return relation(bId); } finally { st.db.me = keep; } }
 
+/* ---------- admin: who is view only ---------- */
+function accessSheet(){
+  if (!isAdmin()) return;
+  openSheet(() => { const ms = st.db.members.filter(m => m.id !== st.db.me && !m.passed).sort((a, b) => (b.viewOnly === '1') - (a.viewOnly === '1') || (b.claimed - a.claimed) || a.name.localeCompare(b.name));
+    return `<div class="sh"><h2>View-only access</h2><button class="x" onclick="meSheet()">×</button></div><p class="small muted" style="margin:0 16px 8px">People switched on here can see everything in the app but can't post, chat, add or change anything. Handy for sharing a login with a friend.</p><div class="card">${ms.map(m => `<label class="row acc" style="padding:8px 0;gap:12px">${av(m, 40)}<div class="grow"><div class="b">${esc(m.name)}</div><div class="small muted">${m.role === 'admin' ? 'Family admin' : m.claimed ? cap(relation(m.id)) : cap(relation(m.id)) + ' · not signed in yet'}</div></div><input type="checkbox" class="tog" ${m.viewOnly === '1' ? 'checked' : ''} ${m.role === 'admin' ? 'disabled' : ''} onchange="setViewOnly('${m.id}', this)"></label>`).join('')}</div>`; }, true);
+}
+async function setViewOnly(id, el){
+  const m = M(id); if (!m) return; el.disabled = true; Motion.haptic();
+  try { await save('Members', { id, name: m.name, viewOnly: el.checked ? '1' : '' }); toast(el.checked ? first(m) + ' is now view only' : first(m) + ' has full access again'); }
+  catch(e){ el.checked = !el.checked; }
+  el.disabled = false;
+}
+
 /* ---------- PROFILES ---------- */
 let sheetFn = null, sheetLive = false;
 let lockY = null;
@@ -1299,7 +1316,7 @@ function meSheet(){
   const s = st.db.settings || {}, url = location.href.split('#')[0];
   openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div><button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
   ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
-  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form></div>` : ''}
+  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><div class="row lrow" style="padding:10px 0" onclick="accessSheet()"><div class="grow"><div>View-only access</div><div class="small muted">${(n => n ? n + (n === 1 ? ' person' : ' people') + ' can only look' : 'Nobody is view only')(st.db.members.filter(m => m.viewOnly === '1').length)}</div></div><span class="muted" style="font-size:22px">›</span></div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form></div>` : ''}
   <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}</div>
   <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="New 4-digit PIN" required><button class="btn sm">Change</button></form></div>
   <button class="btn line block" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
