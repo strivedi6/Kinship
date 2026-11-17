@@ -391,6 +391,8 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 #ptr.spin svg{animation:ringspin2 .8s linear infinite}
 #ptr.ease{transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .3s}
 @keyframes ringspin2{to{transform:rotate(360deg)}}
+.ro-note{justify-content:center;color:var(--muted);font-size:15px;padding:14px}
+body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body.ro [onclick^="habitForm"],body.ro [onclick^="rewardForm"],body.ro [onclick^="wishForm"],body.ro [onclick^="festSheet"],body.ro [onclick^="relativeSheet"],body.ro [onclick^="composeSheet"],body.ro [onclick^="invite"],body.ro .bday-circle{display:none!important}
 </style>
 </head>
 <body>
@@ -429,7 +431,11 @@ const flag = n => { const c = cInfo(n); return c ? String.fromCodePoint(...[...c
 const QUESTIONS = ['What made you laugh this week?','What is your favourite thing to eat at a family party?','If all the cousins could go on one trip together, where should we go?','What is one thing you are really good at?','What game should we all play together next time?','What is the best thing about where you live?','Which animal would you love as a pet, and why?','What is something new you learned this month?','What is your favourite family memory?','What do you want to be when you grow up?','What song should be our family song?','What would you cook for the whole family?'];
 
 /* ---------- API ---------- */
+const RO_ACTIONS = ['put', 'del', 'upload', 'link', 'setPin', 'settings'];
+const ro = () => !!(st.db && st.db.me && M(st.db.me) && M(st.db.me).viewOnly === '1');
+const RO_MSG = 'This account is view only';
 async function api(action, payload = {}){
+  if (ro() && RO_ACTIONS.includes(action)) throw new Error(RO_MSG);
   if (DEMO) return demoApi(action, payload);
   let j;
   try {
@@ -451,6 +457,7 @@ function sync(){
   return syncing;
 }
 async function save(table, row){
+  if (ro()){ toast(RO_MSG); throw new Error(RO_MSG); }
   const arr = st.db[table.toLowerCase()];
   if (!row.id) row.id = uid();
   const i = arr.findIndex(x => x.id === row.id);
@@ -462,6 +469,7 @@ async function save(table, row){
   return merged;
 }
 async function removeRow(table, id){
+  if (ro()){ toast(RO_MSG); return; }
   const k = table.toLowerCase();
   st.db[k] = st.db[k].filter(x => x.id !== id); render();
   try { await api('del', { table, id }); LS.set('db', st.db); } catch(e){ toast(e.message); try { await sync(); } catch(_){} }
@@ -490,7 +498,7 @@ const parentsOf = m => m ? [M(m.fatherId), M(m.motherId)].filter(Boolean) : [];
 const byBirth = (a, b) => String(a.birth || '9').localeCompare(String(b.birth || '9')) || String(a.name).localeCompare(String(b.name));
 const childrenOf = m => st.db.members.filter(c => c.fatherId === m.id || c.motherId === m.id).sort(byBirth);
 const isParentOf = (p, k) => !!k && (k.fatherId === p.id || k.motherId === p.id);
-const canEdit = m => m.id === me().id || isAdmin() || isParentOf(me(), m);   // self, parents, family admin
+const canEdit = m => !ro() && (m.id === me().id || isAdmin() || isParentOf(me(), m));   // self, parents, family admin (never a view-only account)
 const roleFor = birth => { if (!/^\d{4}-\d{2}-\d{2}$/.test(birth || '')) return 'adult'; const b = pDate(birth), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) a--; return a < 18 ? 'kid' : 'adult'; };
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -688,6 +696,7 @@ const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
 function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
+  document.body.classList.toggle('ro', ro());
   $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
   const inThread = st.tab === 'chat' && !!st.chatWith;
   $('#nav').hidden = false; $('#nav').classList.toggle('off', inThread); $('#navblur').hidden = inThread;
@@ -1089,7 +1098,7 @@ function msgsHtml(){
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div><form class="composer glass" onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
@@ -1259,6 +1268,7 @@ function memberForm(id, preset){
   <div class="two"><div><label>Father</label>${sel('fatherId', m.fatherId, others)}</div><div><label>Mother</label>${sel('motherId', m.motherId, others)}</div></div>
   <div class="two"><div><label>Married to</label>${sel('spouseId', sp ? sp.id : '', others)}</div><div><label>Wedding date</label><input type="date" name="anniv" value="${esc(m.anniv || (sp && sp.anniv) || '')}"></div></div>
   ${id !== st.db.me ? `<label class="check"><input type="checkbox" name="passed" ${m.passed ? 'checked' : ''}>Has passed away (kept in the tree, in loving memory)</label>` : ''}
+  ${id && id !== st.db.me && isAdmin() ? `<label class="check"><input type="checkbox" name="viewOnly" ${m.viewOnly === '1' ? 'checked' : ''}>View only: can look around but can't post, chat, add or change anything</label>` : ''}
   <h3 style="margin-top:20px">Fun facts</h3><p class="small muted" style="margin:4px 0 0">Shown to cousins and used in the family quiz.</p>
   <div class="two"><div><label>Favourite food</label><input type="text" name="favFood" maxlength="40" value="${esc(m.favFood || '')}"></div><div><label>Favourite colour</label><input type="text" name="favColor" maxlength="30" value="${esc(m.favColor || '')}"></div></div>
   <label>Loves doing</label><input type="text" name="hobby" maxlength="60" value="${esc(m.hobby || '')}" placeholder="football, drawing, baking">
@@ -1272,6 +1282,7 @@ function submitMember(ev, id){
   const row = { name:g('name'), nick:g('nick'), gender:g('gender'), birth:g('birth'), country:g('country'), city:g('city'), fatherId:g('fatherId'), motherId:g('motherId'), spouseId:g('spouseId'), anniv:g('anniv'), favFood:g('favFood'), favColor:g('favColor'), hobby:g('hobby'), askMe:g('askMe'), about:g('about') };
   if (!id || M(id).role !== 'admin') row.role = roleFor(row.birth);
   if (id !== st.db.me) row.passed = f.get('passed') ? '1' : '';
+  if (id && id !== st.db.me && isAdmin()) row.viewOnly = f.get('viewOnly') ? '1' : '';
   if (pendingAvatar) row.avatar = pendingAvatar;
   if (id === st.db.me) row.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; else if (!id || !M(id).claimed) row.tz = (cInfo(row.country) || [])[2] || '';
   if (id) row.id = id; else row.claimed = false;
@@ -1456,6 +1467,15 @@ const backEnd = () => {
   else if (el){ el.style.transition = ease; el.style.transform = ''; }
 };
 document.addEventListener('touchend', backEnd, { passive:true }); document.addEventListener('touchcancel', backEnd, { passive:true });
+
+/* ---------- view-only accounts: stop add / edit / send before a form even opens ---------- */
+const RO_TAPS = /^(memberForm|eventForm|habitForm|rewardForm|wishForm|festSheet|relativeSheet|linkRel|redeem|redeemWish|wishPick|wishesSheet|composeSheet|decide|delPost|removeRow|save|invite|react|tick)\b/;
+document.addEventListener('click', e => {
+  if (!ro()) return; const el = e.target.closest('[onclick]'); if (!el) return;
+  const f = (el.getAttribute('onclick') || '').trim();
+  if (RO_TAPS.test(f) || (el.closest('#sheet') && el.matches('button[type=submit], form button:not([type=button]):not(.x)'))){ e.preventDefault(); e.stopPropagation(); Motion.haptic(); toast(RO_MSG); }
+}, true);
+document.addEventListener('submit', e => { if (ro()){ e.preventDefault(); e.stopPropagation(); toast(RO_MSG); } }, true);
 
 /* ---------- drag a sheet down to close it (once it is scrolled to the top) ---------- */
 const SD = { on:false, drag:false, y0:0, x0:0, dy:0, t0:0 };

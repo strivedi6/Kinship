@@ -11,7 +11,7 @@
 const MEDIA_FOLDER_ID = '1Nr_Q34Kr27e9RV5KPkL0VA6Ye0Ty8UnG';
 
 const SCHEMA = {
-  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen'],
+  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen','viewOnly'],
   Posts: ['id','by','text','photo','ts'],
   Comments: ['id','postId','by','text','ts'],
   Reactions: ['id','postId','by','emoji','ts'],
@@ -81,6 +81,7 @@ function route(q) {
     case 'msgs': return msgsPoll(q);
   }
   const me = auth(q.token);
+  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings'].indexOf(q.action) >= 0) throw new Error('This account is view only');
   switch (q.action) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
@@ -265,6 +266,8 @@ function put(me, table, row) {
         }
         SECRET.forEach(function (h) { r[h] = old[h]; });
       }
+      // Only the family admin can make an account view only, or lift it.
+      if (me.role !== 'admin') r.viewOnly = old ? (old.viewOnly || '') : '';
       if (r.avatar && !/^data:image\/(jpeg|png|webp);base64,/.test(r.avatar)) r.avatar = '';
       break;
     case 'Posts': case 'Comments':
