@@ -495,7 +495,7 @@ html,body{overflow:hidden}
 #scroller{position:fixed;inset:0;bottom:var(--vb);z-index:1;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}
 #scroller.locked{overflow:hidden}
 /* phones: the feed's add box lives in the tab bar instead */
-@media(max-width:899px){.feed-add{display:none!important}}
+@media(max-width:899px){.feed-add{display:none!important}.feedgrid.latest .pc:nth-child(n+2){display:none}}
 .nav button.addpost{background:var(--accent);color:var(--onacc)}
 .nav button.addpost svg{stroke-width:2.6;animation:addpop .45s cubic-bezier(.2,1.6,.4,1)}
 @keyframes addpop{from{transform:scale(.4) rotate(-90deg)}}
@@ -518,6 +518,11 @@ html,body{overflow:hidden}
   #app.shell.wide{padding-left:0;padding-right:0}
   .feedgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
   .feedgrid .pc{margin:0}
+  .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+  .duo>.col:only-child{grid-column:1 / -1}
+  .kidbar{display:flex;align-items:center;gap:14px;margin:6px 0 8px}
+  .kidbar .seg{flex:0 0 auto;width:440px;margin:0}
+  .kidbar .chips{flex:1;min-width:0;margin:0;flex-wrap:nowrap;overflow-x:auto}
   .feedgrid .pc .pc-nm{font-size:16px}.feedgrid .pc .cap{font-size:15px;line-height:21px}
   .calgrid{column-count:2;column-gap:24px}
   .calgrid .mblock{break-inside:avoid;display:inline-block;width:100%}
@@ -918,15 +923,15 @@ function vHome(){
   const h = new Date().getHours(), greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   const kids = kidsList(), ws = weekStart();
   const board = kids.map(k => [k, pointsOf(k.id, ws)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const last = [...st.db.posts].sort((a, b) => b.ts - a.ts)[0];
+  const latest = [...st.db.posts].sort((a, b) => b.ts - a.ts).slice(0, 3);
   const needs = !m.country || !m.birth || (!m.fatherId && !m.motherId && !spouseOf(m));
   return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) + todayTiles() +
   `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
   (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
   (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock"><div class="small b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
-  `<div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Add birthdays to profiles and they will show up here.</div>'}</div>` +
-  (board.length ? `<div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div>` : '') +
-  `<div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">Open feed</a></div>` + (last ? postCard(last) : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
+  `<div class="duo"><div class="col"><div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Add birthdays to profiles and they will show up here.</div>'}</div></div>` +
+  (board.length ? `<div class="col"><div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div></div>` : '') +
+  `</div><div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">View all</a></div>` + (latest.length ? `<div class="feedgrid latest">${latest.map(postCard).join('')}</div>` : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
 }
 
 /* ---------- TREE ---------- */
@@ -1104,8 +1109,8 @@ function postSheet(id){
 function vKids(){
   const kids = myKids(); if (!kids.some(k => k.id === st.kidId)) st.kidId = kids[0] ? kids[0].id : null;
   const segs = [['today','Today'],['rewards','Rewards'],['wishes','Wishes'],['corner','Cousins']];
-  return topBar('Kids', 'Habits, stars and cousins') + `<div class="seg four">${segs.map(([k, l]) => `<button class="${st.seg === k ? 'on' : ''}" onclick="st.seg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
-    (st.seg === 'corner' ? vCorner() : kids.length ? kidPicker(kids) + (st.seg === 'today' ? vToday() : st.seg === 'wishes' ? vWishes() : vRewards()) : `<div class="card empty">${isKid(me()) ? '' : 'Habits and rewards appear here for your children.<br><br><button class="btn" onclick="memberForm(null,{role:\'kid\',parentOf:1})">+ Add my child</button>'}</div>`);
+  return topBar('Kids', 'Habits, stars and cousins') + `<div class="kidbar"><div class="seg four">${segs.map(([k, l]) => `<button class="${st.seg === k ? 'on' : ''}" onclick="st.seg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>${st.seg !== 'corner' && kids.length ? kidPicker(kids) : ''}</div>` +
+    (st.seg === 'corner' ? vCorner() : kids.length ? (st.seg === 'today' ? vToday() : st.seg === 'wishes' ? vWishes() : vRewards()) : `<div class="card empty">${isKid(me()) ? '' : 'Habits and rewards appear here for your children.<br><br><button class="btn" onclick="memberForm(null,{role:\'kid\',parentOf:1})">+ Add my child</button>'}</div>`);
 }
 const kidPicker = kids => kids.length > 1 ? `<div class="chips">${kids.map(k => `<button class="chip ${k.id === st.kidId ? 'sel' : ''}" style="--c:${colorOf(k.id)}" onclick="st.kidId='${k.id}';Motion.ringFrom=null;Motion.haptic();render()">${esc(first(k))}</button>`).join('')}</div>` : '';
 function vToday(){
