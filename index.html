@@ -332,7 +332,7 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .bln{position:absolute;right:var(--x);top:var(--y);font-size:var(--s,34px);opacity:.9;animation:float var(--d,5s) ease-in-out infinite alternate;pointer-events:none}
 @keyframes float{from{transform:translateY(6px) rotate(-6deg)}to{transform:translateY(-10px) rotate(7deg)}}
 /* chat */
-.gav{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;overflow:hidden;background:var(--card);box-shadow:inset 0 0 0 .5px var(--sep)}.gav img{width:100%;height:100%;object-fit:cover;display:block}
+.gav{border-radius:24%;display:inline-flex;align-items:center;justify-content:center;flex:none;overflow:hidden;background:var(--card);box-shadow:inset 0 0 0 .5px var(--sep)}.gav img{width:100%;height:100%;object-fit:cover;display:block}
 .crow{padding:9px 0!important;width:100%;text-align:left}
 .crow .pv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:15px;line-height:20px}
 .crow:after{content:none}
@@ -344,7 +344,7 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .msg.me{align-self:flex-end;background:var(--accent);color:var(--onacc)}
 .msg.first{margin-top:8px}
 .who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
-.msg small{display:block;font-size:11px;line-height:13px;opacity:.6;margin-top:2px;text-align:right;letter-spacing:0}
+.msg small{display:block;font-size:11px;line-height:13px;opacity:.6;margin-top:2px;text-align:left;letter-spacing:0}.msg.me small{text-align:right}
 @keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
 .composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom) * .6);display:flex;align-items:center;gap:6px;border-radius:1000px;padding:5px 5px 5px 8px;margin-bottom:10px;z-index:16}
 .composer input[type=text]{background:transparent;min-height:40px;padding:8px 10px;box-shadow:none!important;flex:1}
@@ -545,7 +545,7 @@ html,body{overflow:hidden}
   .clist>.sub{margin:0 0 10px;color:var(--muted);font-size:15px}
   #banner:not(:empty)+#app .chatsplit{height:calc(100dvh - 30px)}
   .clist .card{padding:6px 8px}
-  .clist .crow{border-radius:16px;padding:10px 10px;margin:0}
+  .clist .card .crow{border-radius:16px;padding:10px 12px!important;margin:0;width:100%}
   .clist .crow.sel{background:var(--accent);color:var(--onacc)}
   .clist .crow.sel .muted,.clist .crow.sel .pv{color:color-mix(in srgb,var(--onacc) 75%,transparent)}
   .clist .crow+.crow:before{display:none}
@@ -555,6 +555,9 @@ html,body{overflow:hidden}
   .cpane .tbar>button:first-child{display:none}
   .cpane .thread #msgs{max-width:none;padding:8px 28px 10px}
   .cpane .thread .composer{max-width:none;width:calc(100% - 48px)}
+  #sheet:before{display:none}
+  #sheet{padding-top:12px}
+  #aurora{display:none}
   .cempty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--ink)}
   .cempty img{width:64px;height:64px;border-radius:16px;margin-bottom:6px;opacity:.9}
 }
@@ -1476,7 +1479,12 @@ const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" $
 function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
 const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px"><img src="icon-192.png" alt="" draggable="false"></span>`;
 function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; toTop(); render(); wakePoll(); }
-function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
+function openThread(t, draft){
+  if (wideScreen() && st.tab === 'chat' && $('.cpane')){
+    seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; markRead(t); Motion.haptic();
+    $('.cpane').innerHTML = vThread(); $('#clistIn').innerHTML = chatList(); loadPhotos(); refreshBadges(); scrollMsgs(); wakePoll(); Motion.arm($('.cpane'));
+    const i = $('.composer input'); if (i) i.focus(); return;
+  } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
 function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; toTop(); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
 function chatList(){
@@ -1963,7 +1971,7 @@ const Glow = (() => {
       v.style.transition = ease ? 'transform .6s ' + SPRING : 'none'; v.style.transform = d ? `translateY(${d}px)` : '';
       a.style.transition = ease ? `height .6s ${SPRING}, opacity .5s ease` : 'none'; a.style.height = (topH() + Math.min(d * .35, 26)) + 'px';
       if (!n) a.style.opacity = d > 2 ? p.toFixed(3) : '0'; a.classList.toggle('live', d > 2 || n > 0); document.documentElement.classList.toggle('glowing', d > 2 || n > 0); },
-    busy(on){ const a = aur(); if (!a) return; n = Math.max(0, n + (on ? 1 : -1));
+    busy(on){ const a = aur(); if (!a || wideScreen()) return; n = Math.max(0, n + (on ? 1 : -1));
       if (n){ a.style.transition = 'opacity .4s ease, height .4s ease'; a.style.height = topH() + 'px'; a.style.opacity = '1'; a.classList.add('live', 'busy'); document.documentElement.classList.add('glowing'); }
       else { a.classList.remove('busy'); a.style.transition = 'opacity .6s ease'; a.style.opacity = '0'; setTimeout(() => { if (!n){ a.classList.remove('live'); if (!PTR.pulling) document.documentElement.classList.remove('glowing'); } }, 650); } }
   };
