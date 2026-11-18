@@ -19,6 +19,8 @@ jobs:
     env:
       # The web app deployment the app talks to (the AKfyc... part of its /exec link).
       DEPLOYMENT_ID: AKfycbwdczETJa_ogzocppDe4Wzh7Mbuz95D9_I6tLVxyYLhc7QYu5dYVFeYo2eNlDYbf8rJ
+      # The Kinship Apps Script project (Project Settings > Script ID). Not secret on its own: it needs the sign-in below to do anything.
+      SCRIPT_ID: 1xYcZ9Tx8ms0vb1AFEwr6eSLExeUe9tEGYAWPIaWC_g38IS_adXECQZ8e
     steps:
       - uses: actions/checkout@v4
 
@@ -37,11 +39,8 @@ jobs:
           printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      - name: Point at the Kinship script (from the SCRIPT_ID secret)
-        env:
-          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+      - name: Point at the Kinship script
         run: |
-          if [ -z "$SCRIPT_ID" ]; then echo "Add the SCRIPT_ID secret first"; exit 1; fi
           mkdir -p build
           printf '{"scriptId":"%s","rootDir":"build","fileExtension":"gs"}' "$SCRIPT_ID" > .clasp.json
 
