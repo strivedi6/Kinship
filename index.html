@@ -464,8 +464,8 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 #aurora{position:fixed;z-index:19;top:0;left:0;right:0;height:0;opacity:0;overflow:hidden;pointer-events:none;contain:strict;-webkit-mask-image:linear-gradient(180deg,#000 45%,transparent);mask-image:linear-gradient(180deg,#000 45%,transparent);
   --a1:var(--accent);--a2:color-mix(in oklch,var(--accent) 55%,#fff);--a5:#CB30E0;--a6:#00C0E8}
 @supports (color: oklch(from red l c h)){#aurora{--a5:oklch(from var(--accent) calc(l + .04) c calc(h + 60));--a6:oklch(from var(--accent) l c calc(h - 70))}}
-#aurora .glow{position:absolute;inset:-40% -15% -10%;filter:blur(26px) saturate(1.15)}
-#aurora .glow i{position:absolute;top:18%;width:46%;height:70%;border-radius:50%;opacity:.6;will-change:transform;background:radial-gradient(closest-side,var(--c),color-mix(in srgb,var(--c) 40%,transparent) 60%,transparent)}
+#aurora .glow{position:absolute;inset:-60% -15% -10%;filter:blur(22px) saturate(1.1)}
+#aurora .glow i{position:absolute;top:18%;width:46%;height:70%;border-radius:50%;opacity:.5;will-change:transform;background:radial-gradient(closest-side,var(--c),color-mix(in srgb,var(--c) 40%,transparent) 60%,transparent)}
 #aurora .glow i:nth-child(1){--c:var(--a6);left:-6%}#aurora .glow i:nth-child(2){--c:var(--a1);left:16%;top:26%}#aurora .glow i:nth-child(3){--c:var(--a5);left:38%}#aurora .glow i:nth-child(4){--c:var(--a2);left:58%;top:28%}#aurora .glow i:nth-child(5){--c:var(--a1);left:78%;top:14%}
 #aurora.live .glow i{animation:wave 3.2s ease-in-out infinite}
 #aurora.live .glow i:nth-child(2){animation-delay:-.5s}#aurora.live .glow i:nth-child(3){animation-delay:-1s}#aurora.live .glow i:nth-child(4){animation-delay:-1.5s}#aurora.live .glow i:nth-child(5){animation-delay:-2s}
@@ -486,6 +486,11 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 .cust{display:flex;align-items:center;gap:12px}.cust input[type=color]{width:52px;height:52px;border:0;border-radius:50%;padding:0;background:none;flex:none}
 .cust input[type=color]::-webkit-color-swatch-wrapper{padding:0}.cust input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
 .accs{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}.accs button{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)}.accs button.on{box-shadow:0 0 0 2.5px var(--page),0 0 0 4.5px var(--accent)}
+/* Home Screen app on iPhone: the layout viewport can stop short of the real screen bottom, which moved the tab bar on some pages.
+   Pin everything at the bottom to the full screen height instead, so it sits at the same place everywhere. */
+:root{--vb:0px}
+@media (display-mode: standalone){html{min-height:100lvh}:root{--vb:calc(100% - 100lvh)}
+  .nav,#navblur{bottom:var(--vb)}#sheetWrap,.photoview,.celebrate,.lock{bottom:var(--vb)}}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -598,7 +603,7 @@ async function freshReload(){ try { if (window.caches){ const ks = await caches.
 let syncing = null;
 function sync(){
   if (syncing) return syncing;
-  const glowT = setTimeout(() => Glow.busy(true), 350);
+  const glowT = setTimeout(() => Glow.busy(true), 900);
   syncing = api('sync', { appUrl: location.href.split(/[?#]/)[0] }).then(useData).finally(() => { syncing = null; clearTimeout(glowT); Glow.busy(false); });
   return syncing;
 }
@@ -1023,7 +1028,7 @@ let pendingPhotos = [];
 const MAX_PICS = 5;
 function composeSheet(){
   pendingPhotos = [];
-  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><div id="picks" class="picks"></div><input type="file" id="picIn" accept="image/*" multiple hidden onchange="pickPhotos(this)"><button type="button" class="btn line block" id="addPics" style="margin-top:10px" onclick="$('#picIn').click()">Add photos (up to ${MAX_PICS})</button><p class="small muted">Photos are kept in the family's private Google Drive folder and only family members can see them.</p><button class="btn block">Share</button></form>`);
+  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><div id="picks" class="picks"></div><input type="file" id="picIn" accept="image/*" multiple hidden onchange="pickPhotos(this)"><button type="button" class="btn line block" id="addPics" style="margin-top:10px" onclick="$('#picIn').click()">Add photos (up to ${MAX_PICS})</button><p class="small muted">Photos are kept in the family's private Google Drive folder and only family members can see them.</p><button class="btn block" id="postBtn">Share</button></form>`);
 }
 function drawPicks(){
   const box = $('#picks'); if (!box) return;
@@ -1855,14 +1860,15 @@ document.addEventListener('touchend', sdEnd, { passive:true }); document.addEven
 const Glow = (() => {
   const aur = () => $('#aurora'), SPRING = 'cubic-bezier(.32,.72,0,1)';
   let n = 0;
-  const topH = () => { const b = $('#app>.bar'); return b ? b.getBoundingClientRect().bottom : 100; };
+  let sat = null;
+  const edgeH = () => { if (sat === null){ const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none'; document.body.appendChild(pr); sat = pr.offsetHeight; pr.remove(); } return Math.max(44, sat + 30); };
   return {
     pull(d, ease){ const a = aur(), v = $('#app'); if (!a || !v) return; const p = Math.min(1, d / 66);
       v.style.transition = ease ? 'transform .6s ' + SPRING : 'none'; v.style.transform = d ? `translateY(${d}px)` : '';
-      a.style.transition = ease ? `height .6s ${SPRING}, opacity .5s ease` : 'none'; a.style.height = (topH() + Math.min(d * .35, 26)) + 'px';
+      a.style.transition = ease ? `height .6s ${SPRING}, opacity .5s ease` : 'none'; a.style.height = (edgeH() + d * .6) + 'px';
       if (!n) a.style.opacity = d > 2 ? p.toFixed(3) : '0'; a.classList.toggle('live', d > 2 || n > 0); },
     busy(on){ const a = aur(); if (!a) return; n = Math.max(0, n + (on ? 1 : -1));
-      if (n){ a.style.transition = 'opacity .4s ease, height .4s ease'; a.style.height = topH() + 'px'; a.style.opacity = '1'; a.classList.add('live', 'busy'); }
+      if (n){ a.style.transition = 'opacity .4s ease, height .4s ease'; a.style.height = edgeH() + 'px'; a.style.opacity = '.85'; a.classList.add('live', 'busy'); }
       else { a.classList.remove('busy'); a.style.transition = 'opacity .6s ease'; a.style.opacity = '0'; setTimeout(() => { if (!n) a.classList.remove('live'); }, 650); } }
   };
 })();
