@@ -584,37 +584,39 @@ html,body{overflow:hidden}
 #sheet:has(>.pf){padding:0;background:color-mix(in oklch,var(--pfc,#5A4636) 22%,#0E0C0B);color:#fff}
 #sheet:has(>.pf):before{position:absolute;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,.45);margin-top:8px}
 .pf{--bg:color-mix(in oklch,var(--c) 22%,#0E0C0B);background:var(--bg);color:#fff;min-height:100%;padding-bottom:22px}
-.pf-hero{position:relative;height:min(470px,56vh);overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 30%,color-mix(in oklch,var(--c) 70%,#fff 10%),color-mix(in oklch,var(--c) 40%,#000))}
-.pf-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 28%}
+.pf-hero{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 30%,color-mix(in oklch,var(--c) 75%,#fff 8%),color-mix(in oklch,var(--c) 45%,#000))}
+.pf-ini{font-size:120px;font-weight:700;letter-spacing:-2px;color:rgba(255,255,255,.92);margin-top:-30px}
+.pf-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
 .pf-img.soft{filter:blur(22px) saturate(1.2);transform:scale(1.25);opacity:.85}
 .pf-av{position:relative;z-index:1;margin-top:-40px}.pf-av .av{box-shadow:0 18px 50px rgba(0,0,0,.35),0 0 0 4px rgba(255,255,255,.25);font-size:46px}
-.pf-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,transparent 22%,transparent 45%,var(--bg) 96%)}
-.pf-btn{position:absolute;top:18px;z-index:3;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;color:#fff}
+.pf-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 20%,transparent 50%,color-mix(in srgb,var(--bg) 70%,transparent) 78%,var(--bg) 100%)}
+.pf-btn{position:absolute;top:16px;z-index:3;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;color:#fff}
 .pf-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.pf-btn.l{left:18px}.pf-btn.r{right:18px}
-.pf-id{position:absolute;left:0;right:0;bottom:14px;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px}
-.pf-id h2{font-size:38px;line-height:42px;font-weight:700;letter-spacing:-.6px;text-shadow:0 2px 20px rgba(0,0,0,.35)}
-.pf-sub{font-size:17px;color:rgba(255,255,255,.62);margin-top:4px}
+.pf-btn.l{left:16px}.pf-btn.r{right:16px}
+.pf-btn svg{width:18px;height:18px}
+.pf-id{position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:center;padding:0 20px}
+.pf-id h2{font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.6px;text-shadow:0 2px 20px rgba(0,0,0,.35)}
+.pf-sub{font-size:15px;color:rgba(255,255,255,.7);margin-top:3px}
 .laurel{width:30px;height:66px;color:rgba(255,255,255,.4);flex:none}.laurel.r{transform:scaleX(-1)}
 .pf-body{padding:4px 16px 0}
-.pf-pill{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px auto 16px;width:max-content;max-width:100%;padding:12px 26px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.25);font-size:17px;font-weight:600}
-.pf-pill svg{width:20px;height:20px;fill:#fff}
+.pf-pill{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px auto 14px;width:max-content;max-width:100%;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.25);font-size:17px;font-weight:600}
+.pf-pill svg{width:16px;height:16px;fill:#fff}.pf-pill{font-size:15px!important}
 .pf-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.pf-tiles.n2{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-tiles.n1{grid-template-columns:1fr}
-.pf-tile{background:rgba(255,255,255,.06);border-radius:24px;padding:16px 8px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
-.pf-tile .pf-ico{font-size:42px;line-height:52px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
-.pf-tile b{font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.3px;white-space:nowrap}.pf-tile b i{font-style:normal;font-size:15px;margin-left:2px}
-.pf-tile span:last-child{font-size:14px;line-height:18px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.pf-row{display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.06);border-radius:24px;padding:16px 18px;margin-top:10px}
-.pf-big{font-size:46px;line-height:1;width:64px;text-align:center;flex:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
-.pf-k{font-size:14px;font-weight:600;color:rgba(255,255,255,.9)}
-.pf-v{font-size:24px;line-height:30px;font-weight:700;letter-spacing:-.3px}
-.pf-s{font-size:15px;color:rgba(255,255,255,.55)}
+.pf-tile{background:rgba(255,255,255,.06);border-radius:20px;padding:12px 6px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.pf-tile .pf-ico{font-size:26px;line-height:32px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
+.pf-tile b{font-size:20px;line-height:26px;font-weight:700;letter-spacing:-.3px;white-space:nowrap}.pf-tile b i{font-style:normal;font-size:15px;margin-left:2px}
+.pf-tile span:last-child{font-size:12px;line-height:16px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.pf-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:18px;padding:11px 14px;margin-top:8px}
+.pf-big{font-size:26px;line-height:1;width:36px;text-align:center;flex:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
+.pf-k{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.04em}
+.pf-v{font-size:17px;line-height:22px;font-weight:700;letter-spacing:-.3px}
+.pf-s{font-size:13px;color:rgba(255,255,255,.55)}
 .pf-fam{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px}
-.pf-p{flex:none;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;color:#fff;padding:0}
+.pf-p{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;color:#fff;padding:0}
 .pf-p .av{box-shadow:0 0 0 2px rgba(255,255,255,.18)}.pf-p b{font-size:14px;font-weight:600;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pf-p span{font-size:12px;color:rgba(255,255,255,.5)}
-.pf-glass{display:block;width:100%;margin-top:10px;padding:15px;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2);color:#fff;font-size:17px;font-weight:600}
+.pf-glass{display:block;width:100%;margin-top:8px;padding:12px;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2);color:#fff;font-size:16px;font-weight:600}
 .pf .chip{background:rgba(255,255,255,.1);color:#fff}
-@media(min-width:900px){#sheet:has(>.pf){max-width:460px}.pf-hero{height:420px}}
+@media(min-width:900px){#sheet:has(>.pf){max-width:420px}}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1746,9 +1748,10 @@ function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
     const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), sibs = siblingsOf(m), ch = childrenOf(m), a = age(m), z = !m.passed && (m.tz || (cInfo(m.country) || [])[2]);
     const pill = m.passed ? 'In loving memory' : rel === '' ? 'This is you' : 'Your ' + rel;
-    const hero = m.photo ? `<img class="pf-img" data-photo="${esc(m.photo)}" alt="" draggable="false">`
-      : m.avatar ? `<img class="pf-img soft" src="${esc(m.avatar)}" alt="" draggable="false"><span class="pf-av">${av(m, 132)}</span>`
-      : `<span class="pf-av">${av(m, 132)}</span>`;
+    const ini = String(m.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const hero = m.photo ? `<img class="pf-img" ${m.avatar ? `src="${esc(m.avatar)}"` : ''} data-photo="${esc(m.photo)}" alt="" draggable="false">`
+      : m.avatar ? `<img class="pf-img" src="${esc(m.avatar)}" alt="" draggable="false">`
+      : `<span class="pf-ini">${esc(ini)}</span>`;
     const tile = (big, small, ico, click) => `<div class="pf-tile" ${click ? `onclick="${click}"` : ''}><span class="pf-ico">${ico}</span><b>${big}</b><span>${small}</span></div>`;
     const nb = m.birth && !m.passed ? Math.round((nextOcc(m.birth) - pDate(today())) / 864e5) : null;
     const tiles = [
@@ -1762,7 +1765,7 @@ function profileSheet(id){
       <div class="pf-hero">${hero}<div class="pf-shade"></div>
         ${canEdit(m) ? `<button class="pf-btn l" onclick="memberForm('${id}')" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></button>` : ''}
         <button class="pf-btn r" onclick="closeSheet()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-        <div class="pf-id">${LAUREL('l')}<div><h2>${esc(m.nick || first(m))}</h2><div class="pf-sub">${esc(m.name)}</div></div>${LAUREL('r')}</div>
+        <div class="pf-id"><h2>${esc(m.nick || first(m))}</h2><div class="pf-sub">${esc(m.name)}${m.city || m.country ? ' · ' + esc([m.city, cname(m.country)].filter(Boolean).join(', ')) : ''}</div></div>
       </div>
       <div class="pf-body">
         <div class="pf-pill"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>${esc(pill)}</div>
@@ -1770,7 +1773,7 @@ function profileSheet(id){
         ${nb != null ? `<div class="pf-row"><span class="pf-big">🎉</span><div class="grow"><div class="pf-k">Birthday</div><div class="pf-v">${pDate(m.birth).getDate()} ${MON[pDate(m.birth).getMonth()]}</div><div class="pf-s">${nb === 0 ? 'Today!' : nb === 1 ? 'Tomorrow' : 'In ' + nb + ' days'}</div></div></div>` : ''}
         ${favs.map(([k, v, e]) => `<div class="pf-row"><span class="pf-big">${e}</span><div class="grow"><div class="pf-k">${k}</div><div class="pf-v">${esc(v)}</div></div></div>`).join('')}
         ${m.about ? `<div class="pf-row about"><div class="grow"><div class="pf-k">About</div><div class="pf-s" style="font-size:16px;line-height:22px">${esc(m.about)}</div></div></div>` : ''}
-        ${people.length ? `<div class="pf-k" style="margin:18px 6px 8px">Family</div><div class="pf-fam">${people.map(([x, l]) => `<button class="pf-p" onclick="profileSheet('${x.id}')">${av(x, 60)}<b>${esc(first(x))}</b><span>${l}</span></button>`).join('')}</div>` : ''}
+        ${people.length ? `<div class="pf-k" style="margin:16px 4px 8px">Family</div><div class="pf-fam">${people.map(([x, l]) => `<button class="pf-p" onclick="profileSheet('${x.id}')">${av(x, 48)}<b>${esc(first(x))}</b><span>${l}</span></button>`).join('')}</div>` : ''}
         ${canEdit(m) ? `<button class="pf-glass" onclick="relativeSheet('${id}')">Add a relative${id === st.db.me ? '' : ' for ' + esc(first(m))}</button>` : ''}
         ${!m.passed && id !== st.db.me && !ro() ? `<button class="pf-glass" onclick="closeSheet();openThread('${id}')">Message ${esc(first(m))}</button>` : ''}
         ${isAdmin() && id !== st.db.me ? `<div class="chips" style="margin-top:12px;justify-content:center"><button class="chip" onclick="save('Members',{id:'${id}',role:'${m.role === 'admin' ? 'adult' : 'admin'}'}).catch(()=>{})">${m.role === 'admin' ? 'Remove admin' : 'Make admin'}</button><button class="chip clay" onclick="if(confirm('Remove ${esc(first(m).replace(/[^\p{L}\p{N} ]/gu, ''))} from the family app?')){closeSheet();removeRow('Members','${id}')}">Remove person</button></div>` : ''}
