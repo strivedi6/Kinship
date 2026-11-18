@@ -581,9 +581,9 @@ html,body{overflow:hidden}
 @keyframes drift{from{transform:translateX(-4%)}to{transform:translateX(4%)}}
 @media(max-width:899px){.clocks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 :root{--pfbg:#14110F}
-#sheet:has(>.pf){padding:0;background:color-mix(in oklch,var(--pfc,#5A4636) 22%,#0E0C0B);color:#fff}
+#sheet:has(>.pf){padding:0;background:var(--page);color:var(--ink)}
 #sheet:has(>.pf):before{position:absolute;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,.45);margin-top:8px}
-.pf{--bg:color-mix(in oklch,var(--c) 22%,#0E0C0B);background:var(--bg);color:#fff;min-height:100%;padding-bottom:22px}
+.pf{--bg:var(--page);background:var(--bg);color:var(--ink);min-height:100%;padding-bottom:22px}
 .pf-hero{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 30%,color-mix(in oklch,var(--c) 75%,#fff 8%),color-mix(in oklch,var(--c) 45%,#000))}
 .pf-ini{font-size:120px;font-weight:700;letter-spacing:-2px;color:rgba(255,255,255,.92);margin-top:-30px}
 .pf-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
@@ -596,11 +596,13 @@ html,body{overflow:hidden}
 .pf-btn svg{width:18px;height:18px}
 .pf-id{position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:center;padding:0 20px}
 .pf-id h2{font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.6px;text-shadow:0 2px 20px rgba(0,0,0,.35)}
-.pf-sub{font-size:15px;color:rgba(255,255,255,.7);margin-top:3px}
+.pf-sub{font-size:15px;color:var(--muted);margin-top:3px}
+.pf-id h2{color:var(--ink);text-shadow:0 1px 14px color-mix(in srgb,var(--page) 70%,transparent)!important}
+.pf-shade{background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 20%,transparent 46%,color-mix(in srgb,var(--page) 75%,transparent) 76%,var(--page) 100%)!important}
 .laurel{width:30px;height:66px;color:rgba(255,255,255,.4);flex:none}.laurel.r{transform:scaleX(-1)}
 .pf-body{padding:4px 16px 0}
-.pf-pill{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px auto 14px;width:max-content;max-width:100%;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.25);font-size:17px;font-weight:600}
-.pf-pill svg{width:16px;height:16px;fill:#fff}.pf-pill{font-size:15px!important}
+.pf-pill{color:var(--ink);background:var(--card)!important;box-shadow:0 1px 2px rgba(0,0,0,.06)!important;display:flex;align-items:center;justify-content:center;gap:8px;margin:2px auto 14px;width:max-content;max-width:100%;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.25);font-size:17px;font-weight:600}
+.pf-pill svg{width:16px;height:16px;fill:var(--accent)}.pf-pill{font-size:15px!important}
 .pf-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.pf-tiles.n2{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-tiles.n1{grid-template-columns:1fr}
 .pf-tile{background:rgba(255,255,255,.06);border-radius:20px;padding:12px 6px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 .pf-tile .pf-ico{font-size:26px;line-height:32px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
@@ -608,14 +610,20 @@ html,body{overflow:hidden}
 .pf-tile span:last-child{font-size:12px;line-height:16px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .pf-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:18px;padding:11px 14px;margin-top:8px}
 .pf-big{font-size:26px;line-height:1;width:36px;text-align:center;flex:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
-.pf-k{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.04em}
+.pf-k{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .pf-v{font-size:17px;line-height:22px;font-weight:700;letter-spacing:-.3px}
 .pf-s{font-size:13px;color:rgba(255,255,255,.55)}
 .pf-fam{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px}
-.pf-p{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;color:#fff;padding:0}
-.pf-p .av{box-shadow:0 0 0 2px rgba(255,255,255,.18)}.pf-p b{font-size:14px;font-weight:600;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pf-p span{font-size:12px;color:rgba(255,255,255,.5)}
-.pf-glass{display:block;width:100%;margin-top:8px;padding:12px;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2);color:#fff;font-size:16px;font-weight:600}
-.pf .chip{background:rgba(255,255,255,.1);color:#fff}
+.pf-p{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;color:var(--ink);padding:0}
+.pf-p .av{box-shadow:0 0 0 2px var(--card)}.pf-p b{font-size:14px;font-weight:600;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pf-p span{font-size:12px;color:var(--muted)}
+.pf-glass{display:block;width:100%;margin-top:8px;padding:12px;border-radius:999px;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.06);color:var(--accent);font-size:16px;font-weight:600}
+.pf .chip{background:var(--card);color:var(--ink)}
+.pf-list{background:var(--card);border-radius:22px;padding:2px 16px}
+.pf-li{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 0;font-size:16px;line-height:21px}
+.pf-li+.pf-li{border-top:.5px solid var(--sep)}
+.pf-li span{color:var(--muted);flex:none}.pf-li b{font-weight:500;text-align:right;min-width:0;overflow-wrap:anywhere}.pf-li b i{font-style:normal;color:var(--muted);font-weight:400;margin-left:4px}
+.pf-li[onclick]{cursor:pointer}.pf-li[onclick] b{color:var(--accent)}
+.pf-about{background:var(--card);border-radius:22px;padding:12px 16px;margin-top:10px;font-size:16px;line-height:22px}
 @media(min-width:900px){#sheet:has(>.pf){max-width:420px}}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
@@ -722,7 +730,7 @@ async function api(action, payload = {}){
   return j.data;
 }
 const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
-function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); setTimeout(seedReads, 0); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
+function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); setTimeout(seedReads, 0); setTimeout(prefetchPhotos, 2500); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
 /* A session ended: clear the stored app shell and reload, so the newest version comes in with the next sign-in. */
 async function freshReload(){ try { if (window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('kinship-')).map(k => caches.delete(k))); } } catch(e){} location.reload(); }
 let syncing = null;
@@ -804,7 +812,7 @@ function compress(file, max, q){
   return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const s = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(img.src); res(c.toDataURL('image/jpeg', q)); }; img.onerror = () => rej(new Error('Could not read that photo')); img.src = URL.createObjectURL(file); });
 }
 function squareAvatar(file){
-  return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(img, (img.width - s)/2, (img.height - s)/2, s, s, 0, 0, 128, 128); res(c.toDataURL('image/jpeg', .62)); }; img.onerror = () => rej(new Error('Could not read that photo')); img.src = URL.createObjectURL(file); });
+  return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').drawImage(img, (img.width - s)/2, (img.height - s)/2, s, s, 0, 0, 256, 256); res(c.toDataURL('image/jpeg', .62)); }; img.onerror = () => rej(new Error('Could not read that photo')); img.src = URL.createObjectURL(file); });
 }
 
 /* ---------- photo cache (IndexedDB) ---------- */
@@ -820,6 +828,15 @@ async function getPhoto(id){
     return d;
   })();
   photoMem.set(id, p); return p;
+}
+/* after opening, quietly fetch every recent photo (feed and profiles) so they are already on the phone when you look */
+let prefetching = false;
+async function prefetchPhotos(){
+  if (prefetching || DEMO || !st.db || !st.token) return; prefetching = true;
+  try {
+    const ids = [...st.db.members.map(m => m.photo).filter(Boolean), ...[...st.db.posts].sort((a, b) => b.ts - a.ts).slice(0, 60).flatMap(p => String(p.photo || '').split(',')).filter(Boolean)];
+    for (const id of [...new Set(ids)]){ if (document.hidden) break; try { await getPhoto(id); } catch(e){ photoMem.delete(id); } await new Promise(r => setTimeout(r, 120)); }
+  } finally { prefetching = false; }
 }
 function loadPhotos(){ document.querySelectorAll('img[data-photo]').forEach(el => { const id = el.dataset.photo; el.removeAttribute('data-photo'); getPhoto(id).then(d => { if (d) el.src = d; }).catch(() => {}); }); }
 
@@ -1747,20 +1764,23 @@ const LAUREL = side => `<svg class="laurel ${side}" viewBox="0 0 40 90" aria-hid
 function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
     const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), sibs = siblingsOf(m), ch = childrenOf(m), a = age(m), z = !m.passed && (m.tz || (cInfo(m.country) || [])[2]);
-    const pill = m.passed ? 'In loving memory' : rel === '' ? 'This is you' : 'Your ' + rel;
+    const pill = m.passed ? 'In loving memory' : id === st.db.me ? 'This is you' : rel ? 'Your ' + rel : 'Family';
     const ini = String(m.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
     const hero = m.photo ? `<img class="pf-img" ${m.avatar ? `src="${esc(m.avatar)}"` : ''} data-photo="${esc(m.photo)}" alt="" draggable="false">`
       : m.avatar ? `<img class="pf-img" src="${esc(m.avatar)}" alt="" draggable="false">`
       : `<span class="pf-ini">${esc(ini)}</span>`;
-    const tile = (big, small, ico, click) => `<div class="pf-tile" ${click ? `onclick="${click}"` : ''}><span class="pf-ico">${ico}</span><b>${big}</b><span>${small}</span></div>`;
+    const line = (k, v, click) => v ? `<div class="pf-li" ${click ? `onclick="${click}"` : ''}><span>${k}</span><b>${v}</b></div>` : '';
     const nb = m.birth && !m.passed ? Math.round((nextOcc(m.birth) - pDate(today())) / 864e5) : null;
-    const tiles = [
-      a != null ? tile(m.passed ? a : a, m.passed ? 'years' : 'years old', '🎂') : m.birth ? tile(pDate(m.birth).getDate() + ' ' + MON[pDate(m.birth).getMonth()], 'birthday', '🎂') : '',
-      z ? tile(timeIn(z).replace(/\s?(AM|PM)/i, '<i>$1</i>'), (m.city ? 'in ' + esc(m.city) : esc(cname(m.country))), flag(m.country) || '🕐') : m.country ? tile(esc(cname(m.country)), 'home', flag(m.country)) : '',
-      isKid(m) ? tile(String(pointsOf(m.id, weekStart())), 'stars this week', '⭐', `closeSheet();st.kidId='${m.id}';go('kids')`) : (ch.length ? tile(String(ch.length), ch.length === 1 ? 'child' : 'children', '👨‍👩‍👧') : sibs.length ? tile(String(sibs.length), sibs.length === 1 ? 'sibling' : 'siblings', '🤝') : '')
-    ].filter(Boolean);
-    const favs = [['Favourite food', m.favFood, '🍽️'], ['Favourite colour', m.favColor, '🎨'], ['Loves', m.hobby, '💛'], ['Ask me about', m.askMe, '💬']].filter(x => x[1]);
-    const people = [...ps.map(x => [x, x.gender === 'female' ? 'Mother' : x.gender === 'male' ? 'Father' : 'Parent']), ...(sp ? [[sp, m.passed || sp.passed ? 'Married to' : 'Spouse']] : []), ...sibs.map(x => [x, x.gender === 'female' ? 'Sister' : x.gender === 'male' ? 'Brother' : 'Sibling']), ...ch.map(x => [x, x.gender === 'female' ? 'Daughter' : x.gender === 'male' ? 'Son' : 'Child'])];
+    const bday = m.birth ? pDate(m.birth).getDate() + ' ' + MON[pDate(m.birth).getMonth()] + (nb != null ? ` <i>${nb === 0 ? 'today' : nb === 1 ? 'tomorrow' : 'in ' + nb + ' days'}</i>` : '') : '';
+    const list = [
+      line('Age', a != null ? a + (m.passed ? '' : ' years') : ''),
+      line('Birthday', bday),
+      line('Lives in', esc([m.city, cname(m.country)].filter(Boolean).join(', ')) + (m.country ? ' ' + flag(m.country) : '')),
+      line('Time there', z ? timeIn(z) + ` <i>${dayIn(z)}</i>` : ''),
+      isKid(m) ? line('Stars this week', '⭐ ' + pointsOf(m.id, weekStart()), `closeSheet();st.kidId='${m.id}';go('kids')`) : '',
+      line('Favourite food', esc(m.favFood || '')), line('Favourite colour', esc(m.favColor || '')), line('Loves', esc(m.hobby || '')), line('Ask me about', esc(m.askMe || ''))
+    ].join('');
+    const people = [...ps.map(x => [x, x.gender === 'female' ? 'Mother' : x.gender === 'male' ? 'Father' : 'Parent']), ...(sp ? [[sp, 'Spouse']] : []), ...sibs.map(x => [x, x.gender === 'female' ? 'Sister' : x.gender === 'male' ? 'Brother' : 'Sibling']), ...ch.map(x => [x, x.gender === 'female' ? 'Daughter' : x.gender === 'male' ? 'Son' : 'Child'])];
     return `<div class="pf" style="--c:${colorOf(m.id)}">
       <div class="pf-hero">${hero}<div class="pf-shade"></div>
         ${canEdit(m) ? `<button class="pf-btn l" onclick="memberForm('${id}')" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></button>` : ''}
@@ -1769,10 +1789,8 @@ function profileSheet(id){
       </div>
       <div class="pf-body">
         <div class="pf-pill"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>${esc(pill)}</div>
-        ${tiles.length ? `<div class="pf-tiles n${tiles.length}">${tiles.join('')}</div>` : ''}
-        ${nb != null ? `<div class="pf-row"><span class="pf-big">🎉</span><div class="grow"><div class="pf-k">Birthday</div><div class="pf-v">${pDate(m.birth).getDate()} ${MON[pDate(m.birth).getMonth()]}</div><div class="pf-s">${nb === 0 ? 'Today!' : nb === 1 ? 'Tomorrow' : 'In ' + nb + ' days'}</div></div></div>` : ''}
-        ${favs.map(([k, v, e]) => `<div class="pf-row"><span class="pf-big">${e}</span><div class="grow"><div class="pf-k">${k}</div><div class="pf-v">${esc(v)}</div></div></div>`).join('')}
-        ${m.about ? `<div class="pf-row about"><div class="grow"><div class="pf-k">About</div><div class="pf-s" style="font-size:16px;line-height:22px">${esc(m.about)}</div></div></div>` : ''}
+        ${list ? `<div class="pf-list">${list}</div>` : ''}
+        ${m.about ? `<div class="pf-about">${esc(m.about)}</div>` : ''}
         ${people.length ? `<div class="pf-k" style="margin:16px 4px 8px">Family</div><div class="pf-fam">${people.map(([x, l]) => `<button class="pf-p" onclick="profileSheet('${x.id}')">${av(x, 48)}<b>${esc(first(x))}</b><span>${l}</span></button>`).join('')}</div>` : ''}
         ${canEdit(m) ? `<button class="pf-glass" onclick="relativeSheet('${id}')">Add a relative${id === st.db.me ? '' : ' for ' + esc(first(m))}</button>` : ''}
         ${!m.passed && id !== st.db.me && !ro() ? `<button class="pf-glass" onclick="closeSheet();openThread('${id}')">Message ${esc(first(m))}</button>` : ''}
