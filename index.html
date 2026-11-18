@@ -161,7 +161,7 @@ img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit
 /* sheet: floating glass card, 8pt inset, 38pt corners */
 #sheetWrap{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:40;display:none;align-items:flex-end;justify-content:center;padding:8px}
 #sheetWrap.on{display:flex}
-#sheet{background:var(--sheet);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);width:100%;max-width:560px;max-height:calc(100% - 54px - env(safe-area-inset-top));overflow:auto;border-radius:38px 38px var(--rb,38px) var(--rb,38px);padding:0 16px calc(22px + env(safe-area-inset-bottom) * .4);box-shadow:0 0 0 .5px var(--rim),0 8px 48px rgba(0,0,0,.25)}
+#sheet{background:var(--sheet);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);width:100%;max-width:560px;max-height:calc(100% - 54px - env(safe-area-inset-top));overflow:auto;border-radius:var(--rb,38px);padding:0 16px calc(22px + env(safe-area-inset-bottom) * .4);box-shadow:0 0 0 .5px var(--rim),0 8px 48px rgba(0,0,0,.25)}
 #sheet:before{content:"";display:block;width:58px;height:4px;border-radius:100px;background:var(--grab);margin:6px auto 5px}
 @media(min-width:700px){#sheetWrap{align-items:center}}
 .sh{display:flex;align-items:center;justify-content:flex-end;min-height:44px;margin-bottom:10px;position:relative}
@@ -494,6 +494,11 @@ html.glowing body:not(.scrolled) #app>.bar{background:transparent}
 html,body{overflow:hidden}
 #scroller{position:fixed;inset:0;bottom:var(--vb);z-index:1;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}
 #scroller.locked{overflow:hidden}
+/* phones: the feed's add box lives in the tab bar instead */
+@media(max-width:899px){.feed-add{display:none!important}}
+.nav button.addpost{background:var(--accent);color:var(--onacc)}
+.nav button.addpost svg{stroke-width:2.6;animation:addpop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes addpop{from{transform:scale(.4) rotate(-90deg)}}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -858,7 +863,10 @@ function render(){
   $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
   const inThread = st.tab === 'chat' && !!st.chatWith;
   $('#nav').hidden = false; $('#nav').classList.toggle('off', inThread); $('#navblur').hidden = inThread;
-  $('#nav').firstElementChild.innerHTML = TABS.map(([k, l]) => `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+  /* on the feed, its tab turns into the add-post button */
+  $('#nav').firstElementChild.innerHTML = TABS.map(([k, l]) => k === 'feed' && st.tab === 'feed' && !ro()
+    ? `<button class="on addpost" onclick="composeSheet()" aria-label="New post"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Post</button>`
+    : `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
   const srow = (k, l, act, ico) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="${act}"><span class="i"><svg viewBox="0 0 24 24">${ico}</svg></span>${l}${k === 'chat' ? badge() : ''}</button>`;
   $('#side').hidden = false;
   $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
@@ -1024,7 +1032,7 @@ function openPhoto(ids, start){
 
 function vFeed(){
   const ps = [...st.db.posts].sort((a, b) => b.ts - a.ts);
-  return topBar('Family feed', 'Photos and news') + `<button class="card row" style="width:100%;text-align:left;align-items:center;gap:12px" onclick="composeSheet()">${av(me(), 40)}<span class="grow muted">Share a photo or some news…</span><span class="btn sm">Post</span></button>` +
+  return topBar('Family feed', 'Photos and news') + (ro() ? '' : `<button class="card row feed-add" style="width:100%;text-align:left;align-items:center;gap:12px" onclick="composeSheet()">${av(me(), 40)}<span class="grow muted">Share a photo or some news…</span><span class="btn sm">Post</span></button>`) +
   (ps.length ? ps.slice(0, st.feedN).map(postCard).join('') + (ps.length > st.feedN ? `<button class="btn ghost block" onclick="st.feedN+=20;render()">Show more</button>` : '') : `<div class="card empty">No posts yet.</div>`);
 }
 function react(id){ Motion.haptic(); const rid = id + '_' + st.db.me; st.db.reactions.some(r => r.id === rid) ? removeRow('Reactions', rid) : save('Reactions', { id:rid, postId:id, emoji:'❤️' }).catch(() => {}); }
