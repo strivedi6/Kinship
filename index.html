@@ -105,6 +105,29 @@ button.card{display:flex}
 .ev .d small{font-size:11px;line-height:13px;text-transform:uppercase;color:var(--red);letter-spacing:.06px}
 .ev+.ev:before{left:58px}
 .post .ph{width:100%;border-radius:16px;margin-top:10px;background:var(--fill3);min-height:120px;display:block}
+/* ---------- feed post card ---------- */
+.pc{background:var(--card);border-radius:30px;padding:14px 14px 16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 30px rgba(20,30,60,.07)}
+.pc-h{display:flex;align-items:center;gap:12px;padding:2px 2px 12px}
+.pc-nm{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.2px}
+.pc-meta{display:flex;align-items:center;gap:5px;font-size:14px;line-height:19px;color:var(--muted);margin-top:2px;min-width:0}
+.pc-meta svg{flex:none;opacity:.8}.pc-meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pc-meta i{font-style:normal;margin:0 2px;flex:none}
+.pc-more{flex:none;width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1px var(--sep),0 2px 6px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.pc-ph{display:block;width:100%;aspect-ratio:1/1;border-radius:22px;overflow:hidden;background:var(--fill3);padding:0}
+.pc-ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.32,.72,0,1)}
+.pc-ph:active img{transform:scale(.98)}
+.pc-text{background:var(--fill3);border-radius:20px;padding:14px 16px}.pc-text .cap{margin:0}
+.pc-acts{display:flex;align-items:center;gap:18px;padding:14px 4px 0}
+.pc-acts button{display:inline-flex;align-items:center;gap:7px;font-size:16px;color:var(--ink);background:none;padding:0;min-height:30px}
+.pc-acts button.on svg{animation:heartPop .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes heartPop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.pc .cap{margin:10px 4px 0;font-size:16px;line-height:23px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cap .full{display:none}.cap.open .full{display:inline}.cap.open .short{display:none}.cap .short b{font-weight:400;color:var(--muted);margin-left:2px}
+.cap:not(:has(.short)) .full{display:inline}
+.pv{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background-color .26s}
+.pv.in{background:rgba(0,0,0,.94)}.pv.out{background:rgba(0,0,0,0)}
+.pv img{max-width:100%;max-height:100%;object-fit:contain;opacity:0;transform:scale(.92);transition:opacity .26s,transform .35s cubic-bezier(.32,.72,0,1)}
+.pv.in img{opacity:1;transform:none}.pv.out img{opacity:0;transform:scale(.92)}
+.pv-x{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:16px;width:40px;height:40px;border-radius:50%;color:#fff;font-size:26px;line-height:1;background:rgba(255,255,255,.16);z-index:1}
 .post p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .acts{display:flex;gap:22px;margin-top:12px;font-size:15px;color:var(--muted)}
 .acts .on{color:var(--red)}
@@ -568,7 +591,7 @@ const Motion = (() => {
   const M = { enter: false, ringFrom: null };
   M.bounce = el => anim(el, [{ transform:'scale(1)' }, { transform:'scale(1.3)', offset:.45 }, { transform:'scale(1)' }], { duration:520, easing:SETTLE });
   M.haptic = () => { try { if (!IOS && navigator.vibrate) navigator.vibrate(8); } catch(e){} };
-  const HAPTIC = '.btn, .nav button, .srow, .seg button, .habit, button.chip, .opt, .x, .acts button, .who button, .top .bar button';
+  const HAPTIC = '.pc-acts button, .pc-more, .btn, .nav button, .srow, .seg button, .habit, button.chip, .opt, .x, .acts button, .who button, .top .bar button';
   M.arm = root => { if (!IOS || !root) return; root.querySelectorAll(HAPTIC).forEach(el => {
     if (el.querySelector(':scope > [data-haptic]')) return;
     const lb = document.createElement('label'); lb.setAttribute('data-haptic', ''); lb.setAttribute('aria-hidden', 'true');
@@ -819,9 +842,45 @@ function jumpTo(id){ const els = document.querySelectorAll(`.tc[data-id="${id}"]
 function findMe(){ jumpTo(st.db.me); }
 
 /* ---------- FEED ---------- */
+const ICO_PIN = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12 2.5a7 7 0 0 0-7 7c0 5.2 7 12 7 12s7-6.8 7-12a7 7 0 0 0-7-7zm0 9.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z"/></svg>';
+const ICO_HEART_O = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.6 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/></svg>';
+const ICO_HEART_F = '<svg viewBox="0 0 24 24" width="24" height="24" fill="#FF383C" aria-hidden="true"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.6 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/></svg>';
+const ICO_BUBBLE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5c4.8 0 8.5 3.4 8.5 7.8s-3.7 7.8-8.5 7.8c-1.2 0-2.3-.2-3.3-.5L4 20l1.3-3.7C4.2 14.9 3.5 13.2 3.5 11.3 3.5 6.9 7.2 3.5 12 3.5z"/><circle cx="8.3" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="15.7" cy="11.4" r=".9" fill="currentColor" stroke="none"/></svg>';
+const ICO_MORE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5.5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="18.5" r="1.8"/></svg>';
+/* "3h", "Yesterday", "Jul 10", or "Jul 10, 2025" for older years */
+function postWhen(ts){ const d = new Date(Number(ts)), s = (Date.now() - d) / 1000; if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s / 60) + 'm'; if (s < 86400) return Math.floor(s / 3600) + 'h'; if (s < 172800) return 'Yesterday';
+  return MON[d.getMonth()] + ' ' + d.getDate() + (d.getFullYear() !== new Date().getFullYear() ? ', ' + d.getFullYear() : ''); }
+const kfmt = n => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'K' : String(n);
 function postCard(p){
   const a = M(p.by) || { name:'Family member', id:p.by }, rs = st.db.reactions.filter(r => r.postId === p.id), mine = rs.some(r => r.by === st.db.me), cs = st.db.comments.filter(c => c.postId === p.id).length;
-  return `<div class="card post"><div class="row"><span onclick="profileSheet('${a.id}')">${av(a, 40)}</span><div class="grow"><div class="b">${esc(a.name)}</div><div class="small muted">${a.country ? flag(a.country) + ' ' : ''}${ago(p.ts)}</div></div>${(p.by === st.db.me || isAdmin()) ? `<button class="x" onclick="delPost('${p.id}')" aria-label="Delete">×</button>` : ''}</div>${p.text ? `<p>${esc(p.text)}</p>` : ''}${p.photo ? `<img class="ph" data-photo="${esc(p.photo)}" alt="">` : ''}<div class="acts"><button class="${mine ? 'on' : ''}" onclick="react('${p.id}')">${mine ? '♥' : '♡'} ${rs.length || ''} Love</button><button onclick="postSheet('${p.id}')">💬 ${cs || ''} Comment</button></div></div>`;
+  const place = [a.city, a.country ? cname(a.country) : ''].filter(Boolean).join(', ');
+  const t = String(p.text || ''), long = t.length > 120 || t.split('\n').length > 3;
+  const cap = t ? (long ? `<p class="cap" onclick="this.classList.add('open')"><span class="full">${esc(t)}</span><span class="short">${esc(t.slice(0, 110).split('\n').slice(0, 3).join('\n').replace(/\s+\S*$/, ''))}…<b>more</b></span></p>` : `<p class="cap">${esc(t)}</p>`) : '';
+  const canMenu = p.by === st.db.me || isAdmin();
+  return `<article class="pc" data-post="${p.id}">
+    <header class="pc-h"><span onclick="profileSheet('${a.id}')">${av(a, 46)}</span><div class="grow" onclick="profileSheet('${a.id}')"><div class="pc-nm">${esc(a.name)}</div><div class="pc-meta">${place ? `${ICO_PIN}<span>${esc(place)}</span><i>•</i>` : ''}<span>${postWhen(p.ts)}</span></div></div>${canMenu ? `<button class="pc-more" onclick="postMenu('${p.id}')" aria-label="More">${ICO_MORE}</button>` : ''}</header>
+    ${p.photo ? `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}')" aria-label="Open photo"><img data-photo="${esc(p.photo)}" alt=""></button>` : t ? `<div class="pc-text">${cap}</div>` : ''}
+    <div class="pc-acts"><button class="${mine ? 'on' : ''}" onclick="react('${p.id}')" aria-label="Love">${mine ? ICO_HEART_F : ICO_HEART_O}<span>${rs.length ? kfmt(rs.length) : ''}</span></button><button onclick="postSheet('${p.id}')" aria-label="Comments">${ICO_BUBBLE}<span>${cs ? kfmt(cs) : ''}</span></button></div>
+    ${p.photo && t ? cap : ''}
+  </article>`;
+}
+function postMenu(id){
+  const p = st.db.posts.find(x => x.id === id); if (!p) return;
+  openSheet(() => `<div class="sh"><h2>Post</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card"><button class="row lrow" style="width:100%;padding:12px 0" onclick="postSheet('${id}')">${ICO_BUBBLE}<span class="grow" style="text-align:left">View comments</span></button>${p.photo ? `<button class="row lrow" style="width:100%;padding:12px 0" onclick="closeSheet();openPhoto('${esc(p.photo)}')"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="grow" style="text-align:left">Open photo</span></button>` : ''}<button class="row lrow" style="width:100%;padding:12px 0;color:var(--red)" onclick="closeSheet();delPost('${id}')"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span class="grow" style="text-align:left">Delete post</span></button></div>`);
+}
+/* full photo: opens the whole picture (not cropped) over a dark background; tap or drag down to close */
+function openPhoto(id){
+  if ($('.pv')) return; Motion.haptic();
+  const el = document.createElement('div'); el.className = 'pv'; el.innerHTML = `<button class="pv-x glass" aria-label="Close">×</button><img alt="">`;
+  document.body.appendChild(el); lockPage(true);
+  const img = el.querySelector('img'); getPhoto(id).then(d => { if (d) img.src = d; }).catch(() => {});
+  requestAnimationFrame(() => el.classList.add('in'));
+  const close = () => { el.classList.remove('in'); el.classList.add('out'); setTimeout(() => { el.remove(); if (!sheetFn) lockPage(false); }, 260); };
+  let y0 = null, dy = 0;
+  el.addEventListener('touchstart', e => { if (e.touches.length === 1){ y0 = e.touches[0].clientY; dy = 0; img.style.transition = 'none'; } }, { passive:true });
+  el.addEventListener('touchmove', e => { if (y0 == null) return; e.preventDefault(); dy = e.touches[0].clientY - y0; img.style.transform = `translateY(${dy}px) scale(${1 - Math.min(.25, Math.abs(dy) / 1200)})`; el.style.backgroundColor = `rgba(0,0,0,${Math.max(.3, .94 - Math.abs(dy) / 500)})`; }, { passive:false });
+  el.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; img.style.transition = ''; if (Math.abs(dy) > 110) close(); else { img.style.transform = ''; el.style.backgroundColor = ''; } if (Math.abs(dy) > 6) el.dataset.moved = '1'; });
+  el.addEventListener('click', () => { if (el.dataset.moved){ delete el.dataset.moved; return; } close(); });
 }
 function vFeed(){
   const ps = [...st.db.posts].sort((a, b) => b.ts - a.ts);
