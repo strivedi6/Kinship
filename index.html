@@ -581,6 +581,17 @@ html,body{overflow:hidden}
 @keyframes drift{from{transform:translateX(-4%)}to{transform:translateX(4%)}}
 @media(max-width:899px){.clocks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 :root{--pfbg:#14110F}
+.sb{position:sticky;top:0;z-index:6;height:0;overflow:visible}
+.sb-btn{position:absolute;top:14px;width:40px;height:40px;border-radius:50%;background:var(--page);color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;padding:0}
+.sb-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sb-btn.l{left:16px}.sb-btn.r{right:16px}.sb-btn.ok{background:#34C759;color:#fff}
+.sgrab{position:absolute;left:50%;top:0;transform:translateX(-50%);width:140px;height:34px;display:flex;align-items:center;justify-content:center;touch-action:none}
+.sgrab i{position:relative;display:block;width:58px;height:18px;border-radius:9px;background:var(--page);box-shadow:0 2px 10px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.12)}
+.sgrab i:after{content:"";position:absolute;left:13px;right:13px;top:7px;height:4px;border-radius:2px;background:var(--ink);opacity:.5}
+.sb.form{height:60px;margin:0 -16px;background:var(--sheet);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.sb.form .sgrab{height:24px}.sb.form .sb-t{position:absolute;left:68px;right:68px;top:17px;line-height:40px;text-align:center;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sheet:has(>.sb):before{display:none}
+@media(min-width:900px){.sgrab{display:none}}
 #sheet:has(>.pf){padding:0;background:var(--page);color:var(--ink)}
 #sheet:has(>.pf):before{position:absolute;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,.45);margin-top:8px}
 .pf{--bg:var(--page);background:var(--bg);color:var(--ink);min-height:100%;padding-bottom:22px}
@@ -1782,9 +1793,8 @@ function profileSheet(id){
     ].join('');
     const people = [...ps.map(x => [x, x.gender === 'female' ? 'Mother' : x.gender === 'male' ? 'Father' : 'Parent']), ...(sp ? [[sp, 'Spouse']] : []), ...sibs.map(x => [x, x.gender === 'female' ? 'Sister' : x.gender === 'male' ? 'Brother' : 'Sibling']), ...ch.map(x => [x, x.gender === 'female' ? 'Daughter' : x.gender === 'male' ? 'Son' : 'Child'])];
     return `<div class="pf" style="--c:${colorOf(m.id)}">
+      <div class="sb"><div class="sgrab"><i></i></div>${canEdit(m) ? `<button class="sb-btn l" onclick="memberForm('${id}')" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></button>` : ''}<button class="sb-btn r" onclick="closeSheet()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="pf-hero">${hero}<div class="pf-shade"></div>
-        ${canEdit(m) ? `<button class="pf-btn l" onclick="memberForm('${id}')" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></button>` : ''}
-        <button class="pf-btn r" onclick="closeSheet()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <div class="pf-id"><h2>${esc(m.nick || first(m))}</h2><div class="pf-sub">${esc(m.name)}${m.city || m.country ? ' · ' + esc([m.city, cname(m.country)].filter(Boolean).join(', ')) : ''}</div></div>
       </div>
       <div class="pf-body">
@@ -1809,7 +1819,7 @@ function memberForm(id, preset){
   const sel = (name, val, list) => `<select name="${name}"><option value="">Not in the app yet</option>${list.map(x => `<option value="${x.id}" ${x.id === val ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`;
   const sp = id ? spouseOf(src) : M(m.spouseId);
   const title = id ? (id === st.db.me ? 'My profile' : 'Edit ' + first(src)) : P.childOf || P.parentOf ? 'Add a child' : P.parentFor ? 'Add a parent of ' + first(M(P.parentFor)) : P.spouseOf ? 'Add spouse of ' + first(M(P.spouseOf)) : 'Add a family member';
-  openSheet(() => `<div class="sh"><h2>${esc(title)}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitMember(event,'${id || ''}')">
+  openSheet(() => `<div class="sb form"><div class="sgrab"><i></i></div><button type="submit" form="mf" class="sb-btn l ok" aria-label="Save"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div class="sb-t">${esc(title)}</div><button type="button" class="sb-btn r" onclick="closeSheet()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><form id="mf" onsubmit="return submitMember(event,'${id || ''}')">
   <div class="row"><span id="avPrev">${av(m.name ? m : { name:'?' , id:'x'}, 64)}</span><div class="grow"><label style="margin-top:0">Photo</label><input type="file" accept="image/*" onchange="pickAvatar(this)"></div></div>
   <label>Full name</label><input type="text" name="name" required maxlength="60" value="${esc(m.name || '')}">
   <div class="two"><div><label>Called (nickname)</label><input type="text" name="nick" maxlength="30" value="${esc(m.nick || '')}"></div><div><label>I am</label><select name="gender"><option value="">Prefer not to say</option><option value="female" ${m.gender === 'female' ? 'selected' : ''}>Female</option><option value="male" ${m.gender === 'male' ? 'selected' : ''}>Male</option></select></div></div>
@@ -2035,16 +2045,16 @@ document.addEventListener('contextmenu', e => { if (!e.target.closest('input, te
 document.addEventListener('dragstart', e => { if (e.target.tagName === 'IMG') e.preventDefault(); });
 
 /* ---------- drag a sheet down to close it (once it is scrolled to the top) ---------- */
-const SD = { on:false, drag:false, y0:0, x0:0, dy:0, t0:0 };
+const SD = { on:false, drag:false, grab:false, y0:0, x0:0, dy:0, t0:0 };
 const innerScrolled = t => { for (let n = t; n && n.id !== 'sheet'; n = n.parentElement) if (n.scrollTop > 0) return true; return false; };
 document.addEventListener('touchstart', e => {
   const sh = $('#sheet'); if (!sheetFn || !sh.contains(e.target) || e.touches.length !== 1) return;
-  SD.on = true; SD.drag = false; SD.dy = 0; SD.y0 = e.touches[0].clientY; SD.x0 = e.touches[0].clientX; SD.t0 = Date.now();
+  SD.on = true; SD.drag = false; SD.grab = !!e.target.closest('.sgrab'); SD.dy = 0; SD.y0 = e.touches[0].clientY; SD.x0 = e.touches[0].clientX; SD.t0 = Date.now();
 }, { passive:true });
 document.addEventListener('touchmove', e => {
   if (!SD.on) return; const sh = $('#sheet'), y = e.touches[0].clientY, dy = y - SD.y0, dx = Math.abs(e.touches[0].clientX - SD.x0);
   if (!SD.drag){
-    if (Back.on || dx > Math.abs(dy) || dy < 0 || sh.scrollTop > 0 || innerScrolled(e.target)){ if (Math.abs(dy) > 8 || dx > 8) SD.on = false; return; }
+    if (Back.on || dx > Math.abs(dy) || dy < 0 || (!SD.grab && (sh.scrollTop > 0 || innerScrolled(e.target)))){ if (Math.abs(dy) > 8 || dx > 8) SD.on = false; return; }
     if (dy < 6) return; SD.drag = true; SD.y0 = y; SD.t0 = Date.now(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
   e.preventDefault(); SD.dy = Math.max(0, y - SD.y0);
