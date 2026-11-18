@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kinship">
 <meta name="robots" content="noindex,nofollow">
 <link rel="manifest" href="manifest.json">
@@ -128,7 +128,7 @@ img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit
 .cap .full{display:none}.cap.open .full{display:inline}.cap.open .short{display:none}.cap .short b{font-weight:400;color:var(--muted);margin-left:2px}
 .cap:not(:has(.short)) .full{display:inline}
 .photoview{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background-color .26s}
-.photoview.in{background:rgba(0,0,0,.94)}.photoview.out{background:rgba(0,0,0,0)}
+.photoview.in{background:#000}.photoview.out{background:rgba(0,0,0,0)}
 .photoview img{max-width:100%;max-height:100%;object-fit:contain;opacity:0;transform:scale(.92);transition:opacity .26s,transform .35s cubic-bezier(.32,.72,0,1)}
 .photoview.in img{opacity:1;transform:none}.photoview.out img{opacity:0;transform:scale(.92)}
 .photoview-x{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:16px;width:40px;height:40px;border-radius:50%;color:#fff;font-size:26px;line-height:1;background:rgba(255,255,255,.16);z-index:1}
@@ -433,6 +433,25 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 .bday .bd-sub{font-size:13px;line-height:18px}.bday .bd-note{font-size:14px;line-height:1.4;margin-top:8px}
 .bday .row .av{width:46px!important;height:46px!important}
 .cel-card h2{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:36px}
+.pc-car{position:relative}
+.pc-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:22px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.pc-track::-webkit-scrollbar{display:none}
+.pc-track .pc-ph{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;border-radius:0}
+.pc-track .pc-ph:active{transform:none}
+.pc-count{position:absolute;top:12px;right:12px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:600;pointer-events:none}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--sep);transition:background .25s,transform .25s}
+.dots i.on{background:var(--accent);transform:scale(1.15)}
+.photoview .dots{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 24px);margin:0}
+.dots.light i{background:rgba(255,255,255,.35)}.dots.light i.on{background:#fff}
+.pv-count{position:absolute;top:calc(env(safe-area-inset-top) + 20px);left:0;right:0;text-align:center;color:#fff;font-size:15px;font-weight:600;pointer-events:none;z-index:1}
+.pv-track{position:absolute;inset:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;touch-action:pan-x;overscroll-behavior:contain}
+.pv-track::-webkit-scrollbar{display:none}
+.pv-slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;scroll-snap-stop:always}
+.picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.picks:empty{display:none}
+.pick{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:var(--fill3)}
+.pick img{width:100%;height:100%;object-fit:cover;display:block}
+.pick button{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -854,38 +873,58 @@ const ICO_MORE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentC
 /* "3h", "Yesterday", "Jul 10", or "Jul 10, 2025" for older years */
 function postWhen(ts){ const d = new Date(Number(ts)), s = (Date.now() - d) / 1000; if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s / 60) + 'm'; if (s < 86400) return Math.floor(s / 3600) + 'h'; if (s < 172800) return 'Yesterday';
   return MON[d.getMonth()] + ' ' + d.getDate() + (d.getFullYear() !== new Date().getFullYear() ? ', ' + d.getFullYear() : ''); }
+const photosOf = p => String(p.photo || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 5);
 const kfmt = n => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'K' : String(n);
 function postCard(p){
   const a = M(p.by) || { name:'Family member', id:p.by }, rs = st.db.reactions.filter(r => r.postId === p.id), mine = rs.some(r => r.by === st.db.me), cs = st.db.comments.filter(c => c.postId === p.id).length;
   const place = [a.city, a.country ? cname(a.country) : ''].filter(Boolean).join(', ');
   const t = String(p.text || ''), long = t.length > 120 || t.split('\n').length > 3;
   const cap = t ? (long ? `<p class="cap" onclick="this.classList.add('open')"><span class="full">${esc(t)}</span><span class="short">${esc(t.slice(0, 110).split('\n').slice(0, 3).join('\n').replace(/\s+\S*$/, ''))}…<b>more</b></span></p>` : `<p class="cap">${esc(t)}</p>`) : '';
-  const canMenu = p.by === st.db.me || isAdmin();
+  const canMenu = p.by === st.db.me || isAdmin(), pics = photosOf(p);
   return `<article class="pc" data-post="${p.id}">
     <header class="pc-h"><span onclick="profileSheet('${a.id}')">${av(a, 46)}</span><div class="grow" onclick="profileSheet('${a.id}')"><div class="pc-nm">${esc(a.name)}</div><div class="pc-meta">${place ? `${ICO_PIN}<span>${esc(place)}</span><i>•</i>` : ''}<span>${postWhen(p.ts)}</span></div></div>${canMenu ? `<button class="pc-more" onclick="postMenu('${p.id}')" aria-label="More">${ICO_MORE}</button>` : ''}</header>
-    ${p.photo ? `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}')" aria-label="Open photo"><img data-photo="${esc(p.photo)}" alt="" draggable="false"></button>` : t ? `<div class="pc-text">${cap}</div>` : ''}
+    ${pics.length === 1 ? `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}',0)" aria-label="Open photo"><img data-photo="${esc(pics[0])}" alt="" draggable="false"></button>`
+      : pics.length ? `<div class="pc-car"><div class="pc-track" onscroll="carDots(this)">${pics.map((id, i) => `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}',${i})" aria-label="Open photo ${i + 1}"><img data-photo="${esc(id)}" alt="" draggable="false"></button>`).join('')}</div><span class="pc-count">1/${pics.length}</span><div class="dots">${pics.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`
+      : t ? `<div class="pc-text">${cap}</div>` : ''}
     <div class="pc-acts"><button class="${mine ? 'on' : ''}" onclick="react('${p.id}')" aria-label="Love">${mine ? ICO_HEART_F : ICO_HEART_O}<span>${rs.length ? kfmt(rs.length) : ''}</span></button><button onclick="postSheet('${p.id}')" aria-label="Comments">${ICO_BUBBLE}<span>${cs ? kfmt(cs) : ''}</span></button></div>
-    ${p.photo && t ? cap : ''}
+    ${pics.length && t ? cap : ''}
   </article>`;
 }
 function postMenu(id){
   const p = st.db.posts.find(x => x.id === id); if (!p) return;
-  openSheet(() => `<div class="sh"><h2>Post</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card"><button class="row lrow" style="width:100%;padding:12px 0" onclick="postSheet('${id}')">${ICO_BUBBLE}<span class="grow" style="text-align:left">View comments</span></button>${p.photo ? `<button class="row lrow" style="width:100%;padding:12px 0" onclick="closeSheet();openPhoto('${esc(p.photo)}')"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="grow" style="text-align:left">Open photo</span></button>` : ''}<button class="row lrow" style="width:100%;padding:12px 0;color:var(--red)" onclick="closeSheet();delPost('${id}')"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span class="grow" style="text-align:left">Delete post</span></button></div>`);
+  openSheet(() => `<div class="sh"><h2>Post</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card"><button class="row lrow" style="width:100%;padding:12px 0" onclick="postSheet('${id}')">${ICO_BUBBLE}<span class="grow" style="text-align:left">View comments</span></button>${p.photo ? `<button class="row lrow" style="width:100%;padding:12px 0" onclick="closeSheet();openPhoto('${esc(p.photo)}',0)"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="grow" style="text-align:left">Open ${photosOf(p).length > 1 ? 'photos' : 'photo'}</span></button>` : ''}<button class="row lrow" style="width:100%;padding:12px 0;color:var(--red)" onclick="closeSheet();delPost('${id}')"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span class="grow" style="text-align:left">Delete post</span></button></div>`);
 }
-/* full photo: opens the whole picture (not cropped) over a dark background; tap or drag down to close */
-function openPhoto(id){
+/* dots and "2/5" follow the swipe */
+function carDots(track){
+  const n = track.children.length, i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)), car = track.parentElement;
+  car.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === i)); const c = car.querySelector('.pc-count'); if (c) c.textContent = (i + 1) + '/' + n;
+  if (track._i !== i){ track._i = i; Motion.haptic(); }
+}
+/* full photos: the whole pictures (not cropped) over a dark background; swipe sideways between them, tap or drag down to close */
+function openPhoto(ids, start){
   if ($('.photoview')) return; Motion.haptic();
-  const el = document.createElement('div'); el.className = 'photoview'; el.innerHTML = `<button class="photoview-x glass" aria-label="Close">×</button><img alt="">`;
+  const list = String(ids).split(',').filter(Boolean), many = list.length > 1;
+  const el = document.createElement('div'); el.className = 'photoview';
+  el.innerHTML = `<button class="photoview-x glass" aria-label="Close">×</button>${many ? `<span class="pv-count">${(start || 0) + 1} of ${list.length}</span>` : ''}<div class="pv-track">${list.map(() => `<div class="pv-slide"><img alt="" draggable="false"></div>`).join('')}</div>${many ? `<div class="dots light">${list.map((_, i) => `<i class="${i === (start || 0) ? 'on' : ''}"></i>`).join('')}</div>` : ''}`;
   document.body.appendChild(el); lockPage(true);
-  const img = el.querySelector('img'); getPhoto(id).then(d => { if (d) img.src = d; }).catch(() => {});
+  const track = el.querySelector('.pv-track'), imgs = [...el.querySelectorAll('.pv-slide img')];
+  list.forEach((id, i) => getPhoto(id).then(d => { if (d) imgs[i].src = d; }).catch(() => {}));
+  track.scrollLeft = (start || 0) * track.clientWidth;
+  let cur = start || 0;
+  track.addEventListener('scroll', () => { const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); if (i === cur) return; cur = i; Motion.haptic();
+    el.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === i)); const c = el.querySelector('.pv-count'); if (c) c.textContent = (i + 1) + ' of ' + list.length; }, { passive:true });
   requestAnimationFrame(() => el.classList.add('in'));
   const close = () => { el.classList.remove('in'); el.classList.add('out'); setTimeout(() => { el.remove(); if (!sheetFn) lockPage(false); }, 260); };
-  let y0 = null, dy = 0;
-  el.addEventListener('touchstart', e => { if (e.touches.length === 1){ y0 = e.touches[0].clientY; dy = 0; img.style.transition = 'none'; } }, { passive:true });
-  el.addEventListener('touchmove', e => { if (y0 == null) return; e.preventDefault(); dy = e.touches[0].clientY - y0; img.style.transform = `translateY(${dy}px) scale(${1 - Math.min(.25, Math.abs(dy) / 1200)})`; el.style.backgroundColor = `rgba(0,0,0,${Math.max(.3, .94 - Math.abs(dy) / 500)})`; }, { passive:false });
-  el.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; img.style.transition = ''; if (Math.abs(dy) > 110) close(); else { img.style.transform = ''; el.style.backgroundColor = ''; } if (Math.abs(dy) > 6) el.dataset.moved = '1'; });
-  el.addEventListener('click', () => { if (el.dataset.moved){ delete el.dataset.moved; return; } close(); });
+  let x0 = 0, y0 = null, dy = 0, mode = '';
+  el.addEventListener('touchstart', e => { if (e.touches.length === 1){ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dy = 0; mode = ''; } }, { passive:true });
+  el.addEventListener('touchmove', e => { if (y0 == null) return; const ddx = e.touches[0].clientX - x0, ddy = e.touches[0].clientY - y0;
+    if (!mode){ if (Math.abs(ddx) < 6 && Math.abs(ddy) < 6) return; mode = Math.abs(ddy) > Math.abs(ddx) ? 'v' : 'h'; }
+    if (mode !== 'v') return; e.preventDefault(); dy = ddy; const im = imgs[cur]; im.style.transition = 'none'; im.style.transform = `translateY(${dy}px) scale(${1 - Math.min(.25, Math.abs(dy) / 1200)})`; el.style.backgroundColor = `rgba(0,0,0,${Math.max(.3, 1 - Math.abs(dy) / 500)})`; }, { passive:false });
+  el.addEventListener('touchend', () => { if (y0 == null) return; y0 = null; if (mode !== 'v') return; const im = imgs[cur]; im.style.transition = ''; el.dataset.moved = '1';
+    if (Math.abs(dy) > 110) close(); else { im.style.transform = ''; el.style.backgroundColor = ''; } });
+  el.addEventListener('click', e => { if (el.dataset.moved){ delete el.dataset.moved; return; } if (mode === 'h') return; close(); });
 }
+
 function vFeed(){
   const ps = [...st.db.posts].sort((a, b) => b.ts - a.ts);
   return topBar('Family feed', 'Photos and news') + `<button class="card row" style="width:100%;text-align:left;align-items:center;gap:12px" onclick="composeSheet()">${av(me(), 40)}<span class="grow muted">Share a photo or some news…</span><span class="btn sm">Post</span></button>` +
@@ -893,15 +932,31 @@ function vFeed(){
 }
 function react(id){ Motion.haptic(); const rid = id + '_' + st.db.me; st.db.reactions.some(r => r.id === rid) ? removeRow('Reactions', rid) : save('Reactions', { id:rid, postId:id, emoji:'❤️' }).catch(() => {}); }
 function delPost(id){ if (confirm('Delete this post?')) removeRow('Posts', id); }
-let pendingPhoto = null;
+let pendingPhotos = [];
+const MAX_PICS = 5;
 function composeSheet(){
-  pendingPhoto = null;
-  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><label>Photo (optional)</label><input type="file" accept="image/*" onchange="pickPhoto(this)"><img id="prev" style="display:none;border-radius:14px;margin-top:10px" alt=""><p class="small muted">Photos are kept in the family's private Google Drive folder and only load for signed-in family.</p><button class="btn block" id="postBtn">Share with the family</button></form>`);
+  pendingPhotos = [];
+  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><div id="picks" class="picks"></div><input type="file" id="picIn" accept="image/*" multiple hidden onchange="pickPhotos(this)"><button type="button" class="btn line block" id="addPics" style="margin-top:10px" onclick="$('#picIn').click()">Add photos (up to ${MAX_PICS})</button><p class="small muted">Photos are kept in the family's private Google Drive folder and only family members can see them.</p><button class="btn block">Share</button></form>`);
 }
-async function pickPhoto(inp){ if (!inp.files[0]) return; try { pendingPhoto = await compress(inp.files[0], 1280, .72); const p = $('#prev'); p.src = pendingPhoto; p.style.display = 'block'; } catch(e){ toast(e.message); } }
+function drawPicks(){
+  const box = $('#picks'); if (!box) return;
+  box.innerHTML = pendingPhotos.map((d, i) => `<div class="pick"><img src="${d}" alt="" draggable="false"><button type="button" aria-label="Remove" onclick="pendingPhotos.splice(${i},1);drawPicks()">×</button></div>`).join('');
+  const add = $('#addPics'); if (add){ add.hidden = pendingPhotos.length >= MAX_PICS; add.textContent = pendingPhotos.length ? `Add more (${MAX_PICS - pendingPhotos.length} left)` : `Add photos (up to ${MAX_PICS})`; }
+}
+async function pickPhotos(inp){
+  const files = [...inp.files]; inp.value = ''; if (!files.length) return;
+  const room = MAX_PICS - pendingPhotos.length; if (files.length > room) toast(`You can add ${MAX_PICS} photos to a post`);
+  for (const f of files.slice(0, room)){ try { pendingPhotos.push(await compress(f, 1280, .72)); drawPicks(); } catch(e){ toast(e.message); } }
+}
 function submitPost(ev){
-  const text = ev.target.text.value.trim(); if (!text && !pendingPhoto){ ev.preventDefault(); return false; }
-  busy(ev, async () => { let photo = ''; if (pendingPhoto){ const up = await api('upload', { dataUrl: pendingPhoto }); photo = up.id; photoMem.set(photo, Promise.resolve(pendingPhoto)); } closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo }); }, 'Sharing…');
+  const text = ev.target.text.value.trim(); if (!text && !pendingPhotos.length){ ev.preventDefault(); return false; }
+  const pics = pendingPhotos.slice(0, MAX_PICS);
+  busy(ev, async () => {
+    const ids = [];
+    for (let i = 0; i < pics.length; i++){ const b = ev.target.querySelector('button:not([type=button])'); if (b && pics.length > 1) b.textContent = `Uploading ${i + 1} of ${pics.length}…`;
+      const up = await api('upload', { dataUrl: pics[i] }); ids.push(up.id); photoMem.set(up.id, Promise.resolve(pics[i])); }
+    closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo: ids.join(',') });
+  }, pics.length > 1 ? 'Uploading photos…' : 'Sharing…');
   return false;
 }
 function postSheet(id){

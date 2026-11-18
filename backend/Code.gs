@@ -271,7 +271,9 @@ function put(me, table, row) {
       if (r.avatar && !/^data:image\/(jpeg|png|webp);base64,/.test(r.avatar)) r.avatar = '';
       break;
     case 'Posts': case 'Comments':
-      ownerOnly(me, old); r.by = old ? old.by : me.id; break;
+      ownerOnly(me, old); r.by = old ? old.by : me.id;
+      if (table === 'Posts') r.photo = String(r.photo || '').split(',').filter(String).slice(0, 5).join(',');
+      break;
     case 'Reactions':
       r.by = me.id; r.id = r.postId + '_' + me.id; break;
     case 'Answers':
@@ -322,7 +324,7 @@ function del(me, table, id) {
   else if (table === 'Answers') { if (old.memberId !== me.id && me.role !== 'admin') throw new Error('Not allowed'); }
   else ownerOnly(me, old);
   dropRow(table, old._row);
-  if (table === 'Posts' && old.photo) try { DriveApp.getFileById(old.photo).setTrashed(true); } catch (e) {}
+  if (table === 'Posts' && old.photo) String(old.photo).split(',').forEach(function (pid) { try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) {} });
   if (table === 'Members') readAll('Sessions').filter(function (s) { return s.memberId === id; }).reverse().forEach(function (s) { sh('Sessions').deleteRow(s._row); }); delete MEMO.Sessions;
   return {};
 }
@@ -344,7 +346,7 @@ function upload(me, dataUrl) {
   return { id: memberFolder(me).createFile(blob).getId() };
 }
 function img(id) {
-  if (!readAll('Posts').some(function (p) { return p.photo === id; })) throw new Error('Not found');
+  if (!readAll('Posts').some(function (p) { return String(p.photo || '').split(',').indexOf(id) >= 0; })) throw new Error('Not found');
   const b = DriveApp.getFileById(id).getBlob();
   return { dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
 }
@@ -367,7 +369,7 @@ function shortName(m) { return m.nick || String(m.name || '').split(' ')[0]; }
 function niceDate(d) { const p = String(d).split('-'); return p.length === 3 ? Number(p[2]) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1]) - 1] : String(d); }
 function announce(me, table, r, old) {
   const who = shortName(me);
-  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + (r.photo ? ' shared a photo' : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
+  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + (r.photo ? (String(r.photo).split(',').length > 1 ? ' shared ' + String(r.photo).split(',').length + ' photos' : ' shared a photo') : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
   else if ((table === 'Comments' || table === 'Reactions') && !old) {
     const p = findBy('Posts', r.postId);
     if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : (p.text || 'Your photo'), 'post:' + p.id);
