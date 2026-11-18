@@ -123,11 +123,11 @@ button.card{display:flex}
 .pc .cap{margin:10px 4px 0;font-size:16px;line-height:23px;white-space:pre-wrap;overflow-wrap:anywhere}
 .cap .full{display:none}.cap.open .full{display:inline}.cap.open .short{display:none}.cap .short b{font-weight:400;color:var(--muted);margin-left:2px}
 .cap:not(:has(.short)) .full{display:inline}
-.pv{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background-color .26s}
-.pv.in{background:rgba(0,0,0,.94)}.pv.out{background:rgba(0,0,0,0)}
-.pv img{max-width:100%;max-height:100%;object-fit:contain;opacity:0;transform:scale(.92);transition:opacity .26s,transform .35s cubic-bezier(.32,.72,0,1)}
-.pv.in img{opacity:1;transform:none}.pv.out img{opacity:0;transform:scale(.92)}
-.pv-x{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:16px;width:40px;height:40px;border-radius:50%;color:#fff;font-size:26px;line-height:1;background:rgba(255,255,255,.16);z-index:1}
+.photoview{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background-color .26s}
+.photoview.in{background:rgba(0,0,0,.94)}.photoview.out{background:rgba(0,0,0,0)}
+.photoview img{max-width:100%;max-height:100%;object-fit:contain;opacity:0;transform:scale(.92);transition:opacity .26s,transform .35s cubic-bezier(.32,.72,0,1)}
+.photoview.in img{opacity:1;transform:none}.photoview.out img{opacity:0;transform:scale(.92)}
+.photoview-x{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:16px;width:40px;height:40px;border-radius:50%;color:#fff;font-size:26px;line-height:1;background:rgba(255,255,255,.16);z-index:1}
 .post p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .acts{display:flex;gap:22px;margin-top:12px;font-size:15px;color:var(--muted)}
 .acts .on{color:var(--red)}
@@ -870,8 +870,8 @@ function postMenu(id){
 }
 /* full photo: opens the whole picture (not cropped) over a dark background; tap or drag down to close */
 function openPhoto(id){
-  if ($('.pv')) return; Motion.haptic();
-  const el = document.createElement('div'); el.className = 'pv'; el.innerHTML = `<button class="pv-x glass" aria-label="Close">×</button><img alt="">`;
+  if ($('.photoview')) return; Motion.haptic();
+  const el = document.createElement('div'); el.className = 'photoview'; el.innerHTML = `<button class="photoview-x glass" aria-label="Close">×</button><img alt="">`;
   document.body.appendChild(el); lockPage(true);
   const img = el.querySelector('img'); getPhoto(id).then(d => { if (d) img.src = d; }).catch(() => {});
   requestAnimationFrame(() => el.classList.add('in'));
