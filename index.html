@@ -499,6 +499,35 @@ html,body{overflow:hidden}
 .nav button.addpost{background:var(--accent);color:var(--onacc)}
 .nav button.addpost svg{stroke-width:2.6;animation:addpop .45s cubic-bezier(.2,1.6,.4,1)}
 @keyframes addpop{from{transform:scale(.4) rotate(-90deg)}}
+
+/* no visible scroll bars anywhere */
+*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}
+.calbar .calacts{margin:8px 0 0}
+.sfoot{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:10px}
+.srow.spin svg{animation:ringspin2 .8s linear infinite}
+@keyframes ringspin2{to{transform:rotate(360deg)}}
+#sheetActs:empty{display:none}
+@media(min-width:900px){
+  /* one page width for every page; content lines up with the title */
+  #app.shell{padding:8px max(40px, calc((100% - 300px - 1120px) / 2)) 60px}
+  #app.shell>*{max-width:none;margin-left:0;margin-right:0}
+  #app.shell>.bar{margin:0;padding:22px 0 8px}
+  #app.shell>.sub{padding:0;margin-left:0}
+  #app.shell.wide{padding-left:0;padding-right:0}
+  .feedgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+  .feedgrid .pc{margin:0}
+  .feedgrid .pc .pc-nm{font-size:16px}.feedgrid .pc .cap{font-size:15px;line-height:21px}
+  .calgrid{column-count:2;column-gap:24px}
+  .calgrid .mblock{break-inside:avoid;display:inline-block;width:100%}
+  .calbar{display:flex;align-items:center;gap:12px;margin:6px 0 4px}
+  .calbar .seg{flex:1;margin:0;min-width:0}
+  .calbar .calacts{margin:0;flex:none;gap:10px}.calbar .calacts .btn{flex:none;padding:0 18px;min-height:36px}
+  #sheetWrap{flex-direction:column;gap:14px}
+  #sheetActs{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:560px;width:100%;animation:sheetUp .5s var(--ease)}
+  #sheetActs .btn{flex:1 1 0;min-width:160px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  #sheetActs .btn.ghost,#sheetActs .btn.line{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);color:var(--accent)}
+  #sheet{max-height:calc(100% - 140px)}
+}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -557,7 +586,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => Them
 <aside id="side" hidden></aside>
 <div id="navblur" hidden></div>
 <nav class="nav" id="nav" hidden><div class="glass"></div></nav>
-<div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
+<div id="sheetWrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div><div id="sheetActs" onclick="event.stopPropagation()"></div></div>
 <div id="toast"></div>
 <div id="aurora" aria-hidden="true"><div class="glow"><i></i><i></i><i></i><i></i><i></i></div></div>
 <canvas id="themeFx" aria-hidden="true"></canvas>
@@ -765,7 +794,7 @@ async function pushEnable(){
     await os.Notifications.requestPermission(); await os.login(st.db.me);
     toast(pushIsOn() ? 'Notifications are on' : 'Notifications are blocked. Allow them in your device settings.');
   } catch(e){ toast('Could not turn on notifications'); }
-  if (sheetFn) $('#sheet').innerHTML = sheetFn();
+  if (sheetFn) paintSheet();
 }
 
 /* ---------- relationships ---------- */
@@ -869,14 +898,14 @@ function render(){
     : `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
   const srow = (k, l, act, ico) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="${act}"><span class="i"><svg viewBox="0 0 24 24">${ico}</svg></span>${l}${k === 'chat' ? badge() : ''}</button>`;
   $('#side').hidden = false;
-  $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
+  $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<div class="sfoot">${srow('refresh', 'Refresh', 'sideRefresh(this)', '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>')}${srow('signout', 'Sign out', 'signOut()', '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>')}</div><button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
   const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree'); app.classList.toggle('inthread', inThread);
   if (inThread && $('#msgs') && $('#msgs').dataset.t === st.chatWith && !Motion.enter){ updateMsgs(); Motion.arm($('#side')); return; }   // keep what is being typed
   const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
   app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal, chat:vChat })[st.tab]();
   if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
   loadPhotos(); FX.start(app);
-  if (sheetLive && sheetFn) { $('#sheet').innerHTML = sheetFn(); loadPhotos(); Motion.arm($('#sheet')); }
+  if (sheetLive && sheetFn) { paintSheet(); loadPhotos(); Motion.arm($('#sheet')); }
   Motion.after();
 }
 const topBar = (title, sub) => `<div class="bar"><h1>${esc(title)}</h1><button class="glass tb" onclick="openChat()" aria-label="Chat"><svg viewBox="0 0 24 24">${ICO.chat}</svg>${badge()}</button><button class="glass tb me" onclick="meSheet()" aria-label="Me and settings">${av(me(), 36)}</button></div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}`;
@@ -1033,7 +1062,7 @@ function openPhoto(ids, start){
 function vFeed(){
   const ps = [...st.db.posts].sort((a, b) => b.ts - a.ts);
   return topBar('Family feed', 'Photos and news') + (ro() ? '' : `<button class="card row feed-add" style="width:100%;text-align:left;align-items:center;gap:12px" onclick="composeSheet()">${av(me(), 40)}<span class="grow muted">Share a photo or some news…</span><span class="btn sm">Post</span></button>`) +
-  (ps.length ? ps.slice(0, st.feedN).map(postCard).join('') + (ps.length > st.feedN ? `<button class="btn ghost block" onclick="st.feedN+=20;render()">Show more</button>` : '') : `<div class="card empty">No posts yet.</div>`);
+  (ps.length ? `<div class="feedgrid">${ps.slice(0, st.feedN).map(postCard).join('')}</div>` + (ps.length > st.feedN ? `<button class="btn ghost block" onclick="st.feedN+=20;render()">Show more</button>` : '') : `<div class="card empty">No posts yet.</div>`);
 }
 function react(id){ Motion.haptic(); const rid = id + '_' + st.db.me; st.db.reactions.some(r => r.id === rid) ? removeRow('Reactions', rid) : save('Reactions', { id:rid, postId:id, emoji:'❤️' }).catch(() => {}); }
 function delPost(id){ if (confirm('Delete this post?')) removeRow('Posts', id); }
@@ -1485,10 +1514,10 @@ function redeemWish(id){ const w = st.db.wishes.find(x => x.id === id), kid = is
 function vCal(){
   const seg = st.calSeg === 'cele' ? 'cele' : 'people', up = seg === 'people' ? upcomingPeople() : upcomingCelebrations(), g = {};
   for (const e of up) (g[e.d.getFullYear() + '-' + pad(e.d.getMonth())] ||= []).push(e);
-  const months = Object.keys(g).sort().map(k => `<div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div>`).join('');
+  const months = `<div class="calgrid">` + Object.keys(g).sort().map(k => `<div class="mblock"><div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div></div>`).join('') + `</div>`;
   return topBar('Family dates', 'Birthdays, anniversaries and celebrations') +
-    `<div class="seg">${[['people', 'Birthdays & anniversaries'], ['cele', 'Celebrations']].map(([k, l]) => `<button class="${seg === k ? 'on' : ''}" onclick="st.calSeg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
-    (seg === 'cele' && !isKid(me()) ? `<div class="row" style="margin:8px 0 0"><button class="btn sm grow" onclick="eventForm()">+ Add a date</button>${isAdmin() ? `<button class="btn sm line grow" onclick="festSheet()">Choose celebrations</button>` : ''}</div>` : '') +
+    `<div class="calbar"><div class="seg">${[['people', 'Birthdays & anniversaries'], ['cele', 'Celebrations']].map(([k, l]) => `<button class="${seg === k ? 'on' : ''}" onclick="st.calSeg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
+    (seg === 'cele' && !isKid(me()) ? `<div class="row calacts"><button class="btn sm grow" onclick="eventForm()">+ Add a date</button>${isAdmin() ? `<button class="btn sm line grow" onclick="festSheet()">Choose celebrations</button>` : ''}</div>` : '') + '</div>' +
     (up.length ? months : `<div class="card empty">${seg === 'people' ? 'Birthdays and anniversaries appear here when people add them to their profile.' : 'No celebrations yet. Add a family date or choose celebrations.'}</div>`);
 }
 function festSheet(){
@@ -1594,8 +1623,16 @@ function lockPage(on){
   if (on && lockY === null){ lockY = pageY(); SC().classList.add('locked'); }
   else if (!on && lockY !== null){ lockY = null; SC().classList.remove('locked'); }
 }
-function openSheet(fn, live){ const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); sh.innerHTML = fn(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
-function closeSheet(){ sheetFn = null; $('#sheetWrap').classList.remove('on'); const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; lockPage(false); }
+/* draws the open sheet; on a wide screen only the card pops up and its main buttons line up underneath it */
+const wideScreen = () => matchMedia('(min-width: 900px)').matches;
+async function sideRefresh(b){ b.classList.add('spin'); Glow.busy(true); try { await sync(); toast('Up to date'); } catch(e){ toast(e.message); } Glow.busy(false); b.classList.remove('spin'); }
+function paintSheet(){
+  const sh = $('#sheet'), acts = $('#sheetActs'); sh.innerHTML = sheetFn(); acts.innerHTML = '';
+  if (!wideScreen()) return;
+  const btns = [...sh.querySelectorAll(':scope > .btn')]; btns.forEach(b => { b.classList.remove('block'); b.style.marginTop = ''; acts.appendChild(b); });
+}
+function openSheet(fn, live){ const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); paintSheet(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
+function closeSheet(){ sheetFn = null; $('#sheetActs').innerHTML = ''; $('#sheetWrap').classList.remove('on'); const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; lockPage(false); }
 function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
     const rel = relation(id), sp = spouseOf(m), ps = parentsOf(m), ch = childrenOf(m), adult = !isKid(me());
@@ -1603,7 +1640,7 @@ function profileSheet(id){
     return `<div class="sh"><span class="grow"></span><button class="x" onclick="closeSheet()">×</button></div><div style="text-align:center">${av(m, 96)}<h2 style="margin-top:10px">${esc(m.name)}</h2>${m.nick ? `<div class="muted">"${esc(m.nick)}"</div>` : ''}<div style="margin-top:8px"><span class="chip clay">${rel === 'you' ? 'This is you' : 'Your ' + esc(rel)}</span> ${m.passed ? '<span class="chip">In loving memory</span>' : ''}</div></div><div class="card">${facts(m)}${linkRow('Parents', ps)}${linkRow('Married to', sp ? [sp] : [])}${linkRow('Brothers & sisters', siblingsOf(m))}${linkRow('Children', ch)}</div>` +
     (canEdit(m) ? `<button class="btn block" onclick="memberForm('${id}')">Edit profile</button>` : '') +
     (canEdit(m) ? `<button class="btn ghost block" style="margin-top:8px" onclick="relativeSheet('${id}')">Add a relative${id === st.db.me ? '' : ' for ' + esc(first(m))}</button>` : '') +
-    (id !== st.db.me ? `<button class="btn ghost block" style="margin-top:8px" onclick="relativeSheet('${st.db.me}','${id}')">${esc(first(m))} is my…</button>` : '') +
+
     (isAdmin() && id !== st.db.me ? `<div class="chips" style="margin-top:10px;justify-content:center"><button class="chip" onclick="save('Members',{id:'${id}',role:'${m.role === 'admin' ? 'adult' : 'admin'}'}).catch(()=>{})">${m.role === 'admin' ? 'Remove admin' : 'Make admin'}</button><button class="chip clay" onclick="if(confirm('Remove ${esc(first(m).replace(/[^\p{L}\p{N} ]/gu, ''))} from the family app?')){closeSheet();removeRow('Members','${id}')}">Remove person</button></div>` : ''); }, true);
 }
 let pendingAvatar = null, formPreset = null;
