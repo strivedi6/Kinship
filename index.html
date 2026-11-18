@@ -112,9 +112,13 @@ button.card{display:flex}
 .pc-meta{display:flex;align-items:center;gap:5px;font-size:14px;line-height:19px;color:var(--muted);margin-top:2px;min-width:0}
 .pc-meta svg{flex:none;opacity:.8}.pc-meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pc-meta i{font-style:normal;margin:0 2px;flex:none}
 .pc-more{flex:none;width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1px var(--sep),0 2px 6px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;color:var(--ink)}
-.pc-ph{display:block;width:100%;aspect-ratio:1/1;border-radius:22px;overflow:hidden;background:var(--fill3);padding:0}
-.pc-ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.32,.72,0,1)}
-.pc-ph:active img{transform:scale(.98)}
+.pc-ph{display:block;width:100%;aspect-ratio:1/1;border-radius:22px;overflow:hidden;background:var(--fill3);padding:0;border:0;isolation:isolate}
+.pc-ph{position:relative;transition:transform .35s cubic-bezier(.32,.72,0,1);-webkit-tap-highlight-color:transparent}
+.pc-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.pc-ph:active{transform:scale(.985)}
+/* photos can't be long-pressed, dragged out or right-clicked to save */
+img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.photoview img{pointer-events:none}
 .pc-text{background:var(--fill3);border-radius:20px;padding:14px 16px}.pc-text .cap{margin:0}
 .pc-acts{display:flex;align-items:center;gap:18px;padding:14px 4px 0}
 .pc-acts button{display:inline-flex;align-items:center;gap:7px;font-size:16px;color:var(--ink);background:none;padding:0;min-height:30px}
@@ -859,7 +863,7 @@ function postCard(p){
   const canMenu = p.by === st.db.me || isAdmin();
   return `<article class="pc" data-post="${p.id}">
     <header class="pc-h"><span onclick="profileSheet('${a.id}')">${av(a, 46)}</span><div class="grow" onclick="profileSheet('${a.id}')"><div class="pc-nm">${esc(a.name)}</div><div class="pc-meta">${place ? `${ICO_PIN}<span>${esc(place)}</span><i>•</i>` : ''}<span>${postWhen(p.ts)}</span></div></div>${canMenu ? `<button class="pc-more" onclick="postMenu('${p.id}')" aria-label="More">${ICO_MORE}</button>` : ''}</header>
-    ${p.photo ? `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}')" aria-label="Open photo"><img data-photo="${esc(p.photo)}" alt=""></button>` : t ? `<div class="pc-text">${cap}</div>` : ''}
+    ${p.photo ? `<button class="pc-ph" onclick="openPhoto('${esc(p.photo)}')" aria-label="Open photo"><img data-photo="${esc(p.photo)}" alt="" draggable="false"></button>` : t ? `<div class="pc-text">${cap}</div>` : ''}
     <div class="pc-acts"><button class="${mine ? 'on' : ''}" onclick="react('${p.id}')" aria-label="Love">${mine ? ICO_HEART_F : ICO_HEART_O}<span>${rs.length ? kfmt(rs.length) : ''}</span></button><button onclick="postSheet('${p.id}')" aria-label="Comments">${ICO_BUBBLE}<span>${cs ? kfmt(cs) : ''}</span></button></div>
     ${p.photo && t ? cap : ''}
   </article>`;
@@ -1654,6 +1658,10 @@ document.addEventListener('click', e => {
   if (RO_TAPS.test(f) || (el.closest('#sheet') && el.matches('button[type=submit], form button:not([type=button]):not(.x)'))){ e.preventDefault(); e.stopPropagation(); Motion.haptic(); toast(RO_MSG); }
 }, true);
 document.addEventListener('submit', e => { if (ro()){ e.preventDefault(); e.stopPropagation(); toast(RO_MSG); } }, true);
+
+/* ---------- no long-press menu, right click or dragging on photos and the app (text boxes still work) ---------- */
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea, [contenteditable]')) e.preventDefault(); });
+document.addEventListener('dragstart', e => { if (e.target.tagName === 'IMG') e.preventDefault(); });
 
 /* ---------- drag a sheet down to close it (once it is scrolled to the top) ---------- */
 const SD = { on:false, drag:false, y0:0, x0:0, dy:0, t0:0 };
