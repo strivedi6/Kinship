@@ -93,6 +93,7 @@ function route(q) {
     case 'img': return img(q.id);
     case 'setPin': setPin(me, q.pin); return {};
     case 'settings': return saveSettings(me, q);
+    case 'read': return saveReads(me, q.map);
     case 'signout': delRow('Sessions', q.token, 'token'); CacheService.getScriptCache().remove('s:' + q.token); return {};
   }
   throw new Error('Unknown action');
@@ -206,11 +207,21 @@ function setPin(me, pin) { checkPin(pin); me.salt = Utilities.getUuid(); me.pinH
 
 /* ---------------- data ---------------- */
 function pub(name, r) { const o = {}; SCHEMA[name].forEach(function (h) { if (SECRET.indexOf(h) < 0) o[h] = r[h]; }); if (name === 'Members') o.claimed = !!r.pinHash; return o; }
+/* the time each person last read each chat, so unread counts follow them to any device */
+function readsOf(me) { try { return JSON.parse(setting('read:' + me.id) || 'null'); } catch (e) { return null; } }
+function saveReads(me, map) {
+  const cur = readsOf(me) || {}, ok = {};
+  Object.keys(map || {}).slice(0, 80).forEach(function (k) { if (/^[\w-]{1,40}$/.test(k)) { const v = Number(map[k]) || 0; ok[k] = Math.max(Number(cur[k]) || 0, v); } });
+  Object.keys(cur).forEach(function (k) { if (!(k in ok)) ok[k] = cur[k]; });
+  setSetting('read:' + me.id, JSON.stringify(ok));
+  return { reads: ok };
+}
 function syncAll(me) {
   const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId'), sessionHours: String(Number(setting('sessionHours')) || 0), celebrations: setting('celebrations') || '' } };
   if (me.role !== 'kid') d.settings.familyCode = setting('familyCode');
   DATA_TABLES.forEach(function (t) { if (t !== 'Messages') d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
   d.messages = messagesFor(me, 0).slice(-600);
+  d.reads = readsOf(me);
   return d;
 }
 /** Chat check. With wait=1 it holds the line for up to 14 seconds and answers the moment a new message is written,

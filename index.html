@@ -503,7 +503,9 @@ html,body{overflow:hidden}
 /* no visible scroll bars anywhere */
 *{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}
 .calbar .calacts{margin:8px 0 0}
-.sfoot{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:10px}
+.sfoot{margin-top:auto;display:flex;gap:8px;padding:10px 0 4px}.sfoot+.srow.me{margin-top:0}
+.sfoot .srow{flex:1;justify-content:center;gap:6px;padding:9px 8px;border-radius:14px;background:var(--fill3);font-size:15px}
+.sfoot .srow .i{width:auto;margin:0}.sfoot .srow svg{width:20px;height:20px}
 .srow.spin svg{animation:ringspin2 .8s linear infinite}
 @keyframes ringspin2{to{transform:rotate(360deg)}}
 #sheetActs:empty{display:none}
@@ -633,7 +635,7 @@ async function api(action, payload = {}){
   return j.data;
 }
 const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
-function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
+function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); setTimeout(seedReads, 0); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
 /* A session ended: clear the stored app shell and reload, so the newest version comes in with the next sign-in. */
 async function freshReload(){ try { if (window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('kinship-')).map(k => caches.delete(k))); } } catch(e){} location.reload(); }
 let syncing = null;
@@ -1427,11 +1429,21 @@ function wishesSheet(){
 
 /* ---------- CHAT (family group + one to one) ---------- */
 const threadMsgs = t => st.db.messages.filter(m => t === 'all' ? m.to === 'all' : (m.by === st.db.me && m.to === t) || (m.by === t && m.to === st.db.me)).sort((a, b) => a.ts - b.ts);
-const readMap = () => LS.get('read_' + st.db.me) || {};
+/* what you have read is kept on this device and in the family sheet, so a new sign-in or another device does not show old chats as new */
+const readMap = () => { if (!st.db || !st.db.me) return {}; const a = LS.get('read_' + st.db.me) || {}, b = (st.db && st.db.reads) || {}, r = { ...a }; for (const k in b) r[k] = Math.max(Number(r[k] || 0), Number(b[k] || 0)); return r; };
+let readPushT = null;
+function pushReads(){ if (DEMO) return; clearTimeout(readPushT); readPushT = setTimeout(() => { if (st.db && st.token) api('read', { map: readMap() }).catch(() => {}); }, 1500); }
+function seedReads(){
+  /* first time on a device and nothing saved yet: everything already in the chats counts as read */
+  if (DEMO || !st.db || !st.db.me) return; const local = LS.get('read_' + st.db.me);
+  if (st.db.reads || (local && Object.keys(local).length)){ if (!st.db.reads && local) pushReads(); return; }
+  const r = {}; for (const m of st.db.messages){ const t = m.to === 'all' ? 'all' : m.by === st.db.me ? m.to : m.by; r[t] = Math.max(Number(r[t] || 0), Number(m.ts) || 0); }
+  LS.set('read_' + st.db.me, r); pushReads();
+}
 const unread = t => { const r = Number(readMap()[t] || 0); return threadMsgs(t).filter(m => m.by !== st.db.me && Number(m.ts) > r).length; };
 const chatPeople = () => st.db.members.filter(m => m.id !== st.db.me && m.claimed && !m.passed);
 const unreadTotal = () => ['all', ...chatPeople().map(m => m.id)].reduce((s, t) => s + unread(t), 0);
-function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length ? Math.max(...ms.map(m => Number(m.ts))) : Date.now(); LS.set('read_' + st.db.me, r); }
+function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length ? Math.max(...ms.map(m => Number(m.ts))) : Date.now(); LS.set('read_' + st.db.me, r); pushReads(); }
 const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" ${n ? '' : 'hidden'}>${n || ''}</i>`; };
 function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
 const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px"><img src="icon-192.png" alt="" draggable="false"></span>`;
