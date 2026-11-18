@@ -68,8 +68,8 @@ button.card{display:flex}
 .seg button.on{background:var(--card);font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.10),0 0 0 .5px var(--sep)}
 @media(prefers-color-scheme:dark){:root:not([data-th]) .seg button.on{background:#636366}}
 /* tab bar: floating glass capsule */
-.nav{position:fixed;left:0;right:0;bottom:0;padding:16px 21px calc(25px + env(safe-area-inset-bottom) * .4);z-index:20;pointer-events:none}
-.nav div{max-width:360px;margin:0 auto;display:flex;padding:4px;border-radius:1000px;pointer-events:auto}
+.nav{position:fixed;left:0;right:0;bottom:0;padding:16px 21px 21px;z-index:20;pointer-events:none;transition:padding .45s cubic-bezier(.32,.72,0,1)}
+.nav div{max-width:360px;margin:0 auto;display:flex;padding:4px;border-radius:1000px;pointer-events:auto;transition:max-width .45s cubic-bezier(.32,.72,0,1)}
 .nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 4px 7px;font-size:10px;line-height:12px;font-weight:600;letter-spacing:0;color:var(--ink);border-radius:100px}
 .nav button.on{color:var(--accent);background:var(--sel)}
 .nav svg,.srow svg{width:26px;height:28px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -259,6 +259,14 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .srow .badge{position:static;margin-left:auto}
 #navblur{position:fixed;left:0;right:0;bottom:0;height:calc(118px + env(safe-area-inset-bottom) * .4);z-index:19;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(to top,#000 45%,transparent);mask-image:linear-gradient(to top,#000 45%,transparent);background:linear-gradient(to top,color-mix(in srgb,var(--page) 80%,transparent),transparent)}
 #navblur[hidden],.nav.off{display:none}
+/* nav shrinks to icons while scrolling down, grows back on scroll up or touch */
+.nav button{transition:padding .45s cubic-bezier(.32,.72,0,1),gap .45s cubic-bezier(.32,.72,0,1),transform .25s var(--ease),background-color .35s,opacity .3s}
+.nav button em{font-style:normal;display:block;max-height:12px;opacity:1;overflow:hidden;transition:max-height .4s cubic-bezier(.32,.72,0,1),opacity .22s}
+.nav svg{transition:width .45s cubic-bezier(.32,.72,0,1),height .45s cubic-bezier(.32,.72,0,1)}
+.nav.mini{padding-bottom:27px}.nav.mini div{max-width:300px}
+.nav.mini button{padding:9px 4px;gap:0}.nav.mini button em{max-height:0;opacity:0}
+.nav.mini svg{width:24px;height:24px}
+
 @media(min-width:900px){#navblur{display:none}#app.shell>.bar{margin:0 auto;padding:22px 0 8px}#app.shell.wide>.bar{padding-left:40px;padding-right:40px}#app.shell.wide>.sub{padding:0 40px}#app>.bar .tb.me{display:none}}
 /* busy buttons: one even, continuous motion */
 .btn.is-busy:before{animation:fillwave 1.5s linear infinite;background-size:300% 100%}
@@ -1003,7 +1011,7 @@ const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
 const SC = () => document.getElementById('scroller');
 const pageY = () => SC() ? SC().scrollTop : 0;
 const toTop = () => { if (SC()) SC().scrollTop = 0; };
-function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
+function go(t){ navMini(false); navY = 0; if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
   document.body.classList.toggle('ro', ro()); FX.stop();
@@ -1012,8 +1020,8 @@ function render(){
   $('#nav').hidden = false; $('#nav').classList.toggle('off', inThread); $('#navblur').hidden = inThread;
   /* on the feed, its tab turns into the add-post button */
   $('#nav').firstElementChild.innerHTML = TABS.map(([k, l]) => k === 'feed' && st.tab === 'feed' && !ro()
-    ? `<button class="on addpost" onclick="composeSheet()" aria-label="New post"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Post</button>`
-    : `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</button>`).join('');
+    ? `<button class="on addpost" onclick="composeSheet()" aria-label="New post"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><em>Post</em></button>`
+    : `<button class="${st.tab === k ? 'on' : ''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg><em>${l}</em></button>`).join('');
   const srow = (k, l, act, ico) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="${act}"><span class="i"><svg viewBox="0 0 24 24">${ico}</svg></span>${l}${k === 'chat' ? badge() : ''}</button>`;
   $('#side').hidden = false;
   $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<div class="sfoot">${srow('refresh', 'Refresh', 'sideRefresh(this)', '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>')}${srow('signout', 'Sign out', 'signOut()', '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>')}</div><button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
@@ -2114,7 +2122,16 @@ document.addEventListener('touchend', ptrEnd, { passive:true }); document.addEve
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive:false });
 addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
-SC().addEventListener('scroll', () => document.body.classList.toggle('scrolled', pageY() > 16), { passive:true });
+let navY = 0, navRaf = 0;
+const navMini = on => { const n = $('#nav'); if (n) n.classList.toggle('mini', on); };
+SC().addEventListener('scroll', () => {
+  document.body.classList.toggle('scrolled', pageY() > 16);
+  if (navRaf) return; navRaf = requestAnimationFrame(() => { navRaf = 0;
+    const sc = SC(), y = Math.max(0, Math.min(sc.scrollTop, sc.scrollHeight - sc.clientHeight)), d = y - navY;
+    if (y <= 24 || d < -6) { navMini(false); navY = y; } else if (d > 8 && y > 60) { navMini(true); navY = y; } else if (Math.abs(d) > 40) navY = y; });
+}, { passive:true });
+document.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('#nav')) navMini(false); }, { passive:true });
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#nav')) navMini(false); }, { passive:true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); if (!document.hidden) wakePoll(); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
 </script>
