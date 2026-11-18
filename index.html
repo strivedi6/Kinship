@@ -464,16 +464,16 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 #aurora{position:fixed;z-index:19;top:0;left:0;right:0;height:0;opacity:0;overflow:hidden;pointer-events:none;contain:strict;-webkit-mask-image:linear-gradient(180deg,#000 45%,transparent);mask-image:linear-gradient(180deg,#000 45%,transparent);
   --a1:var(--accent);--a2:color-mix(in oklch,var(--accent) 55%,#fff);--a5:#CB30E0;--a6:#00C0E8}
 @supports (color: oklch(from red l c h)){#aurora{--a5:oklch(from var(--accent) calc(l + .04) c calc(h + 60));--a6:oklch(from var(--accent) l c calc(h - 70))}}
-#aurora .glow{position:absolute;inset:-60% -15% -10%;filter:blur(22px) saturate(1.1)}
-#aurora .glow i{position:absolute;top:18%;width:46%;height:70%;border-radius:50%;opacity:.5;will-change:transform;background:radial-gradient(closest-side,var(--c),color-mix(in srgb,var(--c) 40%,transparent) 60%,transparent)}
+#aurora .glow{position:absolute;inset:-40% -15% -10%;filter:blur(26px) saturate(1.15)}
+#aurora .glow i{position:absolute;top:18%;width:46%;height:70%;border-radius:50%;opacity:.6;will-change:transform;background:radial-gradient(closest-side,var(--c),color-mix(in srgb,var(--c) 40%,transparent) 60%,transparent)}
 #aurora .glow i:nth-child(1){--c:var(--a6);left:-6%}#aurora .glow i:nth-child(2){--c:var(--a1);left:16%;top:26%}#aurora .glow i:nth-child(3){--c:var(--a5);left:38%}#aurora .glow i:nth-child(4){--c:var(--a2);left:58%;top:28%}#aurora .glow i:nth-child(5){--c:var(--a1);left:78%;top:14%}
 #aurora.live .glow i{animation:wave 3.2s ease-in-out infinite}
 #aurora.live .glow i:nth-child(2){animation-delay:-.5s}#aurora.live .glow i:nth-child(3){animation-delay:-1s}#aurora.live .glow i:nth-child(4){animation-delay:-1.5s}#aurora.live .glow i:nth-child(5){animation-delay:-2s}
 #aurora.live .glow{animation:tide 9s ease-in-out infinite alternate}#aurora.busy .glow i{animation-duration:2.4s}
 @keyframes wave{0%,100%{transform:translateY(-14%) scale(1,.9)}50%{transform:translateY(16%) scale(1.12,1.08)}}
 @keyframes tide{0%{transform:translateX(-4%)}100%{transform:translateX(4%)}}
-#aurora{z-index:22;mix-blend-mode:multiply}:root[data-dark] #aurora{mix-blend-mode:screen}
-@media(prefers-color-scheme:dark){:root:not([data-th]) #aurora{mix-blend-mode:screen}}
+#aurora{z-index:0}
+html.glowing body:not(.scrolled) #app>.bar{background:transparent}
 #themeFx{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.7}
 .thg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .thc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border-radius:18px;background:none;font-size:13px;line-height:16px;color:var(--ink)}
@@ -491,6 +491,9 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 :root{--vb:0px}
 @media (display-mode: standalone){html{min-height:100lvh}:root{--vb:calc(100% - 100lvh)}
   .nav,#navblur{bottom:var(--vb)}#sheetWrap,.photoview,.celebrate,.lock{bottom:var(--vb)}}
+html,body{overflow:hidden}
+#scroller{position:fixed;inset:0;bottom:var(--vb);z-index:1;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}
+#scroller.locked{overflow:hidden}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -545,8 +548,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => Them
 
 </head>
 <body>
-<div id="banner"></div>
-<div id="app"></div>
+<div id="scroller"><div id="banner"></div><div id="app"></div></div>
 <aside id="side" hidden></aside>
 <div id="navblur" hidden></div>
 <nav class="nav" id="nav" hidden><div class="glass"></div></nav>
@@ -846,7 +848,10 @@ const ICON = {
 const ICO = { chat:'<path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.6-4.6A8.5 8.5 0 1 1 21 11.5z"/>', back:'<path d="M15 5l-7 7 7 7"/>', send:'<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>' };
 const TABS = [['home','Home'],['tree','Tree'],['feed','Feed'],['kids','Kids'],['cal','Dates']];
 const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
-function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; window.scrollTo(0, 0); render(); if (t === 'tree') setTimeout(findMe, 60); }
+const SC = () => document.getElementById('scroller');
+const pageY = () => SC() ? SC().scrollTop : 0;
+const toTop = () => { if (SC()) SC().scrollTop = 0; };
+function go(t){ if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
   document.body.classList.toggle('ro', ro()); FX.stop();
@@ -1393,9 +1398,9 @@ function markRead(t){ const r = readMap(), ms = threadMsgs(t); r[t] = ms.length 
 const badge = () => { const n = unreadTotal(); return `<i class="badge cbadge" ${n ? '' : 'hidden'}>${n || ''}</i>`; };
 function refreshBadges(){ const n = unreadTotal(); document.querySelectorAll('.cbadge').forEach(el => { el.textContent = n || ''; el.hidden = !n; }); }
 const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px"><img src="icon-192.png" alt="" draggable="false"></span>`;
-function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; window.scrollTo(0, 0); render(); wakePoll(); }
+function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; toTop(); render(); wakePoll(); }
 function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
-function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; window.scrollTo(0, 0); render(); }
+function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; toTop(); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
 function vChat(){
   if (st.chatWith) return vThread();
@@ -1578,8 +1583,8 @@ let sheetFn = null, sheetLive = false;
 let lockY = null;
 function lockPage(on){
   const b = document.body;
-  if (on && lockY === null){ lockY = window.scrollY; b.style.position = 'fixed'; b.style.top = -lockY + 'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%'; }
-  else if (!on && lockY !== null){ const y = lockY; lockY = null; b.style.position = b.style.top = b.style.left = b.style.right = b.style.width = ''; window.scrollTo(0, y); }
+  if (on && lockY === null){ lockY = pageY(); SC().classList.add('locked'); }
+  else if (!on && lockY !== null){ lockY = null; SC().classList.remove('locked'); }
 }
 function openSheet(fn, live){ const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); sh.innerHTML = fn(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
 function closeSheet(){ sheetFn = null; $('#sheetWrap').classList.remove('on'); const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; lockPage(false); }
@@ -1860,28 +1865,29 @@ document.addEventListener('touchend', sdEnd, { passive:true }); document.addEven
 const Glow = (() => {
   const aur = () => $('#aurora'), SPRING = 'cubic-bezier(.32,.72,0,1)';
   let n = 0;
+  const topH = () => { const b = $('#app>.bar'); return b ? b.getBoundingClientRect().bottom + 12 : 100; };
   let sat = null;
   const edgeH = () => { if (sat === null){ const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none'; document.body.appendChild(pr); sat = pr.offsetHeight; pr.remove(); } return Math.max(44, sat + 30); };
   return {
     pull(d, ease){ const a = aur(), v = $('#app'); if (!a || !v) return; const p = Math.min(1, d / 66);
       v.style.transition = ease ? 'transform .6s ' + SPRING : 'none'; v.style.transform = d ? `translateY(${d}px)` : '';
-      a.style.transition = ease ? `height .6s ${SPRING}, opacity .5s ease` : 'none'; a.style.height = (edgeH() + d * .6) + 'px';
-      if (!n) a.style.opacity = d > 2 ? p.toFixed(3) : '0'; a.classList.toggle('live', d > 2 || n > 0); },
+      a.style.transition = ease ? `height .6s ${SPRING}, opacity .5s ease` : 'none'; a.style.height = (topH() + Math.min(d * .35, 26)) + 'px';
+      if (!n) a.style.opacity = d > 2 ? p.toFixed(3) : '0'; a.classList.toggle('live', d > 2 || n > 0); document.documentElement.classList.toggle('glowing', d > 2 || n > 0); },
     busy(on){ const a = aur(); if (!a) return; n = Math.max(0, n + (on ? 1 : -1));
-      if (n){ a.style.transition = 'opacity .4s ease, height .4s ease'; a.style.height = edgeH() + 'px'; a.style.opacity = '.85'; a.classList.add('live', 'busy'); }
-      else { a.classList.remove('busy'); a.style.transition = 'opacity .6s ease'; a.style.opacity = '0'; setTimeout(() => { if (!n) a.classList.remove('live'); }, 650); } }
+      if (n){ a.style.transition = 'opacity .4s ease, height .4s ease'; a.style.height = topH() + 'px'; a.style.opacity = '1'; a.classList.add('live', 'busy'); document.documentElement.classList.add('glowing'); }
+      else { a.classList.remove('busy'); a.style.transition = 'opacity .6s ease'; a.style.opacity = '0'; setTimeout(() => { if (!n){ a.classList.remove('live'); if (!PTR.pulling) document.documentElement.classList.remove('glowing'); } }, 650); } }
   };
 })();
 const PTR = { on:false, x0:0, y0:0, dist:0, busy:false, pulling:false };
 const rubber = dy => 150 * (1 - Math.exp(-dy / 270));
 document.addEventListener('touchstart', e => {
-  if (PTR.busy || Back.on || !st.db || sheetFn || $('.celebrate') || $('.photoview') || (st.tab === 'chat' && st.chatWith) || window.scrollY > 0 || e.touches.length !== 1) return;
+  if (PTR.busy || Back.on || !st.db || sheetFn || $('.celebrate') || $('.photoview') || (st.tab === 'chat' && st.chatWith) || pageY() > 0 || e.touches.length !== 1) return;
   const tw = e.target.closest && e.target.closest('.treewrap, .pc-track'); if (tw && (tw.scrollTop > 0 || tw.classList.contains('pc-track'))) return;
   PTR.on = true; PTR.pulling = false; PTR.x0 = e.touches[0].clientX; PTR.y0 = e.touches[0].clientY; PTR.dist = 0;
 }, { passive:true });
 document.addEventListener('touchmove', e => {
   if (!PTR.on) return; const dy = e.touches[0].clientY - PTR.y0, dx = Math.abs(e.touches[0].clientX - PTR.x0);
-  if (!PTR.pulling){ if (Back.on || window.scrollY > 0 || dy < -6 || dx > Math.abs(dy)){ PTR.on = false; return; } if (dy < 4) return; PTR.pulling = true; }
+  if (!PTR.pulling){ if (Back.on || pageY() > 0 || dy < -6 || dx > Math.abs(dy)){ PTR.on = false; return; } if (dy < 4) return; PTR.pulling = true; }
   if (e.cancelable) e.preventDefault(); PTR.dist = rubber(Math.max(0, dy)); Glow.pull(PTR.dist, false);
 }, { passive:false });
 const ptrEnd = async () => {
@@ -1898,7 +1904,7 @@ document.addEventListener('touchend', ptrEnd, { passive:true }); document.addEve
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive:false });
 addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
-addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 16), { passive:true });
+SC().addEventListener('scroll', () => document.body.classList.toggle('scrolled', pageY() > 16), { passive:true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); if (!document.hidden) wakePoll(); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
 </script>
