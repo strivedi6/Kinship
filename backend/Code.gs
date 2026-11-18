@@ -11,7 +11,7 @@
 const MEDIA_FOLDER_ID = '1Nr_Q34Kr27e9RV5KPkL0VA6Ye0Ty8UnG';
 
 const SCHEMA = {
-  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen','viewOnly'],
+  Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen','viewOnly','photo'],
   Posts: ['id','by','text','photo','ts'],
   Comments: ['id','postId','by','text','ts'],
   Reactions: ['id','postId','by','emoji','ts'],
@@ -357,7 +357,9 @@ function upload(me, dataUrl) {
   return { id: memberFolder(me).createFile(blob).getId() };
 }
 function img(id) {
-  if (!readAll('Posts').some(function (p) { return String(p.photo || '').split(',').indexOf(id) >= 0; })) throw new Error('Not found');
+  // A post photo or someone's profile photo.
+  if (!readAll('Posts').some(function (p) { return String(p.photo || '').split(',').indexOf(id) >= 0; }) &&
+      !readAll('Members').some(function (m) { return m.photo === id; })) throw new Error('Not found');
   const b = DriveApp.getFileById(id).getBlob();
   return { dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
 }
