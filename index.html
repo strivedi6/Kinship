@@ -535,6 +535,29 @@ html,body{overflow:hidden}
   #sheetActs .btn.ghost,#sheetActs .btn.line{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);color:var(--accent)}
   #sheet{max-height:calc(100% - 140px)}
 }
+@media(min-width:900px){
+  #app.shell.chatwide{padding:0}
+  #app.shell.chatwide>*{max-width:none}
+  .chatsplit{display:grid;grid-template-columns:minmax(300px,380px) 1fr;height:100vh;height:100dvh}
+  .clist{overflow-y:auto;border-right:.5px solid var(--sep);padding:0 16px 24px}
+  .clist>.bar{position:sticky;top:0;z-index:2;background:var(--page);margin:0 -16px;padding:22px 16px 6px}
+  .clist>.bar h1{font-size:28px}
+  .clist>.sub{margin:0 0 10px;color:var(--muted);font-size:15px}
+  #banner:not(:empty)+#app .chatsplit{height:calc(100dvh - 30px)}
+  .clist .card{padding:6px 8px}
+  .clist .crow{border-radius:16px;padding:10px 10px;margin:0}
+  .clist .crow.sel{background:var(--accent);color:var(--onacc)}
+  .clist .crow.sel .muted,.clist .crow.sel .pv{color:color-mix(in srgb,var(--onacc) 75%,transparent)}
+  .clist .crow+.crow:before{display:none}
+  .cpane{position:relative;min-width:0;height:100%}
+  .cpane .thread{position:absolute;inset:0;left:0;height:100%;z-index:1}
+  .cpane .tbar{max-width:none;padding:18px 24px 12px}
+  .cpane .tbar>button:first-child{display:none}
+  .cpane .thread #msgs{max-width:none;padding:8px 28px 10px}
+  .cpane .thread .composer{max-width:none;width:calc(100% - 48px)}
+  .cempty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--ink)}
+  .cempty img{width:64px;height:64px;border-radius:16px;margin-bottom:6px;opacity:.9}
+}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -906,8 +929,8 @@ function render(){
   const srow = (k, l, act, ico) => `<button class="srow ${st.tab === k ? 'on' : ''}" onclick="${act}"><span class="i"><svg viewBox="0 0 24 24">${ico}</svg></span>${l}${k === 'chat' ? badge() : ''}</button>`;
   $('#side').hidden = false;
   $('#side').innerHTML = `<div class="sbrand"><img src="icon-192.png" alt="">${esc(st.db.settings.appName || CONFIG.APP_NAME)}</div>` + TABS.map(([k, l]) => srow(k, SIDE[k] || l, `go('${k}')`, ICON[k]) + (k === 'feed' ? srow('chat', 'Chat', 'openChat()', ICO.chat) : '')).join('') + `<div class="sfoot">${srow('refresh', 'Refresh', 'sideRefresh(this)', '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>')}${srow('signout', 'Sign out', 'signOut()', '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>')}</div><button class="srow me" onclick="meSheet()">${av(me(), 36)}<span class="grow">${esc(me().name || '')}</span></button>`;
-  const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree'); app.classList.toggle('inthread', inThread);
-  if (inThread && $('#msgs') && $('#msgs').dataset.t === st.chatWith && !Motion.enter){ updateMsgs(); Motion.arm($('#side')); return; }   // keep what is being typed
+  const app = $('#app'); app.classList.add('shell'); $('#sheetWrap').classList.add('shell'); app.classList.toggle('wide', st.tab === 'tree' || (st.tab === 'chat' && wideScreen())); app.classList.toggle('chatwide', st.tab === 'chat' && wideScreen()); app.classList.toggle('inthread', inThread);
+  if (inThread && $('#msgs') && $('#msgs').dataset.t === st.chatWith && !Motion.enter){ updateMsgs(); if ($('#clistIn')) $('#clistIn').innerHTML = chatList(); Motion.arm($('#side')); return; }   // keep what is being typed
   const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
   app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal, chat:vChat })[st.tab]();
   if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
@@ -1456,12 +1479,17 @@ function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = s
 function openThread(t, draft){ seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
 function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; toTop(); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
-function vChat(){
-  if (st.chatWith) return vThread();
+function chatList(){
   const last = t => { const ms = threadMsgs(t); return ms[ms.length - 1]; };
-  const row = (t, avatar, name) => { const l = last(t), n = unread(t), who = l ? (l.by === st.db.me ? 'You: ' : t === 'all' ? first(M(l.by) || {}) + ': ' : '') : ''; return `<button class="row lrow crow" onclick="openThread('${t}')">${avatar}<span class="grow"><span class="row" style="gap:8px"><span class="b grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</span><span class="small muted">${l ? ago(l.ts) : ''}</span></span><span class="row" style="gap:8px"><span class="pv grow">${l ? esc(who + l.text) : 'Say hello'}</span>${n ? `<i class="badge">${n}</i>` : ''}</span></span></button>`; };
+  const row = (t, avatar, name) => { const l = last(t), n = unread(t), who = l ? (l.by === st.db.me ? 'You: ' : t === 'all' ? first(M(l.by) || {}) + ': ' : '') : ''; return `<button class="row lrow crow ${st.chatWith === t ? 'sel' : ''}" onclick="openThread('${t}')">${avatar}<span class="grow"><span class="row" style="gap:8px"><span class="b grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</span><span class="small muted">${l ? ago(l.ts) : ''}</span></span><span class="row" style="gap:8px"><span class="pv grow">${l ? esc(who + l.text) : 'Say hello'}</span>${n ? `<i class="badge">${n}</i>` : ''}</span></span></button>`; };
   const people = chatPeople().sort((a, b) => Number((last(b.id) || {}).ts || 0) - Number((last(a.id) || {}).ts || 0) || String(a.name).localeCompare(b.name));
-  return topBar('Chat', 'Talk to the whole family or one to one') + `<div class="card">${row('all', GAV(46), 'Family')}</div>` + (people.length ? `<div class="sec"><h2>People</h2></div><div class="card">${people.map(p => row(p.id, av(p, 46), p.name)).join('')}</div>` : `<div class="card empty">When relatives join, you can message them here.</div>`);
+  return `<div class="card">${row('all', GAV(46), 'Family')}</div>` + (people.length ? `<div class="sec"><h2>People</h2></div><div class="card">${people.map(p => row(p.id, av(p, 46), p.name)).join('')}</div>` : `<div class="card empty">When relatives join, you can message them here.</div>`);
+}
+/* phone: the list, and a chat opens full screen. Desktop: like Messages, the list on the left and the open chat on the right */
+function vChat(){
+  if (wideScreen()) return `<div class="chatsplit"><div class="clist"><div class="bar"><h1>Chat</h1></div><div class="sub">Talk to the whole family or one to one</div><div id="clistIn">${chatList()}</div></div><div class="cpane">${st.chatWith ? vThread() : `<div class="cempty"><img src="icon-192.png" alt=""><div class="b">Choose a chat</div><div class="small muted">Pick the family group or a person on the left.</div></div>`}</div></div>`;
+  if (st.chatWith) return vThread();
+  return topBar('Chat', 'Talk to the whole family or one to one') + chatList();
 }
 const seenMsgs = new Set();
 function msgsHtml(){
@@ -1482,7 +1510,7 @@ function vThread(){
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
-function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
+function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v || wideScreen()) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
 if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
 function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
 function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
