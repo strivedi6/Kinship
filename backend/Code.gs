@@ -385,7 +385,7 @@ function sigSend(me, q) {
   const c = CacheService.getScriptCache(), k = 'sg:' + to;
   sigLocked(function () { let cur = []; try { cur = JSON.parse(c.get(k) || '[]'); } catch (e) {} cur = cur.concat(msgs).slice(-60); c.put(k, JSON.stringify(cur), 90); c.put('msgTs', String(Date.now()), 21600); });
   const ring = msgs.filter(function (m) { return m.t === 'ring'; })[0];
-  if (ring) push([to], shortName(me) + ' is calling', ring.video ? 'Video call on Kinship' : 'Voice call on Kinship', 'chat:' + me.id);
+  if (ring) push([to], shortName(me) + ' is calling', ring.video ? 'Video call on Kinship' : 'Voice call on Kinship', 'chat:' + me.id, { ttl: 60, priority: 10 });
   return {};
 }
 function sigPoll(me, q) {
@@ -395,12 +395,13 @@ function sigPoll(me, q) {
 
 /* ---------------- notifications (OneSignal) ---------------- */
 /** title = the first line people see (always specific, never the app name); go = what the notification opens. */
-function push(ids, title, body, go) {
+function push(ids, title, body, go, extra) {
   try {
     const app = setting('oneSignalAppId'), key = setting('oneSignalKey');
     ids = (ids || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     if (!app || !key || !ids.length) return;
     const payload = { app_id: app, target_channel: 'push', include_aliases: { external_id: ids }, headings: { en: String(title).slice(0, 64) }, contents: { en: String(body || '').slice(0, 170) || ' ' }, data: { go: go || 'home' } };
+    if (extra) Object.keys(extra).forEach(function (k) { payload[k] = extra[k]; });
     const url = setting('appUrl'); if (url) payload.url = url.split('?')[0] + '?go=' + encodeURIComponent(go || 'home');
     const res = UrlFetchApp.fetch('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', headers: { Authorization: 'Key ' + key }, payload: JSON.stringify(payload), muteHttpExceptions: true });
     if (res.getResponseCode() >= 300) console.log('OneSignal: ' + res.getContentText());

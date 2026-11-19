@@ -261,32 +261,35 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 #navblur[hidden],.nav.off{display:none}
 
 /* ---------- calls ---------- */
-#call{position:fixed;inset:0;z-index:200;background:radial-gradient(120% 90% at 50% 20%,color-mix(in oklch,var(--cc,#5A4636) 70%,#000),#0b0b0c);color:#fff;display:flex;flex-direction:column;align-items:center;overflow:hidden;animation:callIn .35s var(--ease)}
+#call{position:fixed;inset:0;z-index:200;background:var(--page);color:var(--ink);display:flex;flex-direction:column;align-items:center;overflow:hidden;animation:callIn .35s var(--ease)}
+#call:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(90% 60% at 50% 22%,color-mix(in srgb,var(--cc,var(--accent)) 26%,transparent),transparent 70%)}
 @keyframes callIn{from{opacity:0;transform:scale(1.04)}}
 #call video{position:absolute;background:#000}
-#cRemote{inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+#cRemote{inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;z-index:-1}
 #call.clive.cvid #cRemote{opacity:1}
 #cLocal{top:calc(14px + env(safe-area-inset-top));right:14px;width:104px;height:148px;border-radius:18px;object-fit:cover;transform:scaleX(-1);z-index:3;box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.25);display:none}
 #call.cvid.cmedia #cLocal{display:block}
 .c-top{position:relative;z-index:2;margin-top:calc(14vh + env(safe-area-inset-top));text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:opacity .4s,transform .4s}
-.c-top .av{box-shadow:0 18px 60px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.14)}
-.c-name{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-top:10px;text-shadow:0 2px 16px rgba(0,0,0,.4)}
-.c-stat{font-size:16px;color:rgba(255,255,255,.72);text-shadow:0 1px 10px rgba(0,0,0,.5)}
+.c-id{position:relative;width:120px;height:120px;margin-bottom:6px}
+.c-id .av{position:relative;z-index:1;width:120px!important;height:120px!important;box-shadow:0 16px 50px rgba(0,0,0,.25)}
+.c-name{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-top:10px}
+.c-stat{font-size:16px;color:var(--muted)}
+#call.clive.cvid{color:#fff}#call.clive.cvid .c-name,#call.clive.cvid .c-stat{text-shadow:0 1px 12px rgba(0,0,0,.6)}#call.clive.cvid .c-stat{color:rgba(255,255,255,.8)}
 #call.clive.cvid .c-top{margin-top:calc(10px + env(safe-area-inset-top));align-items:flex-start;align-self:flex-start;margin-left:18px;text-align:left}
-#call.clive.cvid .c-top .av,#call.clive.cvid .c-top .gav{display:none}
+#call.clive.cvid .c-id{display:none}
 #call.clive.cvid .c-name{font-size:19px;margin-top:0}
-#call.cring .c-top .av{animation:cpulse 1.8s ease-in-out infinite}
-@keyframes cpulse{50%{transform:scale(1.05)}}
+.tfx{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.7}
 .c-bar{position:absolute;z-index:4;left:0;right:0;bottom:calc(34px + env(safe-area-inset-bottom) * .4);display:flex;justify-content:center;gap:18px;padding:0 20px}
-.c-b{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);color:#fff;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.28);padding:0;position:relative}
-.c-b svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.c-b.on{background:#fff;color:#111}
-.c-b.end,.c-b.no{background:#FF3B30;color:#fff}.c-b.yes{background:#34C759;color:#fff}
+.c-b{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--fill);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);color:var(--ink);padding:0;position:relative}
+#call.clive.cvid .c-b{background:rgba(255,255,255,.2);color:#fff}
+.c-b svg{width:30px;height:30px;fill:currentColor;stroke:none}
+.c-b.on{background:var(--ink);color:var(--page)}
+#call.clive.cvid .c-b.on{background:#fff;color:#111}
+.c-b.end,.c-b.no{background:#FF3B30!important;color:#fff!important}.c-b.yes{background:#34C759!important;color:#fff!important}
 .c-b:active{transform:scale(.92)}
-.c-b small{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.75);white-space:nowrap}
 .c-bar.two{gap:84px}
 .cbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent);padding:0}
-.cbtn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cbtn svg{width:23px;height:23px;fill:currentColor;stroke:none}
 
 /* nav shrinks to icons while scrolling down, grows back on scroll up or touch */
 .nav button{transition:padding .45s cubic-bezier(.32,.72,0,1),gap .45s cubic-bezier(.32,.72,0,1),transform .25s var(--ease),background-color .35s,opacity .3s}
@@ -410,6 +413,7 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 /* message box rests just above the keyboard */
 .thread.kb .composer{margin-bottom:6px}
 .thread{will-change:transform}
+.thread>.tfx{z-index:-1}
 /* meet-your-family card can be swiped */
 .meet{touch-action:pan-y;will-change:transform}
 .mdots{display:flex;justify-content:center;gap:6px;margin:10px 0 0}
@@ -622,12 +626,12 @@ html,body{overflow:hidden}
 .sb-btn{position:absolute;top:14px;width:40px;height:40px;border-radius:50%;background:var(--page);color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;padding:0}
 .sb-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .sb-btn.l{left:16px}.sb-btn.r{right:16px}.sb-btn.ok{background:#34C759;color:#fff}
-.sgrab{position:absolute;left:50%;top:0;transform:translateX(-50%);width:140px;height:34px;display:flex;align-items:center;justify-content:center;touch-action:none}
+.sgrab{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:140px;height:34px;display:flex;align-items:center;justify-content:center;touch-action:none}
 .sgrab i{position:relative;display:block;width:58px;height:18px}
 .sgrab i:after{content:"";position:absolute;left:7px;right:7px;top:7px;height:5px;border-radius:3px;background:rgba(255,255,255,.95);box-shadow:0 0 0 1px rgba(0,0,0,.22),0 1px 6px rgba(0,0,0,.4)}
 .sb.form{height:60px;margin:0 -16px;background:var(--sheet);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
 .sb.form .sgrab{height:24px}.sb.form .sb-t{position:absolute;left:68px;right:68px;top:17px;line-height:40px;text-align:center;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sheet:has(>.sb):before{display:none}
+#sheet:has(>.sb):before,#sheet:has(>.pf):before{display:none!important}
 @media(min-width:900px){.sgrab{display:none}}
 #sheet:has(>.pf){padding:0;background:var(--page);color:var(--ink)}
 #sheet:has(>.pf):before{position:absolute;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,.45);margin-top:8px}
@@ -1059,7 +1063,7 @@ function render(){
   const keep = st.tab === 'tree' && $('.treewrap') ? [$('.treewrap').scrollLeft, $('.treewrap').scrollTop] : null;
   app.innerHTML = ({ home:vHome, tree:vTree, feed:vFeed, kids:vKids, cal:vCal, chat:vChat })[st.tab]();
   if (keep && $('.treewrap')){ $('.treewrap').scrollLeft = keep[0]; $('.treewrap').scrollTop = keep[1]; }
-  loadPhotos(); FX.start(app);
+  loadPhotos(); FX.start(app); wallFx($('.thread'));
   if (sheetLive && sheetFn) { paintSheet(); loadPhotos(); Motion.arm($('#sheet')); }
   Motion.after();
 }
@@ -1501,8 +1505,15 @@ const FX = (() => {
 })();
 
 /* seasonal themes: a gentle animation behind the cards */
+const wallStops = new Map();
+function wallFx(host){
+  wallStops.forEach((stop, cv) => { if (!cv.isConnected){ try { stop(); } catch(e){} wallStops.delete(cv); } });
+  const t = Theme.cur(); if (!host || !t.fx) return;
+  let cv = host.querySelector(':scope>canvas.tfx'); if (!cv){ cv = document.createElement('canvas'); cv.className = 'tfx'; cv.setAttribute('aria-hidden', 'true'); host.prepend(cv); }
+  if (!wallStops.has(cv)) wallStops.set(cv, FX.run(cv, t.fx, {}));
+}
 let themeFxStop = null;
-window.themeFx = () => { if (themeFxStop){ themeFxStop(); themeFxStop = null; } const cv = $('#themeFx'), t = Theme.cur(); if (!cv) return; const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); if (t.fx) themeFxStop = FX.run(cv, t.fx, {}); };
+window.themeFx = () => { wallStops.forEach((stop, cv) => { try { stop(); } catch(e){} cv.remove(); }); wallStops.clear(); document.querySelectorAll('.thread, #call').forEach(wallFx); if (themeFxStop){ themeFxStop(); themeFxStop = null; } const cv = $('#themeFx'), t = Theme.cur(); if (!cv) return; const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); if (t.fx) themeFxStop = FX.run(cv, t.fx, {}); };
 setTimeout(window.themeFx, 0);
 
 /* ---------- Sounds (made in the browser, same as the DXBAIPI app): the confetti pop and festival sounds ---------- */
@@ -1604,7 +1615,7 @@ function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = s
 function openThread(t, draft){
   if (wideScreen() && st.tab === 'chat' && $('.cpane')){
     seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; markRead(t); Motion.haptic();
-    $('.cpane').innerHTML = vThread(); $('#clistIn').innerHTML = chatList(); loadPhotos(); refreshBadges(); scrollMsgs(); wakePoll(); Motion.arm($('.cpane'));
+    $('.cpane').innerHTML = vThread(); $('#clistIn').innerHTML = chatList(); loadPhotos(); wallFx($('.cpane .thread')); refreshBadges(); scrollMsgs(); wakePoll(); Motion.arm($('.cpane'));
     const i = $('.composer input'); if (i) i.focus(); return;
   } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
 function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; toTop(); render(); }
@@ -1658,20 +1669,20 @@ const nap = ms => new Promise(r => { const t = setTimeout(r, ms); wakePoll = () 
   for (;;){
     if (!st.db || !st.token || DEMO || document.hidden){ await nap(3000); continue; }
     const live = st.tab === 'chat';
-    try { await pollMsgs(live); await nap(live ? 120 : 20000); } catch(e){ await nap(5000); }
+    try { await pollMsgs(live); await nap(live ? 120 : 5000); } catch(e){ await nap(5000); }
   }
 })();
 
 
 /* ---------- CALLS: one to one voice and video (WebRTC). Sound and picture go straight between the phones. ---------- */
 const CI = {
-  mic:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
-  micoff:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/>',
-  cam:'<rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 10.5l6-3v9l-6-3"/>',
-  camoff:'<rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 10.5l6-3v9l-6-3M3 3l18 18"/>',
-  flip:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
-  phone:'<path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.1 5.1l1.3-2 4 1.5v3a2.5 2.5 0 0 1-2.7 2.5A16.5 16.5 0 0 1 4 6.2 2.5 2.5 0 0 1 6.6 3.5z"/>',
-  hang:'<path d="M3 14.5c5-4.5 13-4.5 18 0l-1.6 2.6-3.4-1.3v-2.4a9 9 0 0 0-6 0v2.4l-3.4 1.3z"/>'
+  mic:'<rect x="8.8" y="2.5" width="6.4" height="12" rx="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M5.3 11.2a6.7 6.7 0 0 0 13.4 0M12 18v3.2"/>',
+  micoff:'<rect x="8.8" y="2.5" width="6.4" height="12" rx="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M5.3 11.2a6.7 6.7 0 0 0 13.4 0M12 18v3.2"/><path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" d="M4.5 3.5l15 17"/>',
+  cam:'<rect x="2" y="6" width="13.5" height="12" rx="3.4"/><path d="M17.2 10.6l3.6-2.4c.7-.45 1.2-.1 1.2.7v6.2c0 .8-.5 1.15-1.2.7l-3.6-2.4z"/>',
+  camoff:'<rect x="2" y="6" width="13.5" height="12" rx="3.4"/><path d="M17.2 10.6l3.6-2.4c.7-.45 1.2-.1 1.2.7v6.2c0 .8-.5 1.15-1.2.7l-3.6-2.4z"/><path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" d="M4.5 3.5l15 17"/>',
+  flip:'<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 7l1.3-2h5.4L16 7h2.5A1.5 1.5 0 0 1 20 8.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5v-8A1.5 1.5 0 0 1 5.5 7zM9.5 12.2a2.7 2.7 0 0 1 4.6-1.3M14.5 12.8a2.7 2.7 0 0 1-4.6 1.3M14.2 9.6v1.5h-1.5M9.8 15.4v-1.5h1.5"/>',
+  phone:'<path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02z"/>',
+  hang:'<path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>'
 };
 const Call = (() => {
   let c = null, ringT = 0, tickT = 0, toneT = 0, polling = false, buf = [], bufT = 0;
@@ -1697,8 +1708,8 @@ const Call = (() => {
     const p = M(c.peer) || { name:'Family', id:c.peer }; let el = $('#call'); if (el) el.remove();
     el = document.createElement('div'); el.id = 'call'; el.style.setProperty('--cc', colorOf(c.peer));
     el.className = (c.video ? 'cvid ' : '') + 'cring';
-    el.innerHTML = `<video id="cRemote" autoplay playsinline></video><video id="cLocal" autoplay playsinline muted></video><div class="c-top">${av(p, 120)}<div class="c-name">${esc(p.nick || first(p))}</div><div class="c-stat" id="cStat"></div></div><div class="c-bar" id="cBar"></div>`;
-    document.body.appendChild(el); stat(c.dir === 'in' ? (c.video ? 'Video call' : 'Voice call') : 'Calling…'); bar(); loadPhotos(); if (c.stream){ $('#cLocal').srcObject = c.stream; el.classList.add('cmedia'); }
+    el.innerHTML = `<video id="cRemote" autoplay playsinline></video><video id="cLocal" autoplay playsinline muted></video><div class="c-top"><div class="c-id"><i class="ripple"></i><i class="ripple"></i><i class="ripple"></i>${av(p, 120)}</div><div class="c-name">${esc(p.nick || first(p))}</div><div class="c-stat" id="cStat"></div></div><div class="c-bar" id="cBar"></div>`;
+    document.body.appendChild(el); wallFx(el); stat(c.dir === 'in' ? (c.video ? 'Video call' : 'Voice call') : 'Calling…'); bar(); loadPhotos(); if (c.stream){ $('#cLocal').srcObject = c.stream; el.classList.add('cmedia'); }
   }
   async function media(){
     const s = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true }, video: c.video ? { facingMode:'user', width:{ ideal:960 }, height:{ ideal:720 } } : false });
