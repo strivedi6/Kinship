@@ -81,7 +81,7 @@ function route(q) {
     case 'msgs': return msgsPoll(q);
   }
   const me = auth(q.token);
-  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings'].indexOf(q.action) >= 0) throw new Error('This account is view only');
+  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings', 'sigsend'].indexOf(q.action) >= 0) throw new Error('This account is view only');
   switch (q.action) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
@@ -94,6 +94,8 @@ function route(q) {
     case 'setPin': setPin(me, q.pin); return {};
     case 'settings': return saveSettings(me, q);
     case 'read': return saveReads(me, q.map);
+    case 'sigsend': return sigSend(me, q);
+    case 'sigpoll': return sigPoll(me, q);
     case 'signout': delRow('Sessions', q.token, 'token'); CacheService.getScriptCache().remove('s:' + q.token); return {};
   }
   throw new Error('Unknown action');
@@ -237,9 +239,10 @@ function msgsPoll(q) {
     if (Number(latest) > since || Date.now() >= until) break;
     Utilities.sleep(350);
   }
-  if (Number(latest) <= since) return { messages: [], ts: Number(latest) };
+  const sigs = takeSigs(sess.memberId);
+  if (Number(latest) <= since) return { messages: [], ts: Number(latest), sigs: sigs };
   delete MEMO.Messages;
-  return { messages: messagesFor({ id: sess.memberId }, since - 2000), ts: Number(latest) };
+  return { messages: messagesFor({ id: sess.memberId }, since - 2000), ts: Number(latest), sigs: sigs };
 }
 /** Chat: the family group plus this person's own one-to-one messages. Nobody else's are ever sent. */
 function messagesFor(me, since) {
@@ -362,6 +365,32 @@ function img(id) {
       !readAll('Members').some(function (m) { return m.photo === id; })) throw new Error('Not found');
   const b = DriveApp.getFileById(id).getBlob();
   return { dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+}
+
+
+/* ---------------- calls: short-lived signals between two phones ----------------
+   A call is set up by passing small messages (ring, accept, offer, answer, ice, end) through the cache.
+   They live for 90 seconds, are never written to the sheet, and the sound and picture go straight between the phones. */
+function sigLocked(fn) { const lock = LockService.getScriptLock(); lock.waitLock(5000); try { return fn(); } finally { try { lock.releaseLock(); } catch (x) {} } }
+function takeSigs(id) {
+  const c = CacheService.getScriptCache(), k = 'sg:' + id;
+  if (c.get(k) === null) return [];
+  return sigLocked(function () { const v = c.get(k); c.remove(k); try { return v ? JSON.parse(v) : []; } catch (e) { return []; } });
+}
+function sigSend(me, q) {
+  const to = String(q.to || ''), peer = findBy('Members', to);
+  if (!peer || !peer.pinHash || to === me.id) throw new Error('Cannot call this person');
+  const msgs = (Array.isArray(q.msgs) ? q.msgs : []).slice(0, 12).map(function (m) { return { t: String(m.t || '').slice(0, 12), id: String(m.id || '').slice(0, 40), video: m.video ? 1 : 0, sdp: m.sdp ? String(m.sdp).slice(0, 12000) : undefined, c: m.c ? String(m.c).slice(0, 1500) : undefined, from: me.id, ts: Date.now() }; });
+  if (!msgs.length) return {};
+  const c = CacheService.getScriptCache(), k = 'sg:' + to;
+  sigLocked(function () { let cur = []; try { cur = JSON.parse(c.get(k) || '[]'); } catch (e) {} cur = cur.concat(msgs).slice(-60); c.put(k, JSON.stringify(cur), 90); c.put('msgTs', String(Date.now()), 21600); });
+  const ring = msgs.filter(function (m) { return m.t === 'ring'; })[0];
+  if (ring) push([to], shortName(me) + ' is calling', ring.video ? 'Video call on Kinship' : 'Voice call on Kinship', 'chat:' + me.id);
+  return {};
+}
+function sigPoll(me, q) {
+  const until = Date.now() + Math.min(10000, Math.max(0, Number(q.wait) || 0)), c = CacheService.getScriptCache();
+  for (;;) { const s = takeSigs(me.id); if (s.length || Date.now() >= until) return { sigs: s }; Utilities.sleep(300); }
 }
 
 /* ---------------- notifications (OneSignal) ---------------- */

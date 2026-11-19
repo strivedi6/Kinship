@@ -259,6 +259,35 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .srow .badge{position:static;margin-left:auto}
 #navblur{position:fixed;left:0;right:0;bottom:0;height:calc(118px + env(safe-area-inset-bottom) * .4);z-index:19;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(to top,#000 45%,transparent);mask-image:linear-gradient(to top,#000 45%,transparent);background:linear-gradient(to top,color-mix(in srgb,var(--page) 80%,transparent),transparent)}
 #navblur[hidden],.nav.off{display:none}
+
+/* ---------- calls ---------- */
+#call{position:fixed;inset:0;z-index:200;background:radial-gradient(120% 90% at 50% 20%,color-mix(in oklch,var(--cc,#5A4636) 70%,#000),#0b0b0c);color:#fff;display:flex;flex-direction:column;align-items:center;overflow:hidden;animation:callIn .35s var(--ease)}
+@keyframes callIn{from{opacity:0;transform:scale(1.04)}}
+#call video{position:absolute;background:#000}
+#cRemote{inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+#call.clive.cvid #cRemote{opacity:1}
+#cLocal{top:calc(14px + env(safe-area-inset-top));right:14px;width:104px;height:148px;border-radius:18px;object-fit:cover;transform:scaleX(-1);z-index:3;box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.25);display:none}
+#call.cvid.cmedia #cLocal{display:block}
+.c-top{position:relative;z-index:2;margin-top:calc(14vh + env(safe-area-inset-top));text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:opacity .4s,transform .4s}
+.c-top .av{box-shadow:0 18px 60px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.14)}
+.c-name{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-top:10px;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+.c-stat{font-size:16px;color:rgba(255,255,255,.72);text-shadow:0 1px 10px rgba(0,0,0,.5)}
+#call.clive.cvid .c-top{margin-top:calc(10px + env(safe-area-inset-top));align-items:flex-start;align-self:flex-start;margin-left:18px;text-align:left}
+#call.clive.cvid .c-top .av,#call.clive.cvid .c-top .gav{display:none}
+#call.clive.cvid .c-name{font-size:19px;margin-top:0}
+#call.cring .c-top .av{animation:cpulse 1.8s ease-in-out infinite}
+@keyframes cpulse{50%{transform:scale(1.05)}}
+.c-bar{position:absolute;z-index:4;left:0;right:0;bottom:calc(34px + env(safe-area-inset-bottom) * .4);display:flex;justify-content:center;gap:18px;padding:0 20px}
+.c-b{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);color:#fff;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.28);padding:0;position:relative}
+.c-b svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.c-b.on{background:#fff;color:#111}
+.c-b.end,.c-b.no{background:#FF3B30;color:#fff}.c-b.yes{background:#34C759;color:#fff}
+.c-b:active{transform:scale(.92)}
+.c-b small{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.75);white-space:nowrap}
+.c-bar.two{gap:84px}
+.cbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent);padding:0}
+.cbtn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
 /* nav shrinks to icons while scrolling down, grows back on scroll up or touch */
 .nav button{transition:padding .45s cubic-bezier(.32,.72,0,1),gap .45s cubic-bezier(.32,.72,0,1),transform .25s var(--ease),background-color .35s,opacity .3s}
 .nav button em{font-style:normal;display:block;max-height:12px;opacity:1;overflow:hidden;transition:max-height .4s cubic-bezier(.32,.72,0,1),opacity .22s}
@@ -1607,7 +1636,7 @@ function msgsHtml(){
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div></div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
@@ -1619,6 +1648,7 @@ async function pollMsgs(wait){
   const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
   let fresh = 0;
   for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0) st.db.messages[i] = m; else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
+  if (r && r.sigs && r.sigs.length) Call.onSignals(r.sigs);
   if (r && r.ts) st.msgSince = Math.max(st.msgSince || 0, Number(r.ts));
   if (fresh){ LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); if (!(st.tab === 'chat' && st.chatWith)) Motion.haptic(); }
 }
@@ -1630,6 +1660,121 @@ const nap = ms => new Promise(r => { const t = setTimeout(r, ms); wakePoll = () 
     const live = st.tab === 'chat';
     try { await pollMsgs(live); await nap(live ? 120 : 20000); } catch(e){ await nap(5000); }
   }
+})();
+
+
+/* ---------- CALLS: one to one voice and video (WebRTC). Sound and picture go straight between the phones. ---------- */
+const CI = {
+  mic:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  micoff:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/>',
+  cam:'<rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 10.5l6-3v9l-6-3"/>',
+  camoff:'<rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 10.5l6-3v9l-6-3M3 3l18 18"/>',
+  flip:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  phone:'<path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.1 5.1l1.3-2 4 1.5v3a2.5 2.5 0 0 1-2.7 2.5A16.5 16.5 0 0 1 4 6.2 2.5 2.5 0 0 1 6.6 3.5z"/>',
+  hang:'<path d="M3 14.5c5-4.5 13-4.5 18 0l-1.6 2.6-3.4-1.3v-2.4a9 9 0 0 0-6 0v2.4l-3.4 1.3z"/>'
+};
+const Call = (() => {
+  let c = null, ringT = 0, tickT = 0, toneT = 0, polling = false, buf = [], bufT = 0;
+  const ok = () => !!(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const ice = () => { const s = [{ urls:['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }]; try { const t = JSON.parse((st.db.settings || {}).turn || 'null'); if (t) s.push(...[].concat(t)); } catch(e){} return { iceServers: s }; };
+  const send = (msgs) => { if (c) api('sigsend', { to: c.peer, msgs }).catch(() => {}); };
+  const queueIce = cand => { buf.push({ t:'ice', id:c.id, c:JSON.stringify(cand) }); if (!bufT) bufT = setTimeout(() => { bufT = 0; if (c && buf.length){ send(buf); buf = []; } }, 120); };
+  const dur = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const stat = t => { const e = $('#cStat'); if (e) e.textContent = t; };
+  function tone(on){
+    clearInterval(toneT); toneT = 0; if (!on) return;
+    const beep = () => { try { if (!Sound.ctx) return; if (Sound.ctx.state !== 'running') Sound.ctx.resume(); const t = Sound.ctx.currentTime + .05; if (c && c.dir === 'in'){ Sound.bell(880, t, .9, .13); Sound.bell(1175, t + .3, 1, .13); if (navigator.vibrate) navigator.vibrate([280, 160, 280]); } else Sound.bell(659, t, .9, .07); } catch(e){} };
+    beep(); toneT = setInterval(beep, 2400);
+  }
+  function bar(){
+    const b = $('#cBar'); if (!b || !c) return;
+    const btn = (cls, ico, fn, label) => `<button class="c-b ${cls}" onclick="${fn}" aria-label="${label}"><svg viewBox="0 0 24 24">${ico}</svg></button>`;
+    if (c.dir === 'in' && c.state === 'ringing'){ b.className = 'c-bar two'; b.innerHTML = btn('no', CI.hang, 'Call.hangup()', 'Decline') + btn('yes', c.video ? CI.cam : CI.phone, 'Call.accept()', 'Accept'); return; }
+    b.className = 'c-bar';
+    b.innerHTML = btn(c.muted ? 'on' : '', c.muted ? CI.micoff : CI.mic, 'Call.mute()', 'Mute') + (c.video ? btn(c.camOff ? 'on' : '', c.camOff ? CI.camoff : CI.cam, 'Call.cam()', 'Camera') + btn('', CI.flip, 'Call.flip()', 'Flip camera') : '') + btn('end', CI.hang, 'Call.hangup()', 'End call');
+  }
+  function show(){
+    const p = M(c.peer) || { name:'Family', id:c.peer }; let el = $('#call'); if (el) el.remove();
+    el = document.createElement('div'); el.id = 'call'; el.style.setProperty('--cc', colorOf(c.peer));
+    el.className = (c.video ? 'cvid ' : '') + 'cring';
+    el.innerHTML = `<video id="cRemote" autoplay playsinline></video><video id="cLocal" autoplay playsinline muted></video><div class="c-top">${av(p, 120)}<div class="c-name">${esc(p.nick || first(p))}</div><div class="c-stat" id="cStat"></div></div><div class="c-bar" id="cBar"></div>`;
+    document.body.appendChild(el); stat(c.dir === 'in' ? (c.video ? 'Video call' : 'Voice call') : 'Calling…'); bar(); loadPhotos(); if (c.stream){ $('#cLocal').srcObject = c.stream; el.classList.add('cmedia'); }
+  }
+  async function media(){
+    const s = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true }, video: c.video ? { facingMode:'user', width:{ ideal:960 }, height:{ ideal:720 } } : false });
+    c.stream = s; const l = $('#cLocal'); if (l) l.srcObject = s; const el = $('#call'); if (el) el.classList.add('cmedia'); c.media = true;
+  }
+  function pc(){
+    const p = c.pc = new RTCPeerConnection(ice());
+    c.stream.getTracks().forEach(t => p.addTrack(t, c.stream));
+    p.onicecandidate = e => { if (e.candidate) queueIce(e.candidate); };
+    p.ontrack = e => { const r = $('#cRemote'); if (r && r.srcObject !== e.streams[0]){ r.srcObject = e.streams[0]; r.play().catch(() => {}); } };
+    p.onconnectionstatechange = () => {
+      if (!c) return; const s = p.connectionState;
+      if (s === 'connected' && c.state !== 'live') live();
+      if (s === 'failed') end('Connection lost', true);
+      if (s === 'disconnected'){ stat('Reconnecting…'); clearTimeout(c.dropT); c.dropT = setTimeout(() => { if (c && c.pc && c.pc.connectionState !== 'connected') end('Connection lost', true); }, 9000); }
+      if (s === 'connected') clearTimeout(c.dropT);
+    };
+  }
+  function live(){
+    c.state = 'live'; c.t0 = Date.now(); clearTimeout(ringT); tone(false); const el = $('#call'); if (el){ el.classList.remove('cring'); el.classList.add('clive'); }
+    clearInterval(tickT); tickT = setInterval(() => stat(dur(Math.round((Date.now() - c.t0) / 1000))), 500); stat('0:00'); Motion.haptic(); bar();
+  }
+  async function loop(){
+    if (polling) return; polling = true;
+    while (c){ try { const r = await api('sigpoll', { wait: 7 }); if (r && r.sigs && r.sigs.length) onSignals(r.sigs); } catch(e){ await new Promise(r => setTimeout(r, 1500)); } }
+    polling = false;
+  }
+  async function start(peer, video){
+    if (c) return; if (!ok()){ toast('Calls are not supported on this device'); return; } if (ro()){ toast(RO_MSG); return; } if (DEMO){ toast('Calls need a live family app'); return; }
+    Sound.unlock(); c = { id:'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), peer, video:!!video, dir:'out', state:'calling' };
+    try { await media(); } catch(e){ const x = c; c = null; toast(video ? 'Allow camera and microphone to call' : 'Allow the microphone to call'); return; }
+    show(); tone(true); send([{ t:'ring', id:c.id, video:c.video ? 1 : 0 }]); loop(); ringT = setTimeout(() => end('No answer', true), 45000);
+  }
+  async function accept(){
+    if (!c || c.state !== 'ringing') return; Sound.unlock(); tone(false); clearTimeout(ringT);
+    try { await media(); } catch(e){ toast('Allow the microphone to answer'); hangup(); return; }
+    c.state = 'connecting'; stat('Connecting…'); pc(); bar(); const el = $('#call'); if (el) el.classList.remove('cring'); loop();
+    send([{ t:'accept', id:c.id }]); ringT = setTimeout(() => { if (c && c.state !== 'live') end('Could not connect', true); }, 25000);
+  }
+  async function handle(m){
+    if (m.t === 'ring'){
+      if (Math.abs(Date.now() - Number(m.ts || Date.now())) > 60000) return;
+      if (c){ if (c.id !== m.id) api('sigsend', { to:m.from, msgs:[{ t:'end', id:m.id }] }).catch(() => {}); return; }
+      c = { id:m.id, peer:m.from, video:!!m.video, dir:'in', state:'ringing' }; show(); tone(true); document.title = 'Incoming call'; ringT = setTimeout(() => end('', false), 50000); return;
+    }
+    if (!c || m.id !== c.id) return;
+    if (m.t === 'end') return end(c.state === 'live' ? '' : (c.dir === 'out' ? 'Declined' : ''), false, true);
+    if (m.t === 'accept' && c.dir === 'out' && c.state === 'calling'){
+      c.state = 'connecting'; stat('Connecting…'); tone(false); clearTimeout(ringT); pc(); const el = $('#call'); if (el) el.classList.remove('cring');
+      const o = await c.pc.createOffer(); await c.pc.setLocalDescription(o); send([{ t:'offer', id:c.id, sdp:o.sdp }]); ringT = setTimeout(() => { if (c && c.state !== 'live') end('Could not connect', true); }, 25000); return;
+    }
+    if (m.t === 'offer' && c.dir === 'in' && c.pc){
+      await c.pc.setRemoteDescription({ type:'offer', sdp:m.sdp }); await flush(); const a = await c.pc.createAnswer(); await c.pc.setLocalDescription(a); send([{ t:'answer', id:c.id, sdp:a.sdp }]); return;
+    }
+    if (m.t === 'answer' && c.pc){ await c.pc.setRemoteDescription({ type:'answer', sdp:m.sdp }); await flush(); return; }
+    if (m.t === 'ice'){ let cand; try { cand = JSON.parse(m.c); } catch(e){ return; } if (c.pc && c.pc.remoteDescription) c.pc.addIceCandidate(cand).catch(() => {}); else (c.pend = c.pend || []).push(cand); }
+  }
+  async function flush(){ for (const cand of (c.pend || [])) try { await c.pc.addIceCandidate(cand); } catch(e){} c.pend = []; }
+  function onSignals(list){ (async () => { for (const m of list) try { await handle(m); } catch(e){ console.log('call', e); } })(); }
+  function end(msg, tell, fromPeer){
+    if (!c) return; const x = c; c = null; clearTimeout(ringT); clearInterval(tickT); clearTimeout(x.dropT); tone(false); document.title = (st.db && st.db.settings && st.db.settings.appName) || CONFIG.APP_NAME;
+    if (tell || !fromPeer) api('sigsend', { to:x.peer, msgs:[{ t:'end', id:x.id }] }).catch(() => {});
+    try { x.stream && x.stream.getTracks().forEach(t => t.stop()); x.pc && x.pc.close(); } catch(e){}
+    const el = $('#call'); if (el){ if (msg){ const s = $('#cStat'); if (s) s.textContent = msg; } el.classList.remove('cring'); el.style.transition = 'opacity .35s'; setTimeout(() => { el.style.opacity = '0'; }, msg ? 900 : 0); setTimeout(() => el.remove(), msg ? 1300 : 350); }
+    if (x.dir === 'out'){ const kind = x.video ? 'Video call' : 'Voice call'; if (x.t0) save('Messages', { to:x.peer, text:`${kind}, ${dur(Math.round((Date.now() - x.t0) / 1000))}` }).catch(() => {}); else if (msg === 'No answer' || msg === 'Declined') save('Messages', { to:x.peer, text:`Missed ${kind.toLowerCase()}` }).catch(() => {}); }
+  }
+  const hangup = () => end('', true);
+  function mute(){ if (!c || !c.stream) return; c.muted = !c.muted; c.stream.getAudioTracks().forEach(t => t.enabled = !c.muted); bar(); }
+  function cam(){ if (!c || !c.stream) return; c.camOff = !c.camOff; c.stream.getVideoTracks().forEach(t => t.enabled = !c.camOff); bar(); }
+  async function flip(){
+    if (!c || !c.video || !c.pc) return; try {
+      c.face = c.face === 'environment' ? 'user' : 'environment'; const n = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:c.face } }), t = n.getVideoTracks()[0], snd = c.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (snd) await snd.replaceTrack(t); c.stream.getVideoTracks().forEach(o => { o.stop(); c.stream.removeTrack(o); }); c.stream.addTrack(t); const l = $('#cLocal'); l.style.transform = c.face === 'user' ? 'scaleX(-1)' : 'none'; l.srcObject = c.stream;
+    } catch(e){ toast('Could not switch camera'); }
+  }
+  return { start, accept, hangup, mute, cam, flip, onSignals, busy:() => !!c, ok };
 })();
 
 /* ---------- WISH LIST (kids add wishes, a parent sets the stars) ---------- */
