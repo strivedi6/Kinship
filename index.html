@@ -677,6 +677,10 @@ html,body{overflow:hidden}
 .pf-li[onclick]{cursor:pointer}.pf-li[onclick] b{color:var(--accent)}
 .pf-about{background:var(--card);border-radius:22px;padding:12px 16px;margin-top:10px;font-size:16px;line-height:22px}
 @media(min-width:900px){#sheet:has(>.pf){max-width:420px}}
+.ppick{display:flex;flex-wrap:wrap;gap:8px}.ppick label{margin:0}.ppick input{display:none}.ppick span{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:1000px;background:var(--card);font-size:14px;color:var(--ink)}.ppick .av{flex:none}.ppick b{font-weight:600}.ppick input:checked+span{background:var(--accent);color:var(--onacc)}
+.erow{display:flex;gap:12px;align-items:flex-start;padding:2px 0 12px}.erow>span{font-size:20px;width:26px;text-align:center}
+.rsvp{display:flex;gap:8px;margin-top:10px}.rsvp button{flex:1;padding:11px 0;border-radius:1000px;background:var(--fill);font-weight:600;font-size:15px;color:var(--ink)}.rsvp button.on{color:#fff}.rsvp button.yes.on{background:#34C759}.rsvp button.maybe.on{background:#FF9F0A}.rsvp button.no.on{background:#FF453A}
+.chip.rs.yes{background:#34C759;color:#fff}.chip.rs.maybe{background:#FF9F0A;color:#fff}.chip.rs.no{background:#FF453A;color:#fff}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1005,7 +1009,7 @@ function upcomingCelebrations(){
   for (const e of st.db.events){
     const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
     const d = e.yearly === '1' ? nextOcc(base) : pDate(base); if (d < t0) continue;
-    out.push({ d, emoji: e.emoji || '📅', title: e.title, sub: e.note || '', at: e.at, eid: e.id, by: e.by });
+    out.push({ d, emoji: e.emoji || '📅', title: e.title, sub: [e.travel ? '✈️ ' + niceTrip(e.travel) : '', e.dinner ? '🍽 ' + dinnerTxt(e) : '', e.note || ''].filter(Boolean).join(' · '), at: e.at, eid: e.id, by: e.by });
   }
   return out.sort((a, b) => a.d - b.d);
 }
@@ -1827,15 +1831,51 @@ function festSheet(){
   openSheet(() => `<div class="sh"><h2>Celebrations</h2><button class="x" onclick="closeSheet()">×</button></div><p class="small muted" style="margin:0 16px 4px">Choose the ones your family celebrates. They show in Dates, in Coming up on Home, and as a greeting on the day.</p><form onsubmit="return submitFest(event)">${FEST.map(f => `<label class="check"><input type="checkbox" name="k" value="${f[0]}" ${on.includes(f[0]) ? 'checked' : ''}><span class="grow">${f[2]} ${esc(f[1])}</span>${MOON.includes(f[0]) ? '<span class="small muted">moon</span>' : ''}</label>`).join('')}<button class="btn block">Save</button></form>`);
 }
 function submitFest(ev){ const v = new FormData(ev.target).getAll('k').join(',') || 'none'; busy(ev, async () => { if (DEMO) st.db.settings.celebrations = v; else { await api('settings', { celebrations: v }); await sync(); } closeSheet(); render(); toast('Saved'); }, 'Saving…'); return false; }
+const niceTrip = d => { const t = pDate(d); return isNaN(t) ? '' : t.getDate() + ' ' + MON[t.getMonth()]; };
+const dinnerTxt = e => { const t = new Date(e.dinner); if (isNaN(t)) return ''; return new Intl.DateTimeFormat([], { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }).format(t) + (e.venue ? ' · ' + e.venue : ''); };
+const rsvpOf = e => { try { return JSON.parse(e.rsvp || '{}') || {}; } catch (x) { return {}; } };
+const ids = v => String(v || '').split(',').filter(Boolean);
+const RS = { yes:['Going', '✓'], maybe:['Maybe', '?'], no:['Can’t', '×'] };
+function personPick(name, sel, skipMe){
+  const list = st.db.members.filter(m => !m.passed && !(skipMe && m.id === st.db.me)).sort((a, b) => String(a.name).localeCompare(b.name)), s = ids(sel);
+  return `<div class="ppick">${list.map(m => `<label><input type="checkbox" name="${name}" value="${m.id}" ${s.includes(m.id) ? 'checked' : ''}><span>${av(m, 28)}<b>${esc(first(m))}</b></span></label>`).join('')}</div>`;
+}
 function eventSheet(id){
-  const e = st.db.events.find(x => x.id === id); if (!e) return; const a = M(e.by) || {};
-  openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}<div class="small muted">Added by ${esc(first(a))}${e.yearly === '1' ? ' · every year' : ''}</div></div>${(e.by === st.db.me || isAdmin()) ? `<button class="btn ghost block" onclick="eventForm('${id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${id}')">Delete</button>` : ''}`);
+  const e = st.db.events.find(x => x.id === id); if (!e) return; const a = M(e.by) || {}, inv = ids(e.invited), tw = ids(e.with), rs = rsvpOf(e);
+  const names = l => l.map(i => M(i)).filter(Boolean).map(m => esc(first(m))).join(', ');
+  const mine = me(), kids = st.db.members.filter(k => !k.passed && k.id !== mine.id && inv.includes(k.id) && (isAdmin() || isParentOf(mine, k)));
+  const btns = who => `<div class="rsvp">${Object.keys(RS).map(k => `<button class="${rs[who] === k ? 'on ' + k : ''}" onclick="rsvpGo('${id}','${who}','${k}')">${RS[k][1]} ${RS[k][0]}</button>`).join('')}</div>`;
+  const cnt = k => inv.filter(i => rs[i] === k).length;
+  openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}
+    ${e.travel ? `<div class="erow"><span>✈️</span><div><b>Travelling</b><div class="small muted">${esc(new Intl.DateTimeFormat([], { weekday:'long', day:'numeric', month:'long' }).format(pDate(e.travel)))}</div></div></div>` : ''}
+    ${e.dinner ? `<div class="erow"><span>🍽</span><div><b>Dinner</b><div class="small muted">${esc(dinnerTxt(e))}</div></div></div>` : ''}
+    ${tw.length ? `<div class="erow"><span>👥</span><div><b>Travelling together</b><div class="small muted">${names(tw)}</div></div></div>` : ''}
+    <div class="small muted">Added by ${esc(first(a))}${e.yearly === '1' ? ' · every year' : ''}</div></div>
+    ${inv.length ? `<div class="sec"><h2>Invited · ${cnt('yes')} going</h2></div>${inv.includes(mine.id) ? `<div class="card"><div class="b">Will you come?</div>${btns(mine.id)}</div>` : ''}${kids.map(k => `<div class="card"><div class="b">${esc(first(k))}</div>${btns(k.id)}</div>`).join('')}<div class="card">${inv.map(i => M(i)).filter(Boolean).map(m => `<div class="ev">${av(m, 34)}<div class="grow"><div class="b">${esc(m.name)}</div></div><span class="chip rs ${rs[m.id] || ''}">${rs[m.id] ? RS[rs[m.id]][0] : 'No answer'}</span></div>`).join('')}</div>` : ''}
+    ${(e.by === st.db.me || isAdmin()) ? `<button class="btn ghost block" onclick="eventForm('${id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${id}')">Delete</button>` : ''}`, true);
+}
+async function rsvpGo(id, who, ans){
+  if (ro()){ toast(RO_MSG); return; }
+  const e = st.db.events.find(x => x.id === id); if (!e) return;
+  const r = rsvpOf(e); r[who] = ans; e.rsvp = JSON.stringify(r); Motion.haptic(); eventSheet(id);
+  try { const res = await api('rsvp', { id, memberId: who, answer: ans }); if (res && res.rsvp) e.rsvp = res.rsvp; LS.set('db', st.db); }
+  catch(x){ toast(x.message); try { await sync(); } catch(_){} }
 }
 function eventForm(id){
-  const e = id ? st.db.events.find(x => x.id === id) : { emoji:'🎉' }, d = e.at ? new Date(e.at) : null;
-  openSheet(() => `<div class="sh"><h2>${id ? 'Edit date' : 'Add a date'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitEvent(event,'${id || ''}')"><div class="two" style="grid-template-columns:80px 1fr"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(e.emoji || '')}"></div><div><label>What</label><input type="text" name="title" required maxlength="80" value="${esc(e.title || '')}" placeholder="Family video call"></div></div><div class="two"><div><label>Date</label><input type="date" name="date" required value="${esc(d ? ymd(d) : e.date || '')}"></div><div><label>Time (optional)</label><input type="time" name="time" value="${d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : ''}"></div></div><p class="small muted">Enter the time where you are. Everyone sees it in their own country's time.</p><label class="check"><input type="checkbox" name="yearly" ${e.yearly === '1' ? 'checked' : ''}>Repeats every year</label><label>Note</label><textarea name="note" maxlength="500">${esc(e.note || '')}</textarea><button class="btn block">Save</button></form>`);
+  const e = id ? st.db.events.find(x => x.id === id) : { emoji:'🎉' }, d = e.at ? new Date(e.at) : null, dn = e.dinner ? new Date(e.dinner) : null;
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit date' : 'Add a date'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitEvent(event,'${id || ''}')"><div class="two" style="grid-template-columns:80px 1fr"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(e.emoji || '')}"></div><div><label>What</label><input type="text" name="title" required maxlength="80" value="${esc(e.title || '')}" placeholder="Family video call"></div></div><div class="two"><div><label>Date</label><input type="date" name="date" required value="${esc(d ? ymd(d) : e.date || '')}"></div><div><label>Time (optional)</label><input type="time" name="time" value="${d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : ''}"></div></div><p class="small muted">Enter the time where you are. Everyone sees it in their own country's time.</p><label class="check"><input type="checkbox" name="yearly" ${e.yearly === '1' ? 'checked' : ''}>Repeats every year</label>
+  <label>✈️ Travel date (optional)</label><input type="date" name="travel" value="${esc(e.travel || '')}">
+  <label>👥 Travelling together</label><p class="small muted" style="margin:0 0 6px">Who is travelling with you.</p>${personPick('with', e.with, true)}
+  <label>🍽 Dinner (optional)</label><div class="two"><div><input type="date" name="dday" value="${dn ? ymd(dn) : ''}"></div><div><input type="time" name="dtime" value="${dn ? pad(dn.getHours()) + ':' + pad(dn.getMinutes()) : ''}"></div></div><input type="text" name="venue" maxlength="120" style="margin-top:8px" value="${esc(e.venue || '')}" placeholder="Where? e.g. Dad's place, Nobu">
+  <label>💌 Invite &amp; ask for RSVP</label><p class="small muted" style="margin:0 0 6px">They get a notification and can answer Going, Maybe or Can't.</p>${personPick('invited', e.invited, true)}
+  <label>Note</label><textarea name="note" maxlength="500">${esc(e.note || '')}</textarea><button class="btn block">Save</button></form>`);
 }
-function submitEvent(ev, id){ ev.preventDefault(); const f = new FormData(ev.target), date = f.get('date'), time = f.get('time'); closeSheet(); save('Events', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), date, at: time ? new Date(date + 'T' + time).toISOString() : '', yearly: f.get('yearly') ? '1' : '0', note:f.get('note').trim() }).catch(() => {}); return false; }
+function submitEvent(ev, id){
+  ev.preventDefault(); const f = new FormData(ev.target), date = f.get('date'), time = f.get('time'), dd = f.get('dday'), dt = f.get('dtime');
+  closeSheet();
+  save('Events', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), date, at: time ? new Date(date + 'T' + time).toISOString() : '', yearly: f.get('yearly') ? '1' : '0', note:f.get('note').trim(),
+    travel: f.get('travel') || '', dinner: dd ? new Date(dd + 'T' + (dt || '19:00')).toISOString() : '', venue: f.get('venue').trim(), with: f.getAll('with').join(','), invited: f.getAll('invited').join(',') }).catch(() => {}); return false;
+}
 
 /* ---------- RELATIVES: pick someone already in the family and say how they are related ---------- */
 function linkPlan(ms, aId, rel, bId) {
@@ -2160,6 +2200,7 @@ async function demoApi(action, p){
   if (action === 'upload'){ const id = uid(); demoPhotos[id] = p.dataUrl; return { id }; }
   if (action === 'img') return { dataUrl: demoPhotos[p.id] };
   if (action === 'settings'){ Object.assign(demoDb.settings, p); return {}; }
+  if (action === 'rsvp'){ const e = demoDb.events.find(x => x.id === p.id); const r = JSON.parse(e.rsvp || '{}'); r[p.memberId] = p.answer; e.rsvp = JSON.stringify(r); return { rsvp: e.rsvp }; }
   if (action === 'msgs') return [];
   if (action === 'link') return {};
   return {};

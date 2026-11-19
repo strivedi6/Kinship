@@ -15,7 +15,7 @@ const SCHEMA = {
   Posts: ['id','by','text','photo','ts'],
   Comments: ['id','postId','by','text','ts'],
   Reactions: ['id','postId','by','emoji','ts'],
-  Events: ['id','by','title','emoji','date','at','yearly','note','ts'],
+  Events: ['id','by','title','emoji','date','at','yearly','note','ts','travel','dinner','venue','with','invited','rsvp'],
   Habits: ['id','by','title','emoji','points','who','days','active','ts'],
   Logs: ['id','habitId','memberId','date','points','by','ts'],
   Rewards: ['id','by','title','emoji','cost','who','active','ts'],
@@ -28,7 +28,7 @@ const SCHEMA = {
 };
 const SECRET = ['folder','pinHash','salt','fails','lockUntil','pinLen'];
 const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers','Wishes','Messages'];
-const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link','cleanup'];
+const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link','cleanup','rsvp'];
 
 /* ---------------- one-time setup ---------------- */
 function setup() {
@@ -81,7 +81,7 @@ function route(q) {
     case 'msgs': return msgsPoll(q);
   }
   const me = auth(q.token);
-  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings', 'sigsend'].indexOf(q.action) >= 0) throw new Error('This account is view only');
+  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings', 'sigsend', 'rsvp'].indexOf(q.action) >= 0) throw new Error('This account is view only');
   switch (q.action) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
@@ -95,6 +95,7 @@ function route(q) {
     case 'setPin': setPin(me, q.pin); return {};
     case 'settings': return saveSettings(me, q);
     case 'read': return saveReads(me, q.map);
+    case 'rsvp': return rsvp(me, q);
     case 'sigsend': return sigSend(me, q);
     case 'sigpoll': return sigPoll(me, q);
     case 'signout': delRow('Sessions', q.token, 'token'); CacheService.getScriptCache().remove('s:' + q.token); return {};
@@ -250,6 +251,31 @@ function messagesFor(me, since) {
   return readAll('Messages').filter(function (m) { return (m.to === 'all' || m.by === me.id || m.to === me.id) && Number(m.ts) > since; }).map(function (m) { return pub('Messages', m); });
 }
 function isParent(p, kidId) { const k = findBy('Members', kidId); return !!k && (k.fatherId === p.id || k.motherId === p.id); }
+function cleanEvent(r, old) {
+  const ids = {}; readAll('Members').forEach(function (m) { ids[m.id] = 1; });
+  const pick = function (v) { const seen = {}; return String(v || '').split(',').filter(function (x) { if (!ids[x] || seen[x]) return false; seen[x] = 1; return true; }); };
+  r.invited = pick(r.invited).join(','); r.with = pick(r.with).join(',');
+  r.travel = /^\d{4}-\d{2}-\d{2}$/.test(r.travel || '') ? r.travel : '';
+  r.dinner = isNaN(Date.parse(r.dinner || '')) ? '' : String(r.dinner);
+  r.venue = String(r.venue || '').slice(0, 120);
+  // Answers belong to the people who gave them: keep them, drop those of anyone no longer invited.
+  let a = {}; try { a = JSON.parse(old && old.rsvp || '{}') || {}; } catch (e) {}
+  const keep = {}; r.invited.split(',').forEach(function (id) { if (a[id]) keep[id] = a[id]; });
+  r.rsvp = JSON.stringify(keep);
+}
+function rsvp(me, q) {
+  const ev = findBy('Events', String(q.id || '')); if (!ev) throw new Error('This date was removed');
+  const who = String(q.memberId || me.id), ans = String(q.answer || '');
+  if (['yes', 'maybe', 'no'].indexOf(ans) < 0) throw new Error('Choose Going, Maybe or Can\'t');
+  if (!mayActFor(me, who)) throw new Error('Not allowed');
+  if (String(ev.invited || '').split(',').indexOf(who) < 0) throw new Error('This invite is not for them');
+  let a = {}; try { a = JSON.parse(ev.rsvp || '{}') || {}; } catch (e) {}
+  a[who] = ans; ev.rsvp = JSON.stringify(a);
+  writeRow('Events', ev, ev._row);
+  const m = findBy('Members', who) || me;
+  if (ev.by !== me.id) push([ev.by], shortName(m) + (ans === 'yes' ? ' is going' : ans === 'maybe' ? ' might come' : " can't come"), ev.title + ' · ' + niceDate(ev.date), 'cal');
+  return { rsvp: ev.rsvp };
+}
 function mayActFor(me, memberId) { return me.id === memberId || me.role === 'admin' || (me.role !== 'kid' && isParent(me, memberId)); }
 function adultOnly(me) { if (me.role === 'kid') throw new Error('Ask a grown-up to do this'); }
 function ownerOnly(me, old) { if (old && old.by !== me.id && me.role !== 'admin') throw new Error('Only the person who added this can change it'); }
@@ -294,7 +320,9 @@ function put(me, table, row) {
     case 'Answers':
       r.memberId = me.id; r.id = r.week + '_' + me.id; break;
     case 'Events': case 'Habits': case 'Rewards':
-      adultOnly(me); ownerOnly(me, old); break;
+      adultOnly(me); ownerOnly(me, old);
+      if (table === 'Events') cleanEvent(r, old);
+      break;
     case 'Logs':
       if (!mayActFor(me, r.memberId)) throw new Error('Not allowed');
       r.id = r.habitId + '_' + r.memberId + '_' + r.date; r.by = me.id; break;
@@ -367,6 +395,11 @@ function dropMemberData(m) {
   purgeRows('Logs', function (l) { return l.memberId === m.id; }); purgeRows('Redemptions', function (x) { return x.memberId === m.id; });
   purgeRows('Answers', function (a) { return a.memberId === m.id; }); purgeRows('Wishes', function (w) { return w.memberId === m.id; });
   purgeRows('Messages', function (x) { return x.by === m.id || x.to === m.id; });
+  readAll('Events').forEach(function (e) {   // take them off other people's travel lists and invites
+    const f = function (v) { return String(v || '').split(',').filter(function (x) { return x && x !== m.id; }).join(','); };
+    if (String(e.with).indexOf(m.id) < 0 && String(e.invited).indexOf(m.id) < 0) return;
+    e.with = f(e.with); e.invited = f(e.invited); cleanEvent(e, e); writeRow('Events', e, e._row);
+  });
   purgeRows('Settings', function (s) { return s.key === 'read:' + m.id; });
   if (m.photo) trashPhotos([m.photo]);
   if (m.folder) { try { DriveApp.getFolderById(m.folder).setTrashed(true); } catch (e) {} }
@@ -474,7 +507,16 @@ function announce(me, table, r, old) {
     const p = findBy('Posts', r.postId);
     if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : (p.text || 'Your photo'), 'post:' + p.id);
   }
-  else if (table === 'Events' && !old) push(everyoneBut(me.id), 'New family date: ' + r.title, niceDate(r.date) + ', added by ' + who, 'cal');
+  else if (table === 'Events' && !old) {
+    const inv = String(r.invited || '').split(',').filter(function (x) { return x && x !== me.id; });
+    if (inv.length) push(inv, who + ' invited you: ' + r.title, niceDate(r.date) + ' · tap to answer', 'cal');
+    const rest = everyoneBut(me.id).filter(function (x) { return inv.indexOf(x) < 0; });
+    if (rest.length) push(rest, 'New family date: ' + r.title, niceDate(r.date) + ', added by ' + who, 'cal');
+  }
+  else if (table === 'Events' && old) {
+    const was = String(old.invited || '').split(','), fresh = String(r.invited || '').split(',').filter(function (x) { return x && x !== me.id && was.indexOf(x) < 0; });
+    if (fresh.length) push(fresh, who + ' invited you: ' + r.title, niceDate(r.date) + ' · tap to answer', 'cal');
+  }
   else if (table === 'Messages' && !old) push(r.to === 'all' ? everyoneBut(me.id) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text, r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
   else if (table === 'Wishes') {
     const k = findBy('Members', r.memberId) || {};
