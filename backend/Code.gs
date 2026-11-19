@@ -28,7 +28,7 @@ const SCHEMA = {
 };
 const SECRET = ['folder','pinHash','salt','fails','lockUntil','pinLen'];
 const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers','Wishes','Messages'];
-const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link'];
+const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link','cleanup'];
 
 /* ---------------- one-time setup ---------------- */
 function setup() {
@@ -89,6 +89,7 @@ function route(q) {
     case 'link': return link(me, q);
     case 'put': return put(me, q.table, q.row || {});
     case 'del': return del(me, q.table, q.id);
+    case 'cleanup': if (me.role !== 'admin') throw new Error('Only an admin can do this'); return runCleanup();
     case 'upload': return upload(me, q.dataUrl);
     case 'img': return img(q.id);
     case 'setPin': setPin(me, q.pin); return {};
@@ -324,6 +325,8 @@ function put(me, table, row) {
   }
   const target = (r.id !== clean.id) ? findBy(table, r.id) : old;
   writeRow(table, r, target ? target._row : 0);
+  if (old && table === 'Posts') trashPhotos(String(old.photo || '').split(',').filter(function (p) { return p && String(r.photo || '').split(',').indexOf(p) < 0; }));
+  if (old && table === 'Members' && old.photo && r.photo !== old.photo) trashPhotos([old.photo]);
   if (table === 'Messages') CacheService.getScriptCache().put('msgTs', String(r.ts), 21600);
   announce(me, table, r, target);
   return pub(table, r);
@@ -338,9 +341,63 @@ function del(me, table, id) {
   else if (table === 'Answers') { if (old.memberId !== me.id && me.role !== 'admin') throw new Error('Not allowed'); }
   else ownerOnly(me, old);
   dropRow(table, old._row);
-  if (table === 'Posts' && old.photo) String(old.photo).split(',').forEach(function (pid) { try { DriveApp.getFileById(pid).setTrashed(true); } catch (e) {} });
+  if (table === 'Posts') dropPostData(old);
+  if (table === 'Members') dropMemberData(old);
   if (table === 'Members') readAll('Sessions').filter(function (s) { return s.memberId === id; }).reverse().forEach(function (s) { sh('Sessions').deleteRow(s._row); }); delete MEMO.Sessions;
   return {};
+}
+
+
+/* ---------------- tidy up: nothing is left behind when something is deleted ---------------- */
+function purgeRows(name, test) {
+  const gone = readAll(name).filter(test); if (!gone.length) return 0;
+  const s = sh(name); gone.slice().reverse().forEach(function (r) { s.deleteRow(r._row); }); delete MEMO[name];
+  return gone.length;
+}
+function trashPhotos(ids) { let n = 0; (ids || []).forEach(function (id) { if (!id) return; try { DriveApp.getFileById(id).setTrashed(true); n++; } catch (e) {} }); return n; }
+function dropPostData(p) {
+  trashPhotos(String(p.photo || '').split(','));
+  purgeRows('Comments', function (c) { return c.postId === p.id; });
+  purgeRows('Reactions', function (x) { return x.postId === p.id; });
+}
+function dropMemberData(m) {
+  readAll('Posts').filter(function (p) { return p.by === m.id; }).forEach(function (p) { dropPostData(p); });
+  purgeRows('Posts', function (p) { return p.by === m.id; });
+  purgeRows('Comments', function (c) { return c.by === m.id; }); purgeRows('Reactions', function (x) { return x.by === m.id; });
+  purgeRows('Logs', function (l) { return l.memberId === m.id; }); purgeRows('Redemptions', function (x) { return x.memberId === m.id; });
+  purgeRows('Answers', function (a) { return a.memberId === m.id; }); purgeRows('Wishes', function (w) { return w.memberId === m.id; });
+  purgeRows('Messages', function (x) { return x.by === m.id || x.to === m.id; });
+  purgeRows('Settings', function (s) { return s.key === 'read:' + m.id; });
+  if (m.photo) trashPhotos([m.photo]);
+  if (m.folder) { try { DriveApp.getFolderById(m.folder).setTrashed(true); } catch (e) {} }
+}
+/* finds anything that no longer belongs to something and removes it (rows in the sheet, files in Drive; Drive items go to the bin for 30 days) */
+function runCleanup() {
+  const members = {}, posts = {}, keep = {}, folders = {}, out = {};
+  readAll('Members').forEach(function (m) { members[m.id] = 1; if (m.photo) keep[m.photo] = 1; if (m.folder) folders[m.folder] = 1; });
+  if (!Object.keys(members).length) throw new Error('No people found, nothing was removed');
+  readAll('Posts').forEach(function (p) { posts[p.id] = 1; String(p.photo || '').split(',').forEach(function (x) { if (x) keep[x] = 1; }); });
+  out.comments = purgeRows('Comments', function (c) { return !posts[c.postId] || !members[c.by]; });
+  out.reactions = purgeRows('Reactions', function (x) { return !posts[x.postId] || !members[x.by]; });
+  out.posts = purgeRows('Posts', function (p) { return !members[p.by]; });
+  out.logs = purgeRows('Logs', function (l) { return !members[l.memberId]; });
+  out.redemptions = purgeRows('Redemptions', function (x) { return !members[x.memberId]; });
+  out.answers = purgeRows('Answers', function (a) { return !members[a.memberId]; });
+  out.wishes = purgeRows('Wishes', function (w) { return !members[w.memberId]; });
+  out.messages = purgeRows('Messages', function (x) { return !members[x.by] || (x.to !== 'all' && !members[x.to]); });
+  out.sessions = purgeRows('Sessions', function (s) { return !members[s.memberId]; });
+  out.settings = purgeRows('Settings', function (s) { return /^read:/.test(s.key) && !members[s.key.slice(5)]; });
+  out.photos = 0; out.folders = 0;
+  try {
+    const root = DriveApp.getFolderById(setting('photoFolder') || MEDIA_FOLDER_ID), cutoff = Date.now() - 6 * 3600 * 1000, it = root.getFolders();
+    while (it.hasNext()) {
+      const f = it.next();
+      if (!folders[f.getId()]) { out.folders++; f.setTrashed(true); continue; }
+      const fi = f.getFiles();
+      while (fi.hasNext()) { const x = fi.next(); if (!keep[x.getId()] && x.getDateCreated().getTime() < cutoff) { x.setTrashed(true); out.photos++; } }
+    }
+  } catch (e) { out.driveError = String(e.message || e); }
+  return out;
 }
 
 /* ---------------- photos (private, one Drive folder per person) ---------------- */
@@ -445,6 +502,7 @@ function dailyDigest() {
   });
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
     .forEach(function (e) { push(everyoneBut(''), 'Today: ' + e.title, e.note || 'Tap to see the details.', 'cal'); });
+  try { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { runCleanup(); } finally { lock.releaseLock(); } } catch (e) {}
 }
 
 /* ---------------- relatives: link two people already in the family ---------------- */
