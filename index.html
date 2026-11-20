@@ -681,6 +681,21 @@ html,body{overflow:hidden}
 .erow{display:flex;gap:12px;align-items:flex-start;padding:2px 0 12px}.erow>span{font-size:20px;width:26px;text-align:center}
 .rsvp{display:flex;gap:8px;margin-top:10px}.rsvp button{flex:1;padding:11px 0;border-radius:1000px;background:var(--fill);font-weight:600;font-size:15px;color:var(--ink)}.rsvp button.on{color:#fff}.rsvp button.yes.on{background:#34C759}.rsvp button.maybe.on{background:#FF9F0A}.rsvp button.no.on{background:#FF453A}
 .chip.rs.yes{background:#34C759;color:#fff}.chip.rs.maybe{background:#FF9F0A;color:#fff}.chip.rs.no{background:#FF453A;color:#fff}
+.tkt{margin:6px 0 4px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.12))}
+.tk-top,.tk-bot{background:var(--card);padding:18px 18px}
+.tk-top{display:flex;align-items:stretch;gap:6px;border-radius:26px 26px 0 0;padding-bottom:20px;-webkit-mask:radial-gradient(circle 12px at 0 100%,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% 100%,#0000 97%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle 12px at 0 100%,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% 100%,#0000 97%,#000) right/51% 100% no-repeat}
+.tk-bot{border-radius:0 0 26px 26px;margin-top:0;padding-top:20px;background-image:linear-gradient(90deg,var(--tert) 50%,transparent 0);background-size:10px 2px;background-repeat:repeat-x;background-position:12px 0;-webkit-mask:radial-gradient(circle 12px at 0 0,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% 0,#0000 97%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle 12px at 0 0,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% 0,#0000 97%,#000) right/51% 100% no-repeat}
+.tk-side{flex:1;min-width:0}.tk-side.r{text-align:right}
+.tk-side small,.tk-bot small{display:block;font-size:11px;line-height:14px;font-weight:700;letter-spacing:.8px;color:var(--muted)}
+.tk-code{font-size:34px;line-height:40px;font-weight:800;letter-spacing:.5px;color:var(--accent);margin-top:2px}
+.tk-city{font-size:14px;line-height:18px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-time{font-size:26px;line-height:32px;font-weight:700;margin-top:10px;letter-spacing:-.3px}
+.tk-date{font-size:14px;line-height:18px;color:var(--muted)}
+.tk-term{display:inline-block;margin-top:10px;padding:3px 10px;border-radius:1000px;background:var(--fill3);font-size:13px;font-weight:600}
+.tk-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--accent);flex:none;width:54px}.tk-mid svg{transform:rotate(90deg)}
+.tk-fl{font-size:12px;font-weight:700;padding:3px 8px;border-radius:1000px;background:var(--fill3);color:var(--ink);white-space:nowrap}
+.tk-ppl{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}.tk-ppl>div{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.tk-note{margin-top:14px;font-size:14px;line-height:19px;color:var(--muted);white-space:pre-wrap}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1009,7 +1024,7 @@ function upcomingCelebrations(){
   for (const e of st.db.events){
     const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
     const d = e.yearly === '1' ? nextOcc(base) : pDate(base); if (d < t0) continue;
-    out.push({ d, emoji: e.emoji || '📅', title: e.title, sub: [e.travel ? '✈️ ' + niceTrip(e.travel) : '', e.dinner ? '🍽 ' + dinnerTxt(e) : '', e.note || ''].filter(Boolean).join(' · '), at: e.at, eid: e.id, by: e.by });
+    out.push({ d, emoji: e.emoji || '📅', title: e.title, sub: e.kind === 'flight' ? '' : (e.note || ''), at: e.kind === 'flight' ? '' : e.at, dinner: e.kind === 'flight' ? '' : e.dinner, venue: e.venue, flight: e.kind === 'flight' ? e : null, eid: e.id, by: e.by });
   }
   return out.sort((a, b) => a.d - b.d);
 }
@@ -1019,10 +1034,17 @@ const inDays = d => { const n = Math.round((d - pDate(today())) / 864e5); return
 function skyOf(tz){ let h = 12; try { h = Number(new Intl.DateTimeFormat('en-GB', { hour:'numeric', hourCycle:'h23', timeZone:tz }).format(new Date())); } catch(e){} return h >= 20 || h < 5 ? 'night' : h < 7 ? 'dawn' : h < 17 ? 'day' : 'dusk'; }
 function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
 function evRow(e){
-  let times = '';
-  if (e.at){ const t = new Date(e.at); const f = tz => new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit', timeZone:tz }).format(t); times = f(undefined).replace(' ', '\u00A0') + zones().filter(z => z.tz !== Intl.DateTimeFormat().resolvedOptions().timeZone).map(z => ` · ${flag(z.country)}\u00A0${f(z.tz).replace(' ', '\u00A0')}`).join(''); }
+  let sub = '';
+  if (e.flight) sub = flightLine(e.flight);
+  else {
+    const bits = [];
+    if (e.at) bits.push(new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(e.at)).replace(' ', ' '));
+    if (e.dinner) bits.push('🍽 ' + dinnerTxt(e, true));
+    if (e.sub) bits.push(e.sub);
+    sub = bits.join(' · ');
+  }
   const click = e.eid ? `onclick="eventSheet('${e.eid}')"` : e.mid ? `onclick="profileSheet('${e.mid}')"` : '';
-  return `<div class="ev" ${click}><div class="d"><small>${MON[e.d.getMonth()]}</small>${e.d.getDate()}</div><div class="grow"><div class="b">${esc(e.title)}</div><div class="small muted">${esc([times, e.sub].filter(Boolean).join(' · '))}</div></div><span class="chip ${inDays(e.d).startsWith('Today') ? 'clay' : ''}">${inDays(e.d)}</span></div>`;
+  return `<div class="ev" ${click}><div class="d"><small>${MON[e.d.getMonth()]}</small>${e.d.getDate()}</div><div class="grow"><div class="b">${esc(e.title)}</div><div class="small muted">${esc(sub)}</div></div><span class="chip ${inDays(e.d).startsWith('Today') ? 'clay' : ''}">${inDays(e.d)}</span></div>`;
 }
 
 /* ---------- kids: points ---------- */
@@ -1823,7 +1845,7 @@ function vCal(){
   const months = `<div class="calgrid">` + Object.keys(g).sort().map(k => `<div class="mblock"><div class="sec"><h2>${MON[g[k][0].d.getMonth()]} ${g[k][0].d.getFullYear()}</h2></div><div class="card">${g[k].map(evRow).join('')}</div></div>`).join('') + `</div>`;
   return topBar('Family dates', 'Birthdays, anniversaries and celebrations') +
     `<div class="calbar"><div class="seg">${[['people', 'Birthdays & anniversaries'], ['cele', 'Celebrations']].map(([k, l]) => `<button class="${seg === k ? 'on' : ''}" onclick="st.calSeg='${k}';Motion.enter=true;Motion.haptic();render()">${l}</button>`).join('')}</div>` +
-    (seg === 'cele' && !isKid(me()) ? `<div class="row calacts"><button class="btn sm grow" onclick="eventForm()">+ Add a date</button>${isAdmin() ? `<button class="btn sm line grow" onclick="festSheet()">Choose celebrations</button>` : ''}</div>` : '') + '</div>' +
+    (seg === 'cele' && !isKid(me()) ? `<div class="row calacts"><button class="btn sm grow" onclick="eventForm()">+ Date</button><button class="btn sm line grow" onclick="flightForm()">✈️ Flight</button>${isAdmin() ? `<button class="btn sm line grow" onclick="festSheet()">Celebrations</button>` : ''}</div>` : '') + '</div>' +
     (up.length ? months : `<div class="card empty">${seg === 'people' ? 'Birthdays and anniversaries appear here when people add them to their profile.' : 'No celebrations yet. Add a family date or choose celebrations.'}</div>`);
 }
 function festSheet(){
@@ -1831,8 +1853,35 @@ function festSheet(){
   openSheet(() => `<div class="sh"><h2>Celebrations</h2><button class="x" onclick="closeSheet()">×</button></div><p class="small muted" style="margin:0 16px 4px">Choose the ones your family celebrates. They show in Dates, in Coming up on Home, and as a greeting on the day.</p><form onsubmit="return submitFest(event)">${FEST.map(f => `<label class="check"><input type="checkbox" name="k" value="${f[0]}" ${on.includes(f[0]) ? 'checked' : ''}><span class="grow">${f[2]} ${esc(f[1])}</span>${MOON.includes(f[0]) ? '<span class="small muted">moon</span>' : ''}</label>`).join('')}<button class="btn block">Save</button></form>`);
 }
 function submitFest(ev){ const v = new FormData(ev.target).getAll('k').join(',') || 'none'; busy(ev, async () => { if (DEMO) st.db.settings.celebrations = v; else { await api('settings', { celebrations: v }); await sync(); } closeSheet(); render(); toast('Saved'); }, 'Saving…'); return false; }
-const niceTrip = d => { const t = pDate(d); return isNaN(t) ? '' : t.getDate() + ' ' + MON[t.getMonth()]; };
-const dinnerTxt = e => { const t = new Date(e.dinner); if (isNaN(t)) return ''; return new Intl.DateTimeFormat([], { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }).format(t) + (e.venue ? ' · ' + e.venue : ''); };
+const tmFmt = (iso, tz) => { try { return new Intl.DateTimeFormat('en-US', { hour:'numeric', minute:'2-digit', timeZone:tz || undefined }).format(new Date(iso)).replace(' ', ' '); } catch(x){ return ''; } };
+const dtFmt = (iso, tz) => { try { return new Intl.DateTimeFormat([], { weekday:'short', day:'numeric', month:'short', timeZone:tz || undefined }).format(new Date(iso)); } catch(x){ return ''; } };
+const dinnerTxt = (e, short) => { const t = new Date(e.dinner); if (isNaN(t)) return ''; const same = e.date && ymd(t) === e.date; return (short || same ? tmFmt(e.dinner) : new Intl.DateTimeFormat([], { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }).format(t).replace(' ', ' ')) + (e.venue ? ' · ' + e.venue : ''); };
+const flightLine = e => (e.dep ? tmFmt(e.dep, e.fromTz) : '') + ' → ' + (e.arr ? tmFmt(e.arr, e.toTz) : '');
+/* a wall-clock time at an airport -> exact moment */
+function zonedIso(date, time, tz){
+  const [y, m, d] = date.split('-').map(Number), [h, mi] = (time || '00:00').split(':').map(Number);
+  const want = Date.UTC(y, m - 1, d, h, mi);
+  const off = t => { const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone:tz, hourCycle:'h23', year:'numeric', month:'numeric', day:'numeric', hour:'numeric', minute:'numeric' }).formatToParts(new Date(t)).map(x => [x.type, x.value])); return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - t; };
+  let t = want - off(want); t = want - off(t);
+  return new Date(t).toISOString();
+}
+const wallIn = (iso, tz) => { const x = new Intl.DateTimeFormat('sv-SE', { timeZone:tz, hourCycle:'h23', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }).format(new Date(iso)).split(' '); return { d:x[0], t:x[1] }; };
+const AIRPORTS = { DXB:['Dubai','Asia/Dubai'], DWC:['Dubai','Asia/Dubai'], AUH:['Abu Dhabi','Asia/Dubai'], SHJ:['Sharjah','Asia/Dubai'], DOH:['Doha','Asia/Qatar'], RUH:['Riyadh','Asia/Riyadh'], JED:['Jeddah','Asia/Riyadh'], MCT:['Muscat','Asia/Muscat'], KWI:['Kuwait','Asia/Kuwait'], BAH:['Bahrain','Asia/Bahrain'],
+  DEL:['Delhi','Asia/Kolkata'], BOM:['Mumbai','Asia/Kolkata'], JAI:['Jaipur','Asia/Kolkata'], BLR:['Bengaluru','Asia/Kolkata'], MAA:['Chennai','Asia/Kolkata'], HYD:['Hyderabad','Asia/Kolkata'], CCU:['Kolkata','Asia/Kolkata'], AMD:['Ahmedabad','Asia/Kolkata'], COK:['Kochi','Asia/Kolkata'], GOI:['Goa','Asia/Kolkata'], PNQ:['Pune','Asia/Kolkata'], UDR:['Udaipur','Asia/Kolkata'], LKO:['Lucknow','Asia/Kolkata'], KTM:['Kathmandu','Asia/Kathmandu'], CMB:['Colombo','Asia/Colombo'],
+  MNL:['Manila','Asia/Manila'], CEB:['Cebu','Asia/Manila'], SIN:['Singapore','Asia/Singapore'], BKK:['Bangkok','Asia/Bangkok'], KUL:['Kuala Lumpur','Asia/Kuala_Lumpur'], HKG:['Hong Kong','Asia/Hong_Kong'], NRT:['Tokyo','Asia/Tokyo'], HND:['Tokyo','Asia/Tokyo'], ICN:['Seoul','Asia/Seoul'], SYD:['Sydney','Australia/Sydney'], MEL:['Melbourne','Australia/Melbourne'], AKL:['Auckland','Pacific/Auckland'],
+  LHR:['London','Europe/London'], LGW:['London','Europe/London'], CDG:['Paris','Europe/Paris'], FRA:['Frankfurt','Europe/Berlin'], AMS:['Amsterdam','Europe/Amsterdam'], MAD:['Madrid','Europe/Madrid'], BCN:['Barcelona','Europe/Madrid'], FCO:['Rome','Europe/Rome'], ZRH:['Zurich','Europe/Zurich'], IST:['Istanbul','Europe/Istanbul'],
+  JFK:['New York','America/New_York'], EWR:['Newark','America/New_York'], ORD:['Chicago','America/Chicago'], LAX:['Los Angeles','America/Los_Angeles'], SFO:['San Francisco','America/Los_Angeles'], YYZ:['Toronto','America/Toronto'], MIA:['Miami','America/New_York'], CAI:['Cairo','Africa/Cairo'], JNB:['Johannesburg','Africa/Johannesburg'], NBO:['Nairobi','Africa/Nairobi'] };
+function tzOptions(cur){
+  const seen = new Set(), list = [];
+  for (const [, v] of Object.entries(AIRPORTS)) if (!seen.has(v[1])){ seen.add(v[1]); list.push(v); }
+  if (cur && !seen.has(cur)) list.push([cur.split('/').pop().replace(/_/g, ' '), cur]);
+  return list.sort((a, b) => a[0].localeCompare(b[0])).map(v => `<option value="${v[1]}" ${v[1] === cur ? 'selected' : ''}>${esc(v[0])} · ${esc(v[1])}</option>`).join('');
+}
+function apFill(side){
+  const f = event.target.form, c = f[side + 'code'].value.toUpperCase().trim(); f[side + 'code'].value = c; const a = AIRPORTS[c]; if (!a) return;
+  if (!f[side + 'city'].value.trim()) f[side + 'city'].value = a[0];
+  const sel = f[side + 'tz']; if ([...sel.options].some(o => o.value === a[1])) sel.value = a[1];
+}
 const rsvpOf = e => { try { return JSON.parse(e.rsvp || '{}') || {}; } catch (x) { return {}; } };
 const ids = v => String(v || '').split(',').filter(Boolean);
 const RS = { yes:['Going', '✓'], maybe:['Maybe', '?'], no:['Can’t', '×'] };
@@ -1841,13 +1890,12 @@ function personPick(name, sel, skipMe){
   return `<div class="ppick">${list.map(m => `<label><input type="checkbox" name="${name}" value="${m.id}" ${s.includes(m.id) ? 'checked' : ''}><span>${av(m, 28)}<b>${esc(first(m))}</b></span></label>`).join('')}</div>`;
 }
 function eventSheet(id){
-  const e = st.db.events.find(x => x.id === id); if (!e) return; const a = M(e.by) || {}, inv = ids(e.invited), tw = ids(e.with), rs = rsvpOf(e);
+  const e = st.db.events.find(x => x.id === id); if (!e) return; if (e.kind === 'flight') return flightSheet(e); const a = M(e.by) || {}, inv = ids(e.invited), tw = ids(e.with), rs = rsvpOf(e);
   const names = l => l.map(i => M(i)).filter(Boolean).map(m => esc(first(m))).join(', ');
   const mine = me(), kids = st.db.members.filter(k => !k.passed && k.id !== mine.id && inv.includes(k.id) && (isAdmin() || isParentOf(mine, k)));
   const btns = who => `<div class="rsvp">${Object.keys(RS).map(k => `<button class="${rs[who] === k ? 'on ' + k : ''}" onclick="rsvpGo('${id}','${who}','${k}')">${RS[k][1]} ${RS[k][0]}</button>`).join('')}</div>`;
   const cnt = k => inv.filter(i => rs[i] === k).length;
   openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}
-    ${e.travel ? `<div class="erow"><span>✈️</span><div><b>Travelling</b><div class="small muted">${esc(new Intl.DateTimeFormat([], { weekday:'long', day:'numeric', month:'long' }).format(pDate(e.travel)))}</div></div></div>` : ''}
     ${e.dinner ? `<div class="erow"><span>🍽</span><div><b>Dinner</b><div class="small muted">${esc(dinnerTxt(e))}</div></div></div>` : ''}
     ${tw.length ? `<div class="erow"><span>👥</span><div><b>Travelling together</b><div class="small muted">${names(tw)}</div></div></div>` : ''}
     <div class="small muted">Added by ${esc(first(a))}${e.yearly === '1' ? ' · every year' : ''}</div></div>
@@ -1861,11 +1909,32 @@ async function rsvpGo(id, who, ans){
   try { const res = await api('rsvp', { id, memberId: who, answer: ans }); if (res && res.rsvp) e.rsvp = res.rsvp; LS.set('db', st.db); }
   catch(x){ toast(x.message); try { await sync(); } catch(_){} }
 }
+function flightSheet(e){
+  const tw = ids(e.with).map(i => M(i)).filter(Boolean), mine = e.by === st.db.me || isAdmin();
+  const side = (lab, code, city, iso, tz, term, right) => `<div class="tk-side${right ? ' r' : ''}"><small>${lab}</small><div class="tk-code">${esc(code || city.slice(0, 3).toUpperCase())}</div><div class="tk-city">${esc(city)}</div><div class="tk-time">${tmFmt(iso, tz)}</div><div class="tk-date">${esc(dtFmt(iso, tz))}</div>${term ? `<div class="tk-term">${/^\d+[A-Za-z]?$/.test(term) ? 'Terminal ' : ''}${esc(term)}</div>` : ''}</div>`;
+  openSheet(() => `<div class="sh"><h2>✈️ ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div>
+  <div class="tkt"><div class="tk-top">${side('DEPARTS', e.fromCode, e.fromCity, e.dep, e.fromTz, e.fromTerm)}<div class="tk-mid"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>${e.flightNo ? `<span class="tk-fl">${esc(e.flightNo)}</span>` : ''}</div>${side('ARRIVES', e.toCode, e.toCity, e.arr, e.toTz, e.toTerm, true)}</div>
+  <div class="tk-bot"><small>TRAVELLING</small>${tw.length ? `<div class="tk-ppl">${tw.map(m => `<div>${av(m, 38)}<span>${esc(first(m))}</span></div>`).join('')}</div>` : '<div class="small muted">Nobody added yet</div>'}${e.note ? `<div class="tk-note">${esc(e.note)}</div>` : ''}</div></div>
+  <div class="small muted" style="margin:8px 6px 14px">Added by ${esc(first(M(e.by) || {}))}. Times are local to each airport.</div>
+  ${mine ? `<button class="btn ghost block" onclick="flightForm('${e.id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${e.id}')">Delete</button>` : ''}`, true);
+}
+function flightForm(id){
+  const e = id ? st.db.events.find(x => x.id === id) : { fromTz:'Asia/Dubai', toTz:'Asia/Kolkata', with:st.db.me }, dp = e.dep ? wallIn(e.dep, e.fromTz) : { d:'', t:'' }, ar = e.arr ? wallIn(e.arr, e.toTz) : { d:'', t:'' };
+  const part = (k, lab, code, city, tz, term, w) => `<div class="card"><div class="b" style="margin-bottom:4px">${lab}</div><div class="two"><div><label>Airport code</label><input type="text" name="${k}code" maxlength="4" autocapitalize="characters" oninput="apFill('${k}')" value="${esc(code || '')}" placeholder="DXB"></div><div><label>City</label><input type="text" name="${k}city" required maxlength="40" value="${esc(city || '')}" placeholder="Dubai"></div></div><label>Time zone of the airport</label><select name="${k}tz">${tzOptions(tz)}</select><div class="two"><div><label>Date</label><input type="date" name="${k}date" required value="${w.d}"></div><div><label>Time</label><input type="time" name="${k}time" required value="${w.t}"></div></div><label>Terminal</label><input type="text" name="${k}term" maxlength="20" value="${esc(term || '')}" placeholder="2"></div>`;
+  openSheet(() => `<div class="sh"><h2>${id ? 'Edit flight' : 'Add a flight'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitFlight(event,'${id || ''}')">${part('f', '✈️ Departure', e.fromCode, e.fromCity, e.fromTz, e.fromTerm, dp)}${part('t', '🛬 Arrival', e.toCode, e.toCity, e.toTz, e.toTerm, ar)}<label>Flight number</label><input type="text" name="flightNo" maxlength="20" value="${esc(e.flightNo || '')}" placeholder="SG 58"><label>👥 Who is travelling</label>${personPick('with', e.with)}<label>Note (booking reference, seats…)</label><textarea name="note" maxlength="500">${esc(e.note || '')}</textarea><button class="btn block">Save flight</button></form>`);
+}
+function submitFlight(ev, id){
+  ev.preventDefault(); const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim();
+  const dep = zonedIso(g('fdate'), g('ftime'), g('ftz')), arr = zonedIso(g('tdate'), g('ttime'), g('ttz'));
+  if (new Date(arr) <= new Date(dep)){ toast('Arrival must be after departure'); return false; }
+  closeSheet();
+  save('Events', { ...(id ? { id } : {}), kind:'flight', emoji:'✈️', title: g('fcity') + ' to ' + g('tcity'), date: g('fdate'), at: dep, yearly:'0', dinner:'', venue:'', invited:'',
+    dep, arr, fromCode:g('fcode').toUpperCase(), fromCity:g('fcity'), fromTz:g('ftz'), fromTerm:g('fterm'), toCode:g('tcode').toUpperCase(), toCity:g('tcity'), toTz:g('ttz'), toTerm:g('tterm'), flightNo:g('flightNo'), with:f.getAll('with').join(','), note:g('note') }).catch(() => {}); return false;
+}
 function eventForm(id){
-  const e = id ? st.db.events.find(x => x.id === id) : { emoji:'🎉' }, d = e.at ? new Date(e.at) : null, dn = e.dinner ? new Date(e.dinner) : null;
+  const e = id ? st.db.events.find(x => x.id === id) : { emoji:'🎉' }; if (e.kind === 'flight') return flightForm(id);
+  const d = e.at ? new Date(e.at) : null, dn = e.dinner ? new Date(e.dinner) : null;
   openSheet(() => `<div class="sh"><h2>${id ? 'Edit date' : 'Add a date'}</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitEvent(event,'${id || ''}')"><div class="two" style="grid-template-columns:80px 1fr"><div><label>Icon</label><input type="text" name="emoji" maxlength="4" value="${esc(e.emoji || '')}"></div><div><label>What</label><input type="text" name="title" required maxlength="80" value="${esc(e.title || '')}" placeholder="Family video call"></div></div><div class="two"><div><label>Date</label><input type="date" name="date" required value="${esc(d ? ymd(d) : e.date || '')}"></div><div><label>Time (optional)</label><input type="time" name="time" value="${d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : ''}"></div></div><p class="small muted">Enter the time where you are. Everyone sees it in their own country's time.</p><label class="check"><input type="checkbox" name="yearly" ${e.yearly === '1' ? 'checked' : ''}>Repeats every year</label>
-  <label>✈️ Travel date (optional)</label><input type="date" name="travel" value="${esc(e.travel || '')}">
-  <label>👥 Travelling together</label><p class="small muted" style="margin:0 0 6px">Who is travelling with you.</p>${personPick('with', e.with, true)}
   <label>🍽 Dinner (optional)</label><div class="two"><div><input type="date" name="dday" value="${dn ? ymd(dn) : ''}"></div><div><input type="time" name="dtime" value="${dn ? pad(dn.getHours()) + ':' + pad(dn.getMinutes()) : ''}"></div></div><input type="text" name="venue" maxlength="120" style="margin-top:8px" value="${esc(e.venue || '')}" placeholder="Where? e.g. Dad's place, Nobu">
   <label>💌 Invite &amp; ask for RSVP</label><p class="small muted" style="margin:0 0 6px">They get a notification and can answer Going, Maybe or Can't.</p>${personPick('invited', e.invited, true)}
   <label>Note</label><textarea name="note" maxlength="500">${esc(e.note || '')}</textarea><button class="btn block">Save</button></form>`);
@@ -1874,7 +1943,7 @@ function submitEvent(ev, id){
   ev.preventDefault(); const f = new FormData(ev.target), date = f.get('date'), time = f.get('time'), dd = f.get('dday'), dt = f.get('dtime');
   closeSheet();
   save('Events', { ...(id ? { id } : {}), title:f.get('title').trim(), emoji:f.get('emoji').trim(), date, at: time ? new Date(date + 'T' + time).toISOString() : '', yearly: f.get('yearly') ? '1' : '0', note:f.get('note').trim(),
-    travel: f.get('travel') || '', dinner: dd ? new Date(dd + 'T' + (dt || '19:00')).toISOString() : '', venue: f.get('venue').trim(), with: f.getAll('with').join(','), invited: f.getAll('invited').join(',') }).catch(() => {}); return false;
+    dinner: dd ? new Date(dd + 'T' + (dt || '19:00')).toISOString() : '', venue: f.get('venue').trim(), invited: f.getAll('invited').join(',') }).catch(() => {}); return false;
 }
 
 /* ---------- RELATIVES: pick someone already in the family and say how they are related ---------- */

@@ -15,7 +15,7 @@ const SCHEMA = {
   Posts: ['id','by','text','photo','ts'],
   Comments: ['id','postId','by','text','ts'],
   Reactions: ['id','postId','by','emoji','ts'],
-  Events: ['id','by','title','emoji','date','at','yearly','note','ts','travel','dinner','venue','with','invited','rsvp'],
+  Events: ['id','by','title','emoji','date','at','yearly','note','ts','travel','dinner','venue','with','invited','rsvp','kind','dep','arr','fromCode','fromCity','fromTz','fromTerm','toCode','toCity','toTz','toTerm','flightNo'],
   Habits: ['id','by','title','emoji','points','who','days','active','ts'],
   Logs: ['id','habitId','memberId','date','points','by','ts'],
   Rewards: ['id','by','title','emoji','cost','who','active','ts'],
@@ -258,6 +258,11 @@ function cleanEvent(r, old) {
   r.travel = /^\d{4}-\d{2}-\d{2}$/.test(r.travel || '') ? r.travel : '';
   r.dinner = isNaN(Date.parse(r.dinner || '')) ? '' : String(r.dinner);
   r.venue = String(r.venue || '').slice(0, 120);
+  r.kind = r.kind === 'flight' ? 'flight' : '';
+  ['dep', 'arr'].forEach(function (k) { r[k] = r.kind && !isNaN(Date.parse(r[k] || '')) ? String(r[k]) : ''; });
+  ['fromTz', 'toTz'].forEach(function (k) { r[k] = /^[A-Za-z_]+(\/[A-Za-z_+\-0-9]+)*$/.test(r[k] || '') ? String(r[k]) : ''; });
+  ['fromCode', 'toCode'].forEach(function (k) { r[k] = String(r[k] || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
+  ['fromCity', 'toCity', 'fromTerm', 'toTerm', 'flightNo'].forEach(function (k) { r[k] = String(r[k] || '').slice(0, 40); });
   // Answers belong to the people who gave them: keep them, drop those of anyone no longer invited.
   let a = {}; try { a = JSON.parse(old && old.rsvp || '{}') || {}; } catch (e) {}
   const keep = {}; r.invited.split(',').forEach(function (id) { if (a[id]) keep[id] = a[id]; });
