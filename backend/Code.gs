@@ -49,6 +49,7 @@ function setup() {
   DriveApp.getFolderById(setting('photoFolder')).getName();   // checks the Media folder can be reached
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'dailyDigest') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('dailyDigest').timeBased().everyDays(1).atHour(8).create();
+  ensureTriggers();
   const msg = 'Ready!\n\nYour family code is: ' + setting('familyCode') + '\n\nYou can change it in the Settings tab or inside the app.\nNow deploy this script as a Web app.';
   Logger.log(msg);
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
@@ -89,7 +90,7 @@ function route(q) {
     case 'link': return link(me, q);
     case 'put': return put(me, q.table, q.row || {});
     case 'del': return del(me, q.table, q.id);
-    case 'cleanup': if (me.role !== 'admin') throw new Error('Only an admin can do this'); return runCleanup();
+    case 'cleanup': if (me.role !== 'admin') throw new Error('Only an admin can do this'); try { ensureTriggers(); } catch (e) {} return runCleanup();
     case 'upload': return upload(me, q.dataUrl);
     case 'img': return img(q.id);
     case 'setPin': setPin(me, q.pin); return {};
@@ -550,14 +551,12 @@ function dailyDigest() {
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
     .forEach(function (e) {
       if (e.kind === 'flight' && e.dep && e.arr) {
+        if (Date.parse(e.dep) < Date.now()) return;   // already in the air: a notice now would be late
         const f = function (iso, tz) { try { return Utilities.formatDate(new Date(iso), tz || tz0, 'h:mm a'); } catch (x) { return ''; } };
         push(everyoneBut(''), 'Flight today: ' + e.title, f(e.dep, e.fromTz) + ' → ' + f(e.arr, e.toTz) + (e.flightNo ? ' · ' + e.flightNo : ''), 'cal');
       } else push(everyoneBut(''), 'Today: ' + e.title, e.note || 'Tap to see the details.', 'cal');
     });
-  // The day before a flight, remind the people on it.
-  const tom = Utilities.formatDate(new Date(Date.now() + 864e5), tz, 'yyyy-MM-dd');
-  readAll('Events').filter(function (e) { return e.kind === 'flight' && e.date === tom && e.with; })
-    .forEach(function (e) { push(String(e.with).split(','), 'Flight tomorrow: ' + e.title, (e.flightNo ? e.flightNo + ' · ' : '') + 'Check your documents and bags.', 'cal'); });
+  ensureTriggers();
   try { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { runCleanup(); } finally { lock.releaseLock(); } } catch (e) {}
 }
 
@@ -613,4 +612,20 @@ function saveSettings(me, q) {
   if (q.familyCode) { const c = String(q.familyCode).trim(); if (c.length < 6) throw new Error('Family code needs at least 6 characters'); setSetting('familyCode', c); }
   if (q.sessionHours !== undefined) { const h = Math.max(0, Math.min(8760, Math.round(Number(q.sessionHours) || 0))); setSetting('sessionHours', String(h)); CacheService.getScriptCache().put('sessionHours', String(h), 600); }
   return {};
+}
+
+
+/* The evening reminder: people on a flight in the next 24 hours get the times, so an early-morning flight is not missed. */
+function flightEve() {
+  const now = Date.now();
+  readAll('Events').filter(function (e) { const t = Date.parse(e.dep || ''); return e.kind === 'flight' && e.with && t > now + 36e5 && t <= now + 864e5; })
+    .forEach(function (e) {
+      const f = function (iso, tz) { try { return Utilities.formatDate(new Date(iso), tz || Session.getScriptTimeZone(), 'h:mm a'); } catch (x) { return ''; } };
+      push(String(e.with).split(','), 'Flight coming up: ' + e.title, f(e.dep, e.fromTz) + ' → ' + f(e.arr, e.toTz) + (e.flightNo ? ' · ' + e.flightNo : '') + '. Check your documents and bags.', 'cal');
+    });
+}
+function ensureTriggers() {
+  const have = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
+  if (have.indexOf('flightEve') < 0) ScriptApp.newTrigger('flightEve').timeBased().everyDays(1).atHour(18).create();
+  if (have.indexOf('dailyDigest') < 0) ScriptApp.newTrigger('dailyDigest').timeBased().everyDays(1).atHour(8).create();
 }
