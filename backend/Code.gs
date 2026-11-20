@@ -537,7 +537,7 @@ function announce(me, table, r, old) {
 /** Runs every morning (trigger created by setup): birthdays and family dates happening today. */
 function dailyDigest() {
   const tz = Session.getScriptTimeZone(), md = Utilities.formatDate(new Date(), tz, 'MM-dd'), ymd = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), yr = Number(ymd.slice(0, 4));
-  const ms = readAll('Members'), seen = {};
+  const tz0 = tz, ms = readAll('Members'), seen = {};
   ms.filter(function (m) { return m.birth && !m.passed && m.birth.slice(5) === md; })
     .forEach(function (m) { push(everyoneBut(m.id), "It's " + shortName(m) + "'s birthday today", 'Tap to send your wishes.', 'home'); push([m.id], 'Happy birthday, ' + shortName(m) + '!', 'With love from the whole family.', 'home'); });
   ms.forEach(function (m) {
@@ -548,7 +548,16 @@ function dailyDigest() {
     push(everyoneBut(''), "It's " + shortName(m) + ' & ' + shortName(sp) + "'s anniversary today", yrs > 0 ? yrs + (yrs === 1 ? ' year' : ' years') + ' together.' : 'Send your wishes.', 'home');
   });
   readAll('Events').filter(function (e) { return e.date && (e.yearly === '1' ? e.date.slice(5) === md : e.date === ymd); })
-    .forEach(function (e) { push(everyoneBut(''), 'Today: ' + e.title, e.note || 'Tap to see the details.', 'cal'); });
+    .forEach(function (e) {
+      if (e.kind === 'flight' && e.dep && e.arr) {
+        const f = function (iso, tz) { try { return Utilities.formatDate(new Date(iso), tz || tz0, 'h:mm a'); } catch (x) { return ''; } };
+        push(everyoneBut(''), 'Flight today: ' + e.title, f(e.dep, e.fromTz) + ' → ' + f(e.arr, e.toTz) + (e.flightNo ? ' · ' + e.flightNo : ''), 'cal');
+      } else push(everyoneBut(''), 'Today: ' + e.title, e.note || 'Tap to see the details.', 'cal');
+    });
+  // The day before a flight, remind the people on it.
+  const tom = Utilities.formatDate(new Date(Date.now() + 864e5), tz, 'yyyy-MM-dd');
+  readAll('Events').filter(function (e) { return e.kind === 'flight' && e.date === tom && e.with; })
+    .forEach(function (e) { push(String(e.with).split(','), 'Flight tomorrow: ' + e.title, (e.flightNo ? e.flightNo + ' · ' : '') + 'Check your documents and bags.', 'cal'); });
   try { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { runCleanup(); } finally { lock.releaseLock(); } } catch (e) {}
 }
 

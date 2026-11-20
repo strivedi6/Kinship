@@ -696,6 +696,7 @@ html,body{overflow:hidden}
 .tk-fl{font-size:12px;font-weight:700;padding:3px 8px;border-radius:1000px;background:var(--fill3);color:var(--ink);white-space:nowrap}
 .tk-ppl{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}.tk-ppl>div{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
 .tk-note{margin-top:14px;font-size:14px;line-height:19px;color:var(--muted);white-space:pre-wrap}
+.bday.evt{background:linear-gradient(135deg,#0A84FF,#5E5CE6);color:#fff}.bday.evt.fl{background:linear-gradient(135deg,#0A84FF,#30B0C7)}.bday.evt .ey,.bday.evt .bd-sub{color:rgba(255,255,255,.92)}.bday.evt .bd-nm{color:#fff}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1097,7 +1098,7 @@ const topBar = (title, sub) => `<div class="bar"><h1>${esc(title)}</h1><button c
 
 /* ---------- HOME ---------- */
 function vHome(){
-  const m = me(), ms = st.db.members.filter(x => !x.passed), zs = zones(), up = upcoming().slice(0, 3);
+  const m = me(), ms = st.db.members.filter(x => !x.passed), zs = zones(), up = upcoming().filter(x => x.d > pDate(today())).slice(0, 5);
   const h = new Date().getHours(), greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   const kids = kidsList(), ws = weekStart();
   const board = kids.map(k => [k, pointsOf(k.id, ws)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1107,7 +1108,7 @@ function vHome(){
   `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
   (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
   (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock sky-${skyOf(z.tz)}"><div class="small b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
-  `<div class="duo"><div class="col"><div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Add birthdays to profiles and they will show up here.</div>'}</div></div>` +
+  `<div class="duo"><div class="col"><div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Nothing coming up. Birthdays, flights and celebrations will show here.</div>'}</div></div>` +
   (board.length ? `<div class="col"><div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div></div>` : '') +
   `</div><div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">View all</a></div>` + (latest.length ? `<div class="feedgrid latest">${latest.map(postCard).join('')}</div>` : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
 }
@@ -1461,6 +1462,14 @@ function todayTiles(){
     }
   }
   for (const f of festToday()) out.push(`<button class="bday fest" data-fx="${fxOf(f[0])}" style="--g:linear-gradient(135deg,${f[4]})" onclick="wishPick('f','${f[0]}')"><div class="bd-in"><span class="ey">${ICO_STAR} Today</span><div class="row" style="gap:12px;margin-top:6px"><div class="grow"><div class="bd-nm">Happy ${esc(f[1])}!</div><div class="bd-sub">From our family to yours</div></div></div><p class="bd-note">Tap to send your wishes to the family.</p></div>${circle('f' + f[0])}</button>`);
+  const t = today(), md2 = t.slice(5);
+  for (const e of st.db.events){
+    const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
+    if (e.yearly === '1' ? base.slice(5) !== md2 : base !== t) continue;
+    const fl = e.kind === 'flight', who = ids(e.with).map(i => M(i)).filter(Boolean);
+    const sub = fl ? flightLine(e) : [e.at ? tmFmt(e.at) : '', e.dinner ? '🍽 ' + dinnerTxt(e, true) : '', e.note || ''].filter(Boolean).join(' · ');
+    out.push(`<button class="bday evt ${fl ? 'fl' : ''}" onclick="eventSheet('${e.id}')"><div class="bd-in"><span class="ey">${fl ? '✈️ Flight today' : '📅 Today'}</span><div class="row" style="gap:12px;margin-top:8px"><div class="grow"><div class="bd-nm">${fl ? '' : esc(e.emoji || '') + ' '}${esc(e.title)}</div>${sub ? `<div class="bd-sub">${esc(sub)}</div>` : ''}</div>${fl && who.length ? `<div class="tk-ppl" style="margin:0;gap:0">${who.slice(0, 4).map((m, i) => `<div style="margin-left:${i ? -10 : 0}px">${av(m, 36)}</div>`).join('')}</div>` : ''}</div></div></button>`);
+  }
   return out.join('');
 }
 /* ---------- FX: canvas animations (same engine as the DXBAIPI app) ---------- */
