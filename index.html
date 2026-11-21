@@ -385,11 +385,11 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .msg.first{margin-top:8px}
 .mrow{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:88%}
 .mrow.first{margin-top:8px}
-.mav{width:34px;height:34px;flex:none}
+.mav{width:34px;height:34px;flex:none;cursor:pointer}
 .mav .av,.mav>*{width:34px;height:34px}
 .msg.g{max-width:100%;min-width:0;border-bottom-left-radius:6px}
 .gname{display:block;font-weight:700;font-size:14px;line-height:18px;margin-bottom:1px}
-.msg.g small{text-align:right}
+.msg.g small{text-align:left}
 .who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
 .msg small{display:block;font-size:11px;line-height:13px;opacity:.6;margin-top:2px;text-align:left;letter-spacing:0}.msg.me small{text-align:right}
 @keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
@@ -1775,7 +1775,7 @@ function msgsHtml(){
     if (t === 'all' && !mine){
       /* group chat: name on the first bubble of a run, photo beside the last one */
       const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
-      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav">${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${esc(m.text)}<small>${time(m.ts)}</small></div></div>`;
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${esc(m.text)}<small>${time(m.ts)}</small></div></div>`;
     } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}">${esc(m.text)}<small>${time(m.ts)}</small></div>`;
     prev = m.by; seenMsgs.add(m.id);
   }
