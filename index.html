@@ -701,6 +701,10 @@ html,body{overflow:hidden}
 .card>.ev:first-child,.card>.row:first-child{padding-top:0!important}.card>.ev:last-child,.card>.row:last-child{padding-bottom:0!important}
 .tflow{animation:tflow 1s linear infinite}@keyframes tflow{to{stroke-dashoffset:-18}}.tdot{filter:drop-shadow(0 0 4px #0088FF)}@media(prefers-reduced-motion:reduce){.tflow{animation:none}.tdot{display:none}}
 #app>.bar{padding-top:calc(22px + env(safe-area-inset-top))!important}
+.avpick{position:relative;display:block;width:112px;height:112px;margin:6px auto 16px;cursor:pointer}.avpick input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:0}.avpick .av{width:112px!important;height:112px!important}
+.avpick .cam{position:absolute;right:-6px;bottom:-4px;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--page);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--sheet),0 4px 14px rgba(0,0,0,.3);pointer-events:none}.avpick .cam svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sb-btn .runring{position:absolute;left:-4px;top:-4px;width:48px;height:48px;pointer-events:none;overflow:visible}.sb-btn .runring rect{fill:none;stroke-width:2.5;stroke-linecap:round}.sb-btn .runring .trk{stroke:rgba(52,199,89,.25)}.sb-btn .runring .run{stroke:#34C759;stroke-dasharray:24 76;animation:runline 1.6s linear infinite}.sb-btn.is-busy{opacity:1}
+#call.clive .c-id .ripple{border-color:rgba(52,199,89,.65);background:rgba(52,199,89,.10)}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -838,11 +842,11 @@ async function removeRow(table, id){
 /* One submit at a time: locks the form and its button until the server answers. */
 async function busy(ev, fn, label){
   if (ev && ev.preventDefault) ev.preventDefault();
-  const f = ev && ev.target ? ev.target.closest('form') || ev.target : null, b = f ? (f.matches('button') ? f : f.querySelector('button:not([type=button])')) : null;
+  const f = ev && ev.target ? ev.target.closest('form') || ev.target : null, b = f ? (f.matches('button') ? f : (f.id && document.querySelector(`button[form="${f.id}"]`)) || f.querySelector('button:not([type=button])')) : null;
   if (f && f.dataset.busy) return;
   const old = b ? b.innerHTML : '';
   if (f) f.dataset.busy = '1';
-  if (b){ b.classList.add('is-busy'); b.disabled = true; if (label) b.textContent = label;
+  if (b){ b.classList.add('is-busy'); b.disabled = true; if (label && !b.classList.contains('sb-btn')) b.textContent = label;
     const r = b.getBoundingClientRect(), w = r.width + 8, h = r.height + 8, rx = Math.min(h / 2, parseFloat(getComputedStyle(b).borderTopLeftRadius) + 4 || h / 2);
     b.insertAdjacentHTML('beforeend', `<svg class="runring" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><rect class="trk" x="1.25" y="1.25" width="${w - 2.5}" height="${h - 2.5}" rx="${rx}"/><rect class="run" x="1.25" y="1.25" width="${w - 2.5}" height="${h - 2.5}" rx="${rx}" pathLength="100"/></svg>`); }
   try { await fn(); } catch(e){ toast(e.message || 'Something went wrong'); }
@@ -2129,7 +2133,7 @@ function memberForm(id, preset){
   const sp = id ? spouseOf(src) : M(m.spouseId);
   const title = id ? (id === st.db.me ? 'My profile' : 'Edit ' + first(src)) : P.childOf || P.parentOf ? 'Add a child' : P.parentFor ? 'Add a parent of ' + first(M(P.parentFor)) : P.spouseOf ? 'Add spouse of ' + first(M(P.spouseOf)) : 'Add a family member';
   openSheet(() => `<div class="sb form"><div class="sgrab"><i></i></div><button type="submit" form="mf" class="sb-btn l ok" aria-label="Save"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div class="sb-t">${esc(title)}</div><button type="button" class="sb-btn r" onclick="closeSheet()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><form id="mf" onsubmit="return submitMember(event,'${id || ''}')">
-  <div class="row"><span id="avPrev">${av(m.name ? m : { name:'?' , id:'x'}, 64)}</span><div class="grow"><label style="margin-top:0">Photo</label><input type="file" accept="image/*" onchange="pickAvatar(this)"></div></div>
+  <label class="avpick" aria-label="Change photo"><span id="avPrev">${av(m.name ? m : { name:'?' , id:'x'}, 112)}</span><span class="cam"><svg viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1-1.5h6.6l1 1.5h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg></span><input type="file" accept="image/*" onchange="pickAvatar(this)"></label>
   <label>Full name</label><input type="text" name="name" required maxlength="60" value="${esc(m.name || '')}">
   <div class="two"><div><label>Called (nickname)</label><input type="text" name="nick" maxlength="30" value="${esc(m.nick || '')}"></div><div><label>I am</label><select name="gender"><option value="">Prefer not to say</option><option value="female" ${m.gender === 'female' ? 'selected' : ''}>Female</option><option value="male" ${m.gender === 'male' ? 'selected' : ''}>Male</option></select></div></div>
   <label>Date of birth${kidFlow ? '' : ' (if you know it)'}</label><input type="date" name="birth" max="${today()}" value="${esc(m.birth || '')}" ${kidFlow || id === st.db.me ? 'required' : ''}><p class="small muted" style="margin:6px 16px 0">Anyone under 18 is set up as a kid automatically.</p>
@@ -2146,7 +2150,7 @@ function memberForm(id, preset){
   <label>About</label><textarea name="about" maxlength="400">${esc(m.about || '')}</textarea>
   <button class="btn block" style="margin-top:14px">Save</button></form>`);
 }
-async function pickAvatar(inp){ if (!inp.files[0]) return; try { pendingAvatar = await squareAvatar(inp.files[0]); pendingCover = await compress(inp.files[0], 1080, .8); $('#avPrev').innerHTML = `<img class="av" src="${pendingAvatar}" style="width:64px;height:64px">`; } catch(e){ toast(e.message); } }
+async function pickAvatar(inp){ if (!inp.files[0]) return; try { pendingAvatar = await squareAvatar(inp.files[0]); pendingCover = await compress(inp.files[0], 1080, .8); $('#avPrev').innerHTML = `<img class="av" src="${pendingAvatar}" style="width:112px;height:112px">`; } catch(e){ toast(e.message); } }
 function submitMember(ev, id){
   const f = new FormData(ev.target), g = k => String(f.get(k) || '').trim(), P = formPreset || {};
   const row = { name:g('name'), nick:g('nick'), gender:g('gender'), birth:g('birth'), country:g('country'), city:g('city'), fatherId:g('fatherId'), motherId:g('motherId'), spouseId:g('spouseId'), anniv:g('anniv'), favFood:g('favFood'), favColor:g('favColor'), hobby:g('hobby'), askMe:g('askMe'), about:g('about') };
