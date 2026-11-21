@@ -604,7 +604,7 @@ html,body{overflow:hidden}
 }
 .cfx{position:fixed;inset:0;width:100%;height:100%;z-index:300;pointer-events:none;transition:opacity .5s}.cfx.out{opacity:0}
 .clock[class*=sky-]{position:relative;overflow:hidden;color:#fff;min-height:118px;display:flex;flex-direction:column;padding:14px 16px;isolation:isolate}
-.clock[class*=sky-] .t{color:#fff!important;font-size:34px;line-height:40px;font-weight:600;letter-spacing:-.5px;margin-top:2px}
+.clock[class*=sky-] .t{white-space:nowrap;color:#fff!important;font-size:34px;line-height:40px;font-weight:600;letter-spacing:-.5px;margin-top:2px}
 .clock[class*=sky-] .muted{color:rgba(255,255,255,.78)!important}.clock[class*=sky-] .small.b{font-weight:600}
 .clock[class*=sky-]>*{position:relative;z-index:1}
 .clock[class*=sky-]:before,.clock[class*=sky-]:after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none}
@@ -705,6 +705,28 @@ html,body{overflow:hidden}
 .avpick .cam{position:absolute;right:-6px;bottom:-4px;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--page);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--sheet),0 4px 14px rgba(0,0,0,.3);pointer-events:none}.avpick .cam svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .sb-btn .runring{position:absolute;left:-4px;top:-4px;width:48px;height:48px;pointer-events:none;overflow:visible}.sb-btn .runring rect{fill:none;stroke-width:2.5;stroke-linecap:round}.sb-btn .runring .trk{stroke:rgba(52,199,89,.25)}.sb-btn .runring .run{stroke:#34C759;stroke-dasharray:24 76;animation:runline 1.6s linear infinite}.sb-btn.is-busy{opacity:1}
 #call.clive .c-id .ripple{border-color:rgba(52,199,89,.65);background:rgba(52,199,89,.10)}
+.clock[class*=sky-]:before,.clock[class*=sky-]:after{content:none!important;display:none}
+.clock[class*=sky-]>.sk{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;container-type:inline-size;border-radius:inherit}
+.sk .stars i{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 5px 1px rgba(255,255,255,.7);animation:twk 3.6s ease-in-out infinite}
+.sk.k-dawn .stars,.sk.k-dusk .stars{opacity:.4}
+@keyframes twk{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
+.sk .orb{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;transition:left 1s,top 1s}
+.sk .orb .moon{width:100%;height:100%;display:block;filter:drop-shadow(0 0 8px rgba(225,232,255,.55));animation:moonfloat 7s ease-in-out infinite alternate}
+@keyframes moonfloat{from{transform:translateY(-1.5px)}to{transform:translateY(1.5px)}}
+.sk .sun{width:38px;height:38px;margin:-19px 0 0 -19px}
+.sk .sun:before{content:"";position:absolute;inset:-22px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,236,150,.55) 0 5deg,transparent 5deg 20deg);-webkit-mask:radial-gradient(circle,transparent 0 40%,#000 44%,transparent 72%);mask:radial-gradient(circle,transparent 0 40%,#000 44%,transparent 72%);animation:rays 40s linear infinite}
+.sk .sun u{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 40% 36%,#FFFBE0,#FFE066 45%,#FFB627);box-shadow:0 0 16px 7px rgba(255,205,70,.6),0 0 44px 18px rgba(255,175,50,.28);animation:sunpulse 4.5s ease-in-out infinite alternate}
+.sk .sun.low u{background:radial-gradient(circle at 40% 36%,#FFE9C2,#FF9F4A 55%,#FF6B2C);box-shadow:0 0 18px 8px rgba(255,130,50,.6),0 0 50px 20px rgba(255,110,40,.3)}
+@keyframes rays{to{transform:rotate(360deg)}}@keyframes sunpulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+.sk .cl{position:absolute;left:0;display:block;background:#fff;border-radius:999px;opacity:.62;filter:blur(1px);transform:translateX(-100px);animation:cloudgo 70s linear infinite}
+.sk .cl:before,.sk .cl:after{content:"";position:absolute;background:#fff;border-radius:50%}
+.sk .cl:before{width:46%;height:150%;left:14%;bottom:30%}.sk .cl:after{width:36%;height:120%;right:16%;bottom:35%}
+.sk.k-dawn .cl,.sk.k-dusk .cl{opacity:.5}.sk.k-night .cl{opacity:.13;background:#9AA7E6}.sk.k-night .cl:before,.sk.k-night .cl:after{background:#9AA7E6}
+@keyframes cloudgo{from{transform:translateX(-110px) scale(var(--s,1))}to{transform:translateX(calc(100cqw + 40px)) scale(var(--s,1))}}
+@media(prefers-reduced-motion:reduce){.sk *{animation:none!important}}
+.clock[class*=sky-]>:not(.sk){text-shadow:0 1px 8px rgba(0,20,70,.38)}
+/* portrait only: if a phone is turned sideways, ask for it to be turned back */
+@media(orientation:landscape) and (max-height:520px) and (pointer:coarse){body:before{content:"Please turn your phone upright";position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font:600 18px/1.3 -apple-system,system-ui,sans-serif;text-align:center;padding:24px}#app,#nav,#sheet,#call{visibility:hidden}}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1042,7 +1064,30 @@ function upcomingCelebrations(){
 const upcoming = () => [...upcomingPeople(), ...upcomingCelebrations()].sort((a, b) => a.d - b.d);
 const inDays = d => { const n = Math.round((d - pDate(today())) / 864e5); return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'in ' + n + ' days'; };
 /* day, dawn, dusk or night where they live */
-function skyOf(tz){ let h = 12; try { h = Number(new Intl.DateTimeFormat('en-GB', { hour:'numeric', hourCycle:'h23', timeZone:tz }).format(new Date())); } catch(e){} return h >= 20 || h < 5 ? 'night' : h < 7 ? 'dawn' : h < 17 ? 'day' : 'dusk'; }
+function skyOf(tz){ let h = 12; try { h = Number(new Intl.DateTimeFormat('en-GB', { hour:'numeric', hourCycle:'h23', timeZone:tz }).format(new Date())); } catch(e){} return h >= 19 || h < 5 ? 'night' : h < 7 ? 'dawn' : h < 17 ? 'day' : 'dusk'; }
+/* a live sky for each time-zone tile: sun and moon travel across it with the real local time, real moon phase, twinkling stars, drifting clouds */
+const SYN = 29.530588853;
+function moonAge(d = new Date()){ return (((d.getTime() / 864e5 + 2440587.5 - 2451550.1) / SYN) % 1 + 1) % 1; }   // 0 = new moon, .5 = full
+function moonSvg(uid){
+  const p = moonAge(), r = 16, rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2), wax = p < .5, cres = p < .25 || p > .75;
+  const lit = p < .02 || p > .98 ? '' : (p > .48 && p < .52) ? `M16 0A16 16 0 1 1 16 32A16 16 0 1 1 16 0Z` : wax
+    ? `M16 0A16 16 0 0 1 16 32A${rx} 16 0 0 ${cres ? 0 : 1} 16 0Z`
+    : `M16 0A16 16 0 0 0 16 32A${rx} 16 0 0 ${cres ? 1 : 0} 16 0Z`;
+  return `<svg class="moon" viewBox="0 0 32 32" aria-hidden="true"><defs><radialGradient id="mg${uid}" cx="40%" cy="38%" r="75%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#E9E6DA"/><stop offset="1" stop-color="#C9C6BA"/></radialGradient><clipPath id="mc${uid}"><path d="${lit}"/></clipPath></defs>
+    <circle cx="16" cy="16" r="16" fill="rgba(210,218,245,.16)"/>${lit ? `<path d="${lit}" fill="url(#mg${uid})"/><g clip-path="url(#mc${uid})" fill="#B8B4A6" opacity=".55"><circle cx="11" cy="11" r="3.2"/><circle cx="20" cy="9" r="1.8"/><circle cx="21" cy="20" r="4"/><circle cx="12" cy="22" r="2.2"/><circle cx="25" cy="14" r="1.3"/><circle cx="7" cy="17" r="1.5"/></g>` : ''}</svg>`;
+}
+function skyLayer(z, i){
+  let hf = 12; try { const pr = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { hour:'numeric', minute:'numeric', hourCycle:'h23', timeZone:z.tz }).formatToParts(new Date()).map(x => [x.type, x.value])); hf = Number(pr.hour) + Number(pr.minute) / 60; } catch(e){}
+  const k = skyOf(z.tz), day = hf >= 6 && hf < 18, prog = day ? (hf - 6) / 12 : (hf >= 18 ? hf - 18 : hf + 6) / 12;
+  const x = 12 + prog * 76, y = 76 - Math.sin(prog * Math.PI) * 60, low = prog < .14 || prog > .86;
+  let seed = 7; for (const c of z.country + k) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  let stars = '', clouds = '';
+  if (k !== 'day') for (let n = 0; n < 18; n++){ const sz = 1 + rnd() * 1.6; stars += `<i style="left:${(3 + rnd() * 94).toFixed(1)}%;top:${(4 + rnd() * 70).toFixed(1)}%;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;animation-duration:${(2.6 + rnd() * 3.4).toFixed(1)}s;animation-delay:-${(rnd() * 6).toFixed(1)}s"></i>`; }
+  for (let n = 0; n < 3; n++){ const w = 46 + rnd() * 40; clouds += `<b class="cl" style="top:${(8 + rnd() * 52).toFixed(0)}%;width:${w.toFixed(0)}px;height:${(w * .3).toFixed(0)}px;animation-duration:${(55 + rnd() * 45).toFixed(0)}s;animation-delay:-${(rnd() * 90).toFixed(0)}s;--s:${(.8 + rnd() * .5).toFixed(2)}"></b>`; }
+  const orb = day ? `<div class="orb sun${low ? ' low' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><u></u></div>` : `<div class="orb" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%">${moonSvg('m' + String(i).replace(/\W/g, ''))}</div>`;
+  return `<div class="sk k-${k}" aria-hidden="true"><div class="stars">${stars}</div>${orb}<div class="clouds">${clouds}</div></div>`;
+}
 function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
 function evRow(e){
   let sub = '';
@@ -1117,7 +1162,7 @@ function vHome(){
   return topBar(st.db.settings.appName || CONFIG.APP_NAME, greet + ', ' + first(m)) + todayTiles() +
   `<div class="hero"><h2>${ms.length} of us, ${zs.length || 1} ${zs.length === 1 ? 'country' : 'countries'}, one family</h2><p>${kids.length} kids growing up together.</p></div>` +
   (needs ? `<div class="card row"><div class="grow"><div class="b">Finish your profile</div><div class="small muted">Add your country, birthday and parents so you appear in the family tree.</div></div><button class="btn sm" onclick="memberForm('${m.id}')">Complete</button></div>` : '') +
-  (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock sky-${skyOf(z.tz)}"><div class="small b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
+  (zs.length ? `<div class="sec"><h2>Right now</h2></div><div class="clocks">${zs.map(z => `<div class="clock sky-${skyOf(z.tz)}">${skyLayer(z, z.country)}<div class="small b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small muted">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div>` : '') +
   `<div class="duo"><div class="col"><div class="sec"><h2>Coming up</h2><a onclick="go('cal')">All dates</a></div><div class="card">${up.length ? up.map(evRow).join('') : '<div class="empty">Nothing coming up. Birthdays, flights and celebrations will show here.</div>'}</div></div>` +
   (board.length ? `<div class="col"><div class="sec"><h2>Stars this week</h2><a onclick="go('kids')">Kids</a></div><div class="card">${board.map(([k, p], i) => `<div class="row" style="padding:6px 0" onclick="profileSheet('${k.id}')"><span class="rank r${i + 1}">${i + 1}</span>${av(k, 36)}<div class="grow b">${esc(first(k))} <span class="muted small">${flag(k.country)}</span></div><span class="chip clay">⭐ ${p}</span></div>`).join('')}</div></div>` : '') +
   `</div><div class="sec"><h2>Latest from the family</h2><a onclick="go('feed')">View all</a></div>` + (latest.length ? `<div class="feedgrid latest">${latest.map(postCard).join('')}</div>` : `<div class="card empty">Nothing posted yet. Share the first photo.</div>`);
@@ -2442,6 +2487,7 @@ document.addEventListener('touchstart', e => { if (e.target.closest && e.target.
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#nav')) navMini(false); }, { passive:true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && st.db && !DEMO && !sheetFn && !(st.tab === 'chat' && st.chatWith)) sync().catch(() => {}); if (!document.hidden) wakePoll(); });
 setInterval(() => { if (st.db && st.tab === 'home' && !sheetFn && !document.hidden) render(); }, 60000);
+try { screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait').catch(() => {}); } catch(e){}
 </script>
 </body>
 </html>
