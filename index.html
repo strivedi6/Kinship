@@ -699,6 +699,8 @@ html,body{overflow:hidden}
 .bday.evt{background:linear-gradient(135deg,#0A84FF,#5E5CE6);color:#fff}.bday.evt.fl{background:linear-gradient(135deg,#0A84FF,#30B0C7)}.bday.evt .ey,.bday.evt .bd-sub{color:rgba(255,255,255,.92)}.bday.evt .bd-nm{color:#fff}
 /* equal breathing room: first and last rows sit exactly as far from the card edge as the sides do */
 .card>.ev:first-child,.card>.row:first-child{padding-top:0!important}.card>.ev:last-child,.card>.row:last-child{padding-bottom:0!important}
+.tflow{animation:tflow 1s linear infinite}@keyframes tflow{to{stroke-dashoffset:-18}}.tdot{filter:drop-shadow(0 0 4px #0088FF)}@media(prefers-reduced-motion:reduce){.tflow{animation:none}.tdot{display:none}}
+#app>.bar{padding-top:calc(22px + env(safe-area-inset-top))!important}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1171,7 +1173,7 @@ function tCard(n){
 }
 function vTree(){
   const t = treeModel(), z = st.zoom;
-  const body = t.nodes.length ? `<div class="treewrap"><div style="width:${t.W * z}px;height:${t.H * z}px"><div class="tree" style="width:${t.W}px;height:${t.H}px;transform:scale(${z})"><svg width="${t.W}" height="${t.H}"><path d="${t.lines.join('')}" fill="none" stroke="#C7C7CC" stroke-width="2"/>${t.links.map(l => `<path d="M${l.a.x} ${l.a.y}C${(l.a.x + l.b.x)/2} ${l.a.y - 90} ${(l.a.x + l.b.x)/2} ${l.b.y - 90} ${l.b.x} ${l.b.y - CH/2}" fill="none" stroke="#0088FF" stroke-width="2" stroke-dasharray="6 6"/>`).join('')}</svg>${t.labels.map(l => `<div class="tlabel" style="left:${l.x}px;top:${l.y}px">${esc(l.text)}</div>`).join('')}${t.nodes.map(tCard).join('')}</div></div></div>`
+  const body = t.nodes.length ? `<div class="treewrap"><div style="width:${t.W * z}px;height:${t.H * z}px"><div class="tree" style="width:${t.W}px;height:${t.H}px;transform:scale(${z})"><svg width="${t.W}" height="${t.H}"><path d="${t.lines.join('')}" fill="none" stroke="#C7C7CC" stroke-width="2"/>${t.links.map(l => { const d = `M${l.a.x} ${l.a.y}C${(l.a.x + l.b.x)/2} ${l.a.y - 90} ${(l.a.x + l.b.x)/2} ${l.b.y - 90} ${l.b.x} ${l.b.y - CH/2}`; return `<path d="${d}" fill="none" stroke="#0088FF" stroke-width="6" stroke-opacity=".14" stroke-linecap="round"/><path class="tflow" d="${d}" fill="none" stroke="#0088FF" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 10"/><circle r="4.5" fill="#0088FF" class="tdot"><animateMotion dur="3.2s" repeatCount="indefinite" path="${d}" calcMode="spline" keySplines=".4 0 .6 1" keyTimes="0;1"/></circle>`; }).join('')}</svg>${t.labels.map(l => `<div class="tlabel" style="left:${l.x}px;top:${l.y}px">${esc(l.text)}</div>`).join('')}${t.nodes.map(tCard).join('')}</div></div></div>`
     : `<div class="pad"><div class="card empty">The tree grows as people link their parents and spouse in their profile.</div></div>`;
   return topBar('Family tree', st.db.members.length + ' people') +
   `<div class="treebar"><button class="btn sm ghost" onclick="findMe()">Find me</button><button class="btn sm line" onclick="zoom(-.15)">−</button><button class="btn sm line" onclick="zoom(.15)">+</button><span class="grow"></span>${isKid(me()) ? '' : `<button class="btn sm" onclick="memberForm()">+ Add person</button>`}</div>` + body +
