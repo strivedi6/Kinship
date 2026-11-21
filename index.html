@@ -1222,8 +1222,24 @@ function postMenu(id){
 function carDots(track){
   const n = track.children.length, i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)), car = track.parentElement;
   car.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === i)); const c = car.querySelector('.pc-count'); if (c) c.textContent = (i + 1) + '/' + n;
-  if (track._i !== i){ track._i = i; Motion.haptic(); }
+  if (track._i !== i){ track._i = i; if (!track._auto) Motion.haptic(); }
 }
+/* posts with several photos play as a slideshow, 2 seconds each; touching a post pauses it for a few seconds */
+(() => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const hold = e => { const t = e.target.closest && e.target.closest('.pc-track'); if (t) t._hold = Date.now() + 6000; };
+  document.addEventListener('touchstart', hold, { passive:true }); document.addEventListener('pointerdown', hold, { passive:true }); document.addEventListener('wheel', hold, { passive:true });
+  setInterval(() => {
+    if (document.hidden || still.matches || $('.photoview')) return;
+    document.querySelectorAll('.pc-track').forEach(t => {
+      const n = t.children.length, r = t.getBoundingClientRect(); if (n < 2 || Date.now() < (t._hold || 0)) return;
+      if (r.bottom < 60 || r.top > innerHeight - 60 || !t.clientWidth) return;     // only posts you can see
+      const i = Math.round(t.scrollLeft / t.clientWidth), nx = (i + 1) % n; t._auto = true;
+      t.scrollTo({ left: nx * t.clientWidth, behavior: nx === 0 ? 'auto' : 'smooth' });
+      setTimeout(() => { t._auto = false; }, 700);
+    });
+  }, 2000);
+})();
 /* full photos: the whole pictures (not cropped) over a dark background; swipe sideways between them, tap or drag down to close */
 function openPhoto(ids, start){
   if ($('.photoview')) return; Motion.haptic();
