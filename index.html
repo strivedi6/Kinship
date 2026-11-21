@@ -1602,8 +1602,13 @@ const FX = (() => {
       if (reduce) return; raf = requestAnimationFrame(frame);
     }
     if (reduce && type === 'confetti' && o.burst) ps.forEach(p => { p.y = rnd(0, h); p.x = rnd(0, w); });
-    frame(); const onResize = () => size(); addEventListener('resize', onResize);
-    return () => { alive = false; cancelAnimationFrame(raf); removeEventListener('resize', onResize); };
+    frame();
+    /* turning the phone: re-measure once the new size has settled and rebuild the particles for it, so nothing is stretched */
+    let rt = 0, lw = w, lh = h;
+    const refit = () => { clearTimeout(rt); rt = setTimeout(() => { const r = canvas.getBoundingClientRect(); if (!r.width || !r.height) return; if (Math.abs(r.width - lw) > 1 || Math.abs(r.height - lh) > 1){ size(); lw = w; lh = h; ps = make(type, w, h, o); } }, 120); };
+    const ro = window.ResizeObserver ? new ResizeObserver(refit) : null; if (ro) ro.observe(canvas);
+    addEventListener('resize', refit); addEventListener('orientationchange', refit);
+    return () => { alive = false; cancelAnimationFrame(raf); clearTimeout(rt); if (ro) ro.disconnect(); removeEventListener('resize', refit); removeEventListener('orientationchange', refit); };
   }
   /* Adds an animation layer to every [data-fx] element on screen. Several types can be given, e.g. "snow sparkle". */
   function start(root){
