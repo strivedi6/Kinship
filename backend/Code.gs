@@ -282,7 +282,11 @@ function rsvp(me, q) {
   if (ev.by !== me.id) push([ev.by], shortName(m) + (ans === 'yes' ? ' is going' : ans === 'maybe' ? ' might come' : " can't come"), ev.title + ' · ' + niceDate(ev.date), 'cal');
   return { rsvp: ev.rsvp };
 }
-function mayActFor(me, memberId) { return me.id === memberId || me.role === 'admin' || (me.role !== 'kid' && isParent(me, memberId)); }
+function isGrandparent(g, kidId) {
+  const k = findBy('Members', kidId); if (!k) return false;
+  return [k.fatherId, k.motherId].some(function (pid) { return pid && isParent(g, pid); });
+}
+function mayActFor(me, memberId) { return me.id === memberId || me.role === 'admin' || (me.role !== 'kid' && (isParent(me, memberId) || isGrandparent(me, memberId))); }
 function adultOnly(me) { if (me.role === 'kid') throw new Error('Ask a grown-up to do this'); }
 function ownerOnly(me, old) { if (old && old.by !== me.id && me.role !== 'admin') throw new Error('Only the person who added this can change it'); }
 
