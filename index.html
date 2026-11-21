@@ -608,14 +608,14 @@ html,body{overflow:hidden}
 .clock[class*=sky-] .muted{color:rgba(255,255,255,.78)!important}.clock[class*=sky-] .small.b{font-weight:600}
 .clock[class*=sky-]>*{position:relative;z-index:1}
 .clock[class*=sky-]:before,.clock[class*=sky-]:after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none}
-.sky-day{background:linear-gradient(180deg,#2C7BE5 0%,#5AA8F0 60%,#8CC6F5 100%)}
+.sky-day{background:linear-gradient(180deg,#1B67D4 0%,#4A9BEA 55%,#9ACDF6 100%)}
 .sky-day:before{background:radial-gradient(ellipse 60% 30% at 80% 18%,rgba(255,255,255,.55),transparent 70%),radial-gradient(ellipse 45% 22% at 15% 70%,rgba(255,255,255,.35),transparent 70%);filter:blur(4px);animation:drift 30s ease-in-out infinite alternate}
 .sky-day:after{background:radial-gradient(circle at 88% 12%,rgba(255,240,180,.55),transparent 32%)}
 .sky-dawn{background:linear-gradient(180deg,#3B4C8A 0%,#C46B8A 55%,#F2A66B 100%)}
 .sky-dawn:before{background:radial-gradient(ellipse 50% 25% at 75% 85%,rgba(255,210,150,.55),transparent 70%)}
 .sky-dusk{background:linear-gradient(180deg,#2B2F6B 0%,#8C4C8E 55%,#EE8A5A 100%)}
 .sky-dusk:before{background:radial-gradient(ellipse 50% 25% at 25% 90%,rgba(255,190,130,.5),transparent 70%)}
-.sky-night{background:linear-gradient(180deg,#0E1230 0%,#1E2552 100%)}
+.sky-night{background:linear-gradient(180deg,#04061A 0%,#0E1538 55%,#1C2559 100%)}
 .sky-night:before{background-image:radial-gradient(1px 1px at 12% 22%,#fff,transparent),radial-gradient(1px 1px at 32% 68%,rgba(255,255,255,.8),transparent),radial-gradient(1.5px 1.5px at 58% 30%,#fff,transparent),radial-gradient(1px 1px at 76% 74%,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 88% 40%,#fff,transparent),radial-gradient(1px 1px at 46% 12%,rgba(255,255,255,.7),transparent),radial-gradient(1.2px 1.2px at 22% 86%,rgba(255,255,255,.8),transparent),radial-gradient(1px 1px at 66% 52%,rgba(255,255,255,.6),transparent),radial-gradient(1px 1px at 94% 88%,#fff,transparent),radial-gradient(1px 1px at 5% 50%,rgba(255,255,255,.7),transparent);animation:twinkle 4s ease-in-out infinite alternate}
 .sky-night:after{background:radial-gradient(circle at 86% 16%,rgba(230,235,255,.35),transparent 22%)}
 @keyframes twinkle{from{opacity:.55}to{opacity:1}}
@@ -707,22 +707,22 @@ html,body{overflow:hidden}
 #call.clive .c-id .ripple{border-color:rgba(52,199,89,.65);background:rgba(52,199,89,.10)}
 .clock[class*=sky-]:before,.clock[class*=sky-]:after{content:none!important;display:none}
 .clock[class*=sky-]>.sk{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;container-type:inline-size;border-radius:inherit}
-.sk .stars i{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 5px 1px rgba(255,255,255,.7);animation:twk 3.6s ease-in-out infinite}
-.sk.k-dawn .stars,.sk.k-dusk .stars{opacity:.4}
-@keyframes twk{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
-.sk .orb{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;transition:left 1s,top 1s}
-.sk .orb .moon{width:100%;height:100%;display:block;filter:drop-shadow(0 0 8px rgba(225,232,255,.55));animation:moonfloat 7s ease-in-out infinite alternate}
-@keyframes moonfloat{from{transform:translateY(-1.5px)}to{transform:translateY(1.5px)}}
-.sk .sun{width:38px;height:38px;margin:-19px 0 0 -19px}
-.sk .sun:before{content:"";position:absolute;inset:-22px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,236,150,.55) 0 5deg,transparent 5deg 20deg);-webkit-mask:radial-gradient(circle,transparent 0 40%,#000 44%,transparent 72%);mask:radial-gradient(circle,transparent 0 40%,#000 44%,transparent 72%);animation:rays 40s linear infinite}
-.sk .sun u{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 40% 36%,#FFFBE0,#FFE066 45%,#FFB627);box-shadow:0 0 16px 7px rgba(255,205,70,.6),0 0 44px 18px rgba(255,175,50,.28);animation:sunpulse 4.5s ease-in-out infinite alternate}
-.sk .sun.low u{background:radial-gradient(circle at 40% 36%,#FFE9C2,#FF9F4A 55%,#FF6B2C);box-shadow:0 0 18px 8px rgba(255,130,50,.6),0 0 50px 20px rgba(255,110,40,.3)}
-@keyframes rays{to{transform:rotate(360deg)}}@keyframes sunpulse{from{transform:scale(1)}to{transform:scale(1.08)}}
-.sk .cl{position:absolute;left:0;display:block;background:#fff;border-radius:999px;opacity:.62;filter:blur(1px);transform:translateX(-100px);animation:cloudgo 70s linear infinite}
-.sk .cl:before,.sk .cl:after{content:"";position:absolute;background:#fff;border-radius:50%}
-.sk .cl:before{width:46%;height:150%;left:14%;bottom:30%}.sk .cl:after{width:36%;height:120%;right:16%;bottom:35%}
-.sk.k-dawn .cl,.sk.k-dusk .cl{opacity:.5}.sk.k-night .cl{opacity:.13;background:#9AA7E6}.sk.k-night .cl:before,.sk.k-night .cl:after{background:#9AA7E6}
-@keyframes cloudgo{from{transform:translateX(-110px) scale(var(--s,1))}to{transform:translateX(calc(100cqw + 40px)) scale(var(--s,1))}}
+.clock .sk,.sk{}
+.sk .stars i{position:absolute;border-radius:50%;background:#fff;opacity:.5;animation:twk 4.5s ease-in-out infinite}
+.sk .stars i.bg{box-shadow:0 0 3px 0 rgba(255,255,255,.55)}
+.sk.k-dawn .stars,.sk.k-dusk .stars{opacity:.45}
+@keyframes twk{0%,100%{opacity:.22}50%{opacity:.95}}
+.sk .orb{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;transition:left 1s,top 1s}
+.sk .orb .moon{width:100%;height:100%;display:block;filter:drop-shadow(0 0 7px rgba(214,224,255,.35)) drop-shadow(0 0 22px rgba(190,205,255,.18))}
+.sk .sun{width:30px;height:30px;margin:-15px 0 0 -15px}
+.sk .sun u{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff 0,#FFFBEA 55%,#FFF0B8 100%);box-shadow:0 0 10px 4px rgba(255,248,214,.95),0 0 34px 14px rgba(255,236,160,.55),0 0 90px 40px rgba(255,214,120,.28);animation:sunbreathe 6s ease-in-out infinite alternate}
+.sk .sun.low u{background:radial-gradient(circle,#FFF6E4 0,#FFD9A3 60%,#FFB36B 100%);box-shadow:0 0 10px 4px rgba(255,210,150,.9),0 0 34px 14px rgba(255,150,80,.5),0 0 90px 40px rgba(255,110,60,.28)}
+@keyframes sunbreathe{from{opacity:.92;transform:scale(1)}to{opacity:1;transform:scale(1.06)}}
+.sk .cl{position:absolute;left:0;display:block;opacity:.5;filter:blur(5px);transform:translateX(-160px);animation:cloudgo 100s linear infinite;
+  background:radial-gradient(ellipse 34% 62% at 24% 62%,#fff 0 55%,transparent 100%),radial-gradient(ellipse 30% 78% at 48% 42%,#fff 0 58%,transparent 100%),radial-gradient(ellipse 28% 60% at 72% 58%,#fff 0 55%,transparent 100%),radial-gradient(ellipse 46% 40% at 50% 74%,rgba(255,255,255,.9) 0 50%,transparent 100%)}
+.sk.k-dawn .cl,.sk.k-dusk .cl{opacity:.38}
+.sk.k-night .cl{opacity:.16;filter:blur(6px) brightness(.55) saturate(.5) sepia(.3) hue-rotate(190deg)}
+@keyframes cloudgo{from{transform:translateX(-170px)}to{transform:translateX(calc(100cqw + 40px))}}
 @media(prefers-reduced-motion:reduce){.sk *{animation:none!important}}
 .clock[class*=sky-]>:not(.sk){text-shadow:0 1px 8px rgba(0,20,70,.38)}
 /* portrait only: if a phone is turned sideways, ask for it to be turned back */
@@ -1069,12 +1069,20 @@ function skyOf(tz){ let h = 12; try { h = Number(new Intl.DateTimeFormat('en-GB'
 const SYN = 29.530588853;
 function moonAge(d = new Date()){ return (((d.getTime() / 864e5 + 2440587.5 - 2451550.1) / SYN) % 1 + 1) % 1; }   // 0 = new moon, .5 = full
 function moonSvg(uid){
-  const p = moonAge(), r = 16, rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2), wax = p < .5, cres = p < .25 || p > .75;
-  const lit = p < .02 || p > .98 ? '' : (p > .48 && p < .52) ? `M16 0A16 16 0 1 1 16 32A16 16 0 1 1 16 0Z` : wax
-    ? `M16 0A16 16 0 0 1 16 32A${rx} 16 0 0 ${cres ? 0 : 1} 16 0Z`
-    : `M16 0A16 16 0 0 0 16 32A${rx} 16 0 0 ${cres ? 1 : 0} 16 0Z`;
-  return `<svg class="moon" viewBox="0 0 32 32" aria-hidden="true"><defs><radialGradient id="mg${uid}" cx="40%" cy="38%" r="75%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#E9E6DA"/><stop offset="1" stop-color="#C9C6BA"/></radialGradient><clipPath id="mc${uid}"><path d="${lit}"/></clipPath></defs>
-    <circle cx="16" cy="16" r="16" fill="rgba(210,218,245,.16)"/>${lit ? `<path d="${lit}" fill="url(#mg${uid})"/><g clip-path="url(#mc${uid})" fill="#B8B4A6" opacity=".55"><circle cx="11" cy="11" r="3.2"/><circle cx="20" cy="9" r="1.8"/><circle cx="21" cy="20" r="4"/><circle cx="12" cy="22" r="2.2"/><circle cx="25" cy="14" r="1.3"/><circle cx="7" cy="17" r="1.5"/></g>` : ''}</svg>`;
+  const p = moonAge(), r = 30, rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2), wax = p < .5, cres = p < .25 || p > .75;
+  const lit = p < .02 || p > .98 ? '' : (p > .48 && p < .52) ? `M32 2A30 30 0 1 1 32 62A30 30 0 1 1 32 2Z` : wax
+    ? `M32 2A30 30 0 0 1 32 62A${rx} 30 0 0 ${cres ? 0 : 1} 32 2Z`
+    : `M32 2A30 30 0 0 0 32 62A${rx} 30 0 0 ${cres ? 1 : 0} 32 2Z`;
+  /* a photographic moon: soft limb darkening, broad grey seas from fractal noise, no cartoon craters; the phase edge is feathered */
+  return `<svg class="moon" viewBox="0 0 64 64" aria-hidden="true"><defs>
+    <radialGradient id="b${uid}" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#F7F5EE"/><stop offset=".55" stop-color="#DAD7CD"/><stop offset=".92" stop-color="#9C9A94"/><stop offset="1" stop-color="#7F7E7B"/></radialGradient>
+    <filter id="t${uid}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="5" seed="11" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 .30  0 0 0 0 .31  0 0 0 0 .33  0 0 0 -2.6 1.45"/></filter>
+    <filter id="f${uid}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".28" numOctaves="3" seed="4" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 .25  0 0 0 0 .26  0 0 0 0 .28  0 0 0 -1.8 1.05"/></filter>
+    <clipPath id="c${uid}"><circle cx="32" cy="32" r="30"/></clipPath>
+    <filter id="s${uid}"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <mask id="m${uid}" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">${lit ? `<path d="${lit}" fill="#fff" filter="url(#s${uid})"/>` : ''}</mask></defs>
+    <g clip-path="url(#c${uid})"><circle cx="32" cy="32" r="30" fill="#1B2140" opacity=".55"/>
+    <g mask="url(#m${uid})"><circle cx="32" cy="32" r="30" fill="url(#b${uid})"/><rect width="64" height="64" filter="url(#t${uid})" opacity=".55"/><rect width="64" height="64" filter="url(#f${uid})" opacity=".22"/><circle cx="32" cy="32" r="30" fill="none" stroke="rgba(60,60,66,.35)" stroke-width="3" filter="url(#s${uid})"/></g></g></svg>`;
 }
 function skyLayer(z, i){
   let hf = 12; try { const pr = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { hour:'numeric', minute:'numeric', hourCycle:'h23', timeZone:z.tz }).formatToParts(new Date()).map(x => [x.type, x.value])); hf = Number(pr.hour) + Number(pr.minute) / 60; } catch(e){}
@@ -1083,8 +1091,8 @@ function skyLayer(z, i){
   let seed = 7; for (const c of z.country + k) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
   const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
   let stars = '', clouds = '';
-  if (k !== 'day') for (let n = 0; n < 18; n++){ const sz = 1 + rnd() * 1.6; stars += `<i style="left:${(3 + rnd() * 94).toFixed(1)}%;top:${(4 + rnd() * 70).toFixed(1)}%;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;animation-duration:${(2.6 + rnd() * 3.4).toFixed(1)}s;animation-delay:-${(rnd() * 6).toFixed(1)}s"></i>`; }
-  for (let n = 0; n < 3; n++){ const w = 46 + rnd() * 40; clouds += `<b class="cl" style="top:${(8 + rnd() * 52).toFixed(0)}%;width:${w.toFixed(0)}px;height:${(w * .3).toFixed(0)}px;animation-duration:${(55 + rnd() * 45).toFixed(0)}s;animation-delay:-${(rnd() * 90).toFixed(0)}s;--s:${(.8 + rnd() * .5).toFixed(2)}"></b>`; }
+  if (k !== 'day') for (let n = 0; n < 46; n++){ const big = n % 9 === 0, sz = big ? 1.8 + rnd() * .7 : .7 + rnd() * .9; stars += `<i${big ? ' class="bg"' : ''} style="left:${(2 + rnd() * 96).toFixed(1)}%;top:${(3 + rnd() * 80).toFixed(1)}%;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;animation-duration:${(3.2 + rnd() * 4.5).toFixed(1)}s;animation-delay:-${(rnd() * 8).toFixed(1)}s"></i>`; }
+  for (let n = 0; n < 3; n++){ const w = 96 + rnd() * 70; clouds += `<b class="cl" style="top:${(6 + rnd() * 48).toFixed(0)}%;width:${w.toFixed(0)}px;height:${(w * .34).toFixed(0)}px;animation-duration:${(75 + rnd() * 60).toFixed(0)}s;animation-delay:-${(rnd() * 120).toFixed(0)}s"></b>`; }
   const orb = day ? `<div class="orb sun${low ? ' low' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><u></u></div>` : `<div class="orb" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%">${moonSvg('m' + String(i).replace(/\W/g, ''))}</div>`;
   return `<div class="sk k-${k}" aria-hidden="true"><div class="stars">${stars}</div>${orb}<div class="clouds">${clouds}</div></div>`;
 }
