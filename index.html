@@ -1089,12 +1089,13 @@ function skyLayer(z, i){
   return `<div class="sk k-${k}" aria-hidden="true"><div class="stars">${stars}</div>${orb}<div class="clouds">${clouds}</div></div>`;
 }
 function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
+const sameMin = (a, b) => !!a && !!b && Math.abs(new Date(a) - new Date(b)) < 60000;   // the event time and the dinner time are the same moment: say it once
 function evRow(e){
   let sub = '';
   if (e.flight) sub = flightLine(e.flight);
   else {
     const bits = [];
-    if (e.at) bits.push(new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(e.at)).replace(' ', ' '));
+    if (e.at && !sameMin(e.at, e.dinner)) bits.push(new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(e.at)).replace(' ', ' '));
     if (e.dinner) bits.push('🍽 ' + dinnerTxt(e, true));
     if (e.sub) bits.push(e.sub);
     sub = bits.join(' · ');
@@ -1538,7 +1539,7 @@ function todayTiles(){
     const base = e.at ? ymd(new Date(e.at)) : e.date; if (!base) continue;
     if (e.yearly === '1' ? base.slice(5) !== md2 : base !== t) continue;
     const fl = e.kind === 'flight', who = ids(e.with).map(i => M(i)).filter(Boolean);
-    const sub = fl ? flightLine(e) : [e.at ? tmFmt(e.at) : '', e.dinner ? '🍽 ' + dinnerTxt(e, true) : '', e.note || ''].filter(Boolean).join(' · ');
+    const sub = fl ? flightLine(e) : [e.at && !sameMin(e.at, e.dinner) ? tmFmt(e.at) : '', e.dinner ? '🍽 ' + dinnerTxt(e, true) : '', e.note || ''].filter(Boolean).join(' · ');
     out.push(`<button class="bday evt ${fl ? 'fl' : ''}" onclick="eventSheet('${e.id}')"><div class="bd-in"><span class="ey">${fl ? '✈️ Flight today' : '📅 Today'}</span><div class="row" style="gap:12px;margin-top:8px"><div class="grow"><div class="bd-nm">${fl ? '' : esc(e.emoji || '') + ' '}${esc(e.title)}</div>${sub ? `<div class="bd-sub">${esc(sub)}</div>` : ''}</div>${fl && who.length ? `<div class="tk-ppl" style="margin:0;gap:0">${who.slice(0, 4).map((m, i) => `<div style="margin-left:${i ? -10 : 0}px">${av(m, 36)}</div>`).join('')}</div>` : ''}</div></div></button>`);
   }
   return out.join('');
