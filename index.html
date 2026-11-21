@@ -383,6 +383,13 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .msg{max-width:78%;padding:8px 13px;border-radius:19px;background:var(--card);align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere;animation:msgin .4s var(--ease) both}
 .msg.me{align-self:flex-end;background:var(--accent);color:var(--onacc)}
 .msg.first{margin-top:8px}
+.mrow{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:88%}
+.mrow.first{margin-top:8px}
+.mav{width:34px;height:34px;flex:none}
+.mav .av,.mav>*{width:34px;height:34px}
+.msg.g{max-width:100%;min-width:0;border-bottom-left-radius:6px}
+.gname{display:block;font-weight:700;font-size:14px;line-height:18px;margin-bottom:1px}
+.msg.g small{text-align:right}
 .who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
 .msg small{display:block;font-size:11px;line-height:13px;opacity:.6;margin-top:2px;text-align:left;letter-spacing:0}.msg.me small{text-align:right}
 @keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
@@ -1759,11 +1766,18 @@ function msgsHtml(){
   const t = st.chatWith, ms = threadMsgs(t), firstPaint = seenMsgs.size === 0; let day = '', prev = '', h = '';
   const dayName = ts => { const d = new Date(Number(ts)), k = ymd(d), y = new Date(); y.setDate(y.getDate() - 1); return k === today() ? 'Today' : k === ymd(y) ? 'Yesterday' : d.getDate() + ' ' + MON[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); };
   const time = ts => new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(Number(ts)));
-  for (const m of ms){
-    const dn = dayName(m.ts), mine = m.by === st.db.me;
+  const NC = ['#E8836B','#5DADE2','#E27AA6','#58C28B','#B58AE0','#E0B04A','#4FC3C3','#8E9BE8'];
+  const hue = id => { let n = 0; for (const c of String(id)) n = (n * 31 + c.charCodeAt(0)) >>> 0; return NC[n % NC.length]; };
+  for (let i = 0; i < ms.length; i++){
+    const m = ms[i], dn = dayName(m.ts), mine = m.by === st.db.me;
     if (dn !== day){ h += `<div class="day">${dn}</div>`; day = dn; prev = ''; }
-    if (t === 'all' && !mine && m.by !== prev) h += `<div class="who-l">${esc(first(M(m.by) || { name:'Family' }))}</div>`;
-    h += `<div class="msg ${mine ? 'me' : ''} ${m.by !== prev ? 'first' : ''} ${!firstPaint && !seenMsgs.has(m.id) ? 'new' : ''}">${esc(m.text)}<small>${time(m.ts)}</small></div>`; prev = m.by; seenMsgs.add(m.id);
+    const nw = !firstPaint && !seenMsgs.has(m.id) ? 'new' : '', isFirst = m.by !== prev;
+    if (t === 'all' && !mine){
+      /* group chat: name on the first bubble of a run, photo beside the last one */
+      const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav">${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${esc(m.text)}<small>${time(m.ts)}</small></div></div>`;
+    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}">${esc(m.text)}<small>${time(m.ts)}</small></div>`;
+    prev = m.by; seenMsgs.add(m.id);
   }
   return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
 }
