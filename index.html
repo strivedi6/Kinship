@@ -1096,7 +1096,9 @@ function skyLayer(z, i){
   const orb = day ? `<div class="orb sun${low ? ' low' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><u></u></div>` : `<div class="orb" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%">${moonSvg('m' + String(i).replace(/\W/g, ''))}</div>`;
   return `<div class="sk k-${k}" aria-hidden="true"><div class="stars">${stars}</div>${orb}<div class="clouds">${clouds}</div></div>`;
 }
-function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const tz = m.tz || (cInfo(m.country) || [])[2]; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
+/* a member's saved zone can be wrong (it is taken from whichever phone signed them in), so single-zone countries always use their own zone */
+const MULTI_TZ = new Set(['United States','Canada','Australia','Brazil','Mexico','Russia','Indonesia']);
+function zones(){ const map = new Map(); for (const m of st.db.members){ if (m.passed || !m.country) continue; const dflt = (cInfo(m.country) || [])[2], tz = (MULTI_TZ.has(m.country) && m.tz) || dflt || m.tz; if (!tz) continue; const k = m.country; if (!map.has(k)) map.set(k, { country:k, tz, n:0 }); map.get(k).n++; } return [...map.values()].sort((a, b) => b.n - a.n); }
 const sameMin = (a, b) => !!a && !!b && Math.abs(new Date(a) - new Date(b)) < 60000;   // the event time and the dinner time are the same moment: say it once
 function evRow(e){
   let sub = '';
