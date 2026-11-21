@@ -12,8 +12,8 @@ const MEDIA_FOLDER_ID = '1Nr_Q34Kr27e9RV5KPkL0VA6Ye0Ty8UnG';
 
 const SCHEMA = {
   Members: ['id','name','nick','gender','role','birth','passed','country','city','tz','fatherId','motherId','spouseId','anniv','avatar','about','favFood','favColor','hobby','askMe','by','ts','folder','pinHash','salt','fails','lockUntil','pinLen','viewOnly','photo'],
-  Posts: ['id','by','text','photo','ts'],
-  Comments: ['id','postId','by','text','ts'],
+  Posts: ['id','by','text','photo','ts','tags'],
+  Comments: ['id','postId','by','text','ts','tags'],
   Reactions: ['id','postId','by','emoji','ts'],
   Events: ['id','by','title','emoji','date','at','yearly','note','ts','travel','dinner','venue','with','invited','rsvp','kind','dep','arr','fromCode','fromCity','fromTz','fromTerm','toCode','toCity','toTz','toTerm','flightNo'],
   Habits: ['id','by','title','emoji','points','who','days','active','ts'],
@@ -22,7 +22,7 @@ const SCHEMA = {
   Redemptions: ['id','rewardId','memberId','title','cost','status','by','decidedBy','ts'],
   Answers: ['id','week','memberId','text','ts'],
   Wishes: ['id','memberId','title','emoji','note','cost','by','ts'],
-  Messages: ['id','by','to','text','ts'],
+  Messages: ['id','by','to','text','ts','tags'],
   Sessions: ['token','memberId','ts'],
   Settings: ['key','value']
 };
@@ -324,6 +324,7 @@ function put(me, table, row) {
     case 'Posts': case 'Comments':
       ownerOnly(me, old); r.by = old ? old.by : me.id;
       if (table === 'Posts') r.photo = String(r.photo || '').split(',').filter(String).slice(0, 5).join(',');
+      r.tags = mentionIds(r.text, me.id);
       break;
     case 'Reactions':
       r.by = me.id; r.id = r.postId + '_' + me.id; break;
@@ -346,6 +347,7 @@ function put(me, table, row) {
       if (old) throw new Error('Messages cannot be changed');
       r.by = me.id; r.text = String(r.text || '').trim().slice(0, 2000);
       if (!r.text) throw new Error('Write a message first');
+      r.tags = r.to === 'all' ? mentionIds(r.text, me.id) : '';
       if (r.to !== 'all' && !findBy('Members', r.to)) throw new Error('Person not found');
       break;
     case 'Redemptions':
@@ -507,15 +509,23 @@ function push(ids, title, body, go, extra) {
     if (res.getResponseCode() >= 300) console.log('OneSignal: ' + res.getContentText());
   } catch (e) { console.log('push failed: ' + e); }
 }
+// Family members tagged in a text with @Full Name (only real members, never yourself). Stored as a comma list in the tags column.
+function mentionIds(text, selfId) {
+  const t = String(text || '').toLowerCase(); if (t.indexOf('@') < 0) return '';
+  return readAll('Members').filter(function (m) { return m.id !== selfId && m.name && t.indexOf('@' + String(m.name).toLowerCase()) >= 0; }).map(function (m) { return m.id; }).join(',');
+}
 function everyoneBut(id) { return readAll('Members').filter(function (m) { return m.pinHash && m.id !== id; }).map(function (m) { return m.id; }); }
 function shortName(m) { return m.nick || String(m.name || '').split(' ')[0]; }
 function niceDate(d) { const p = String(d).split('-'); return p.length === 3 ? Number(p[2]) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1]) - 1] : String(d); }
 function announce(me, table, r, old) {
   const who = shortName(me);
-  if (table === 'Posts' && !old) push(everyoneBut(me.id), who + (r.photo ? (String(r.photo).split(',').length > 1 ? ' shared ' + String(r.photo).split(',').length + ' photos' : ' shared a photo') : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
+  const tagged = String(r.tags || '').split(',').filter(function (x) { return x && x !== me.id; }), notTagged = function (ids) { return ids.filter(function (x) { return tagged.indexOf(x) < 0; }); };
+  if (tagged.length && !old && (table === 'Posts' || table === 'Comments' || (table === 'Messages' && r.to === 'all')))
+    push(tagged, who + ' mentioned you ' + (table === 'Posts' ? 'in a post' : table === 'Comments' ? 'in a comment' : 'in the family chat'), r.text, table === 'Messages' ? 'chat:all' : 'post:' + (table === 'Posts' ? r.id : r.postId));
+  if (table === 'Posts' && !old) push(notTagged(everyoneBut(me.id)), who + (r.photo ? (String(r.photo).split(',').length > 1 ? ' shared ' + String(r.photo).split(',').length + ' photos' : ' shared a photo') : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
   else if ((table === 'Comments' || table === 'Reactions') && !old) {
     const p = findBy('Posts', r.postId);
-    if (p && p.by !== me.id) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : (p.text || 'Your photo'), 'post:' + p.id);
+    if (p && p.by !== me.id && tagged.indexOf(p.by) < 0) push([p.by], who + (table === 'Comments' ? ' commented on your post' : ' loved your post'), table === 'Comments' ? r.text : (p.text || 'Your photo'), 'post:' + p.id);
   }
   else if (table === 'Events' && !old) {
     const inv = String(r.invited || '').split(',').filter(function (x) { return x && x !== me.id; });
@@ -527,7 +537,7 @@ function announce(me, table, r, old) {
     const was = String(old.invited || '').split(','), fresh = String(r.invited || '').split(',').filter(function (x) { return x && x !== me.id && was.indexOf(x) < 0; });
     if (fresh.length) push(fresh, who + ' invited you: ' + r.title, niceDate(r.date) + ' · tap to answer', 'cal');
   }
-  else if (table === 'Messages' && !old) push(r.to === 'all' ? everyoneBut(me.id) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text, r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
+  else if (table === 'Messages' && !old) push(r.to === 'all' ? notTagged(everyoneBut(me.id)) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text, r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
   else if (table === 'Wishes') {
     const k = findBy('Members', r.memberId) || {};
     if (!old && me.id === r.memberId) push([k.fatherId, k.motherId], shortName(k) + ' added a wish: ' + r.title, 'Set how many stars it needs.', 'kids:wishes:' + r.memberId);

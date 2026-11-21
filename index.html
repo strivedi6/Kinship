@@ -383,6 +383,11 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 .msg{max-width:78%;padding:8px 13px;border-radius:19px;background:var(--card);align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere;animation:msgin .4s var(--ease) both}
 .msg.me{align-self:flex-end;background:var(--accent);color:var(--onacc)}
 .msg.first{margin-top:8px}
+#mpick{position:fixed;z-index:9999;background:var(--sheetcard,var(--card));border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25);padding:4px;max-height:240px;overflow:auto}
+#mpick .mp{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;font-weight:600}
+#mpick .mp:active{background:var(--fill3)}
+b.tag{color:var(--accent);font-weight:700;cursor:pointer}
+.msg.me b.tag{color:inherit;text-decoration:underline}
 .mrow{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:88%}
 .mrow.first{margin-top:8px}
 .mav{width:34px;height:34px;flex:none;cursor:pointer}
@@ -807,6 +812,27 @@ const CONFIG = {
 const DEMO = !/^https:\/\/script\.google(usercontent)?\.com\//.test(CONFIG.API_URL);
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* ---------- @tags: type @ in a post, comment or the family chat to tag someone ---------- */
+const tagsOf = text => { const t = String(text || '').toLowerCase(); if (t.indexOf('@') < 0) return ''; return st.db.members.filter(m => m.id !== st.db.me && m.name && t.indexOf('@' + String(m.name).toLowerCase()) >= 0).map(m => m.id).join(','); };
+const mt = (text, tags) => { let h = esc(text); String(tags || '').split(',').map(M).filter(Boolean).sort((a, b) => b.name.length - a.name.length).forEach(m => { const n = esc('@' + m.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); h = h.replace(new RegExp('(' + n + ')', 'gi'), `<b class="tag" onclick="event.stopPropagation();profileSheet('${m.id}')">$1</b>`); }); return h; };
+const Mention = (() => {
+  let box = null, cur = null, from = 0;
+  const hide = () => { if (box) box.hidden = true; };
+  const pick = id => { const m = M(id); if (!m || !cur) return; const v = cur.value, caret = cur.selectionStart, add = '@' + m.name + ' '; cur.value = v.slice(0, from) + add + v.slice(caret); const pos = from + add.length; cur.setSelectionRange(pos, pos); hide(); cur.dispatchEvent(new Event('input', { bubbles:true })); cur.focus(); };
+  document.addEventListener('input', e => {
+    const el = e.target; if (!el.matches || !el.matches('[data-mention]')) return;
+    const caret = el.selectionStart ?? el.value.length, before = el.value.slice(0, caret), mm = /(^|\s)@([^@\n]{0,28})$/.exec(before);
+    if (!mm){ hide(); return; }
+    const q = mm[2].toLowerCase(), list = st.db.members.filter(m => !m.passed && m.id !== st.db.me && m.name && (!q || m.name.toLowerCase().split(/\s+/).some(w => w.startsWith(q)) || m.name.toLowerCase().startsWith(q))).slice(0, 5);
+    if (!list.length){ hide(); return; }
+    cur = el; from = caret - mm[2].length - 1;
+    if (!box){ box = document.createElement('div'); box.id = 'mpick'; document.body.appendChild(box); box.addEventListener('pointerdown', ev => { const b = ev.target.closest('[data-id]'); if (b){ ev.preventDefault(); pick(b.dataset.id); } }); }
+    box.innerHTML = list.map(m => `<div class="mp" data-id="${m.id}">${av(m, 30)}<span>${esc(m.name)}</span></div>`).join(''); box.hidden = false;
+    const r = el.getBoundingClientRect(); box.style.left = Math.max(8, r.left) + 'px'; box.style.width = Math.min(320, innerWidth - 16) + 'px'; box.style.bottom = Math.max(8, innerHeight - r.top + 6) + 'px';
+  });
+  document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('[data-mention]')) setTimeout(hide, 150); });
+  return { hide };
+})();
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const LS = {
   get(k){ try { return JSON.parse(localStorage.getItem('fam_' + k)); } catch(e){ return null; } },
@@ -1272,7 +1298,7 @@ function postCard(p){
   const a = M(p.by) || { name:'Family member', id:p.by }, rs = st.db.reactions.filter(r => r.postId === p.id), mine = rs.some(r => r.by === st.db.me), cs = st.db.comments.filter(c => c.postId === p.id).length;
   const place = [a.city, a.country ? cname(a.country) : ''].filter(Boolean).join(', ');
   const t = String(p.text || ''), long = t.length > 120 || t.split('\n').length > 3;
-  const cap = t ? (long ? `<p class="cap" onclick="this.classList.add('open')"><span class="full">${esc(t)}</span><span class="short">${esc(t.slice(0, 110).split('\n').slice(0, 3).join('\n').replace(/\s+\S*$/, ''))}…<b>more</b></span></p>` : `<p class="cap">${esc(t)}</p>`) : '';
+  const cap = t ? (long ? `<p class="cap" onclick="this.classList.add('open')"><span class="full">${mt(t, p.tags)}</span><span class="short">${mt(t.slice(0, 110).split('\n').slice(0, 3).join('\n').replace(/\s+\S*$/, ''), p.tags)}…<b>more</b></span></p>` : `<p class="cap">${mt(t, p.tags)}</p>`) : '';
   const canMenu = p.by === st.db.me || isAdmin(), pics = photosOf(p);
   return `<article class="pc" data-post="${p.id}">
     <header class="pc-h"><span onclick="profileSheet('${a.id}')">${av(a, 46)}</span><div class="grow" onclick="profileSheet('${a.id}')"><div class="pc-nm">${esc(a.name)}</div><div class="pc-meta">${place ? `${ICO_PIN}<span>${esc(place)}</span><i>•</i>` : ''}<span>${postWhen(p.ts)}</span></div></div>${canMenu ? `<button class="pc-more" onclick="postMenu('${p.id}')" aria-label="More">${ICO_MORE}</button>` : ''}</header>
@@ -1345,7 +1371,7 @@ let pendingPhotos = [];
 const MAX_PICS = 5;
 function composeSheet(){
   pendingPhotos = [];
-  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" placeholder="What's happening in your corner of the world?"></textarea><div id="picks" class="picks"></div><input type="file" id="picIn" accept="image/*" multiple hidden onchange="pickPhotos(this)"><button type="button" class="btn line block" id="addPics" style="margin-top:10px" onclick="$('#picIn').click()">Add photos (up to ${MAX_PICS})</button><p class="small muted">Photos are kept in the family's private Google Drive folder and only family members can see them.</p><button class="btn block" id="postBtn">Share</button></form>`);
+  openSheet(() => `<div class="sh"><h2>New post</h2><button class="x" onclick="closeSheet()">×</button></div><form onsubmit="return submitPost(event)"><textarea name="text" data-mention placeholder="What's happening in your corner of the world? Type @ to tag someone"></textarea><div id="picks" class="picks"></div><input type="file" id="picIn" accept="image/*" multiple hidden onchange="pickPhotos(this)"><button type="button" class="btn line block" id="addPics" style="margin-top:10px" onclick="$('#picIn').click()">Add photos (up to ${MAX_PICS})</button><p class="small muted">Photos are kept in the family's private Google Drive folder and only family members can see them.</p><button class="btn block" id="postBtn">Share</button></form>`);
 }
 function drawPicks(){
   const box = $('#picks'); if (!box) return;
@@ -1364,13 +1390,13 @@ function submitPost(ev){
     const ids = [];
     for (let i = 0; i < pics.length; i++){ const b = ev.target.querySelector('button:not([type=button])'); if (b && pics.length > 1) b.textContent = `Uploading ${i + 1} of ${pics.length}…`;
       const up = await api('upload', { dataUrl: pics[i] }); ids.push(up.id); photoMem.set(up.id, Promise.resolve(pics[i])); }
-    closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo: ids.join(',') });
+    closeSheet(); st.tab = 'feed'; await save('Posts', { text, photo: ids.join(','), tags: tagsOf(text) });
   }, pics.length > 1 ? 'Uploading photos…' : 'Sharing…');
   return false;
 }
 function postSheet(id){
   openSheet(() => { const p = st.db.posts.find(x => x.id === id); if (!p) return '<div class="empty">Post removed.</div>'; const cs = st.db.comments.filter(c => c.postId === id).sort((a, b) => a.ts - b.ts);
-    return `<div class="sh"><h2>Comments</h2><button class="x" onclick="closeSheet()">×</button></div>${cs.length ? cs.map(c => { const a = M(c.by) || {}; return `<div class="row" style="align-items:flex-start;padding:8px 0">${av(a, 34)}<div class="grow"><span class="b">${esc(first(a))}</span> <span class="small muted">${ago(c.ts)}</span><div style="overflow-wrap:anywhere">${esc(c.text)}</div></div>${(c.by === st.db.me || isAdmin()) ? `<button class="x" onclick="removeRow('Comments','${c.id}')">×</button>` : ''}</div>`; }).join('') : '<div class="empty">Be the first to comment.</div>'}<form class="row" style="margin-top:10px" onsubmit="event.preventDefault();const v=this.c.value.trim();if(v){save('Comments',{postId:'${id}',text:v}).catch(()=>{})}return false"><input type="text" name="c" placeholder="Write a comment" maxlength="500"><button class="btn sm">Send</button></form>`; }, true);
+    return `<div class="sh"><h2>Comments</h2><button class="x" onclick="closeSheet()">×</button></div>${cs.length ? cs.map(c => { const a = M(c.by) || {}; return `<div class="row" style="align-items:flex-start;padding:8px 0">${av(a, 34)}<div class="grow"><span class="b">${esc(first(a))}</span> <span class="small muted">${ago(c.ts)}</span><div style="overflow-wrap:anywhere">${mt(c.text, c.tags)}</div></div>${(c.by === st.db.me || isAdmin()) ? `<button class="x" onclick="removeRow('Comments','${c.id}')">×</button>` : ''}</div>`; }).join('') : '<div class="empty">Be the first to comment.</div>'}<form class="row" style="margin-top:10px" onsubmit="event.preventDefault();const v=this.c.value.trim();if(v){save('Comments',{postId:'${id}',text:v,tags:tagsOf(v)}).catch(()=>{})}return false"><input type="text" name="c" data-mention placeholder="Write a comment" maxlength="500"><button class="btn sm">Send</button></form>`; }, true);
 }
 
 /* ---------- KIDS ---------- */
@@ -1775,22 +1801,22 @@ function msgsHtml(){
     if (t === 'all' && !mine){
       /* group chat: name on the first bubble of a run, photo beside the last one */
       const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
-      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${esc(m.text)}<small>${time(m.ts)}</small></div></div>`;
-    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}">${esc(m.text)}<small>${time(m.ts)}</small></div>`;
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${mt(m.text, m.tags)}<small>${time(m.ts)}</small></div></div>`;
+    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}">${mt(m.text, m.tags)}<small>${time(m.ts)}</small></div>`;
     prev = m.by; seenMsgs.add(m.id);
   }
   return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" ${st.chatWith === 'all' ? 'data-mention' : ''} placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
 function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v || wideScreen()) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
 if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
 function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
-function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
+function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text, tags: st.chatWith === 'all' ? tagsOf(text) : '' }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
 async function pollMsgs(wait){
   const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
   let fresh = 0;
