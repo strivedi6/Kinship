@@ -388,7 +388,9 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 #mpick .mp:active{background:var(--fill3)}
 b.tag{color:var(--accent);font-weight:700;cursor:pointer}
 .msg.me b.tag{color:inherit;text-decoration:underline}
-.msg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.msg,.msg *,#msgs{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+.msg{transition:transform .25s var(--ease,ease);-webkit-tap-highlight-color:transparent}.msg.pressing{transform:scale(.965)}
+@keyframes mmpulse{0%{transform:scale(.97)}45%{transform:scale(1.045)}100%{transform:scale(1)}}
 .rxs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .rx{border:0;font:inherit;font-size:13px;line-height:20px;padding:0 8px;border-radius:12px;background:rgba(0,0,0,.07);color:inherit;cursor:pointer}
 .rx.mine{box-shadow:inset 0 0 0 1.5px var(--accent)}
@@ -402,7 +404,7 @@ b.tag{color:var(--accent);font-weight:700;cursor:pointer}
 .rbar button{border:0;background:none;font-size:26px;line-height:1;color:var(--muted,#8e8e93);padding:0 4px}
 #mmenu{position:fixed;inset:0;z-index:9000}
 #mmenu .mm-bg{position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:mmfade .2s ease}
-#mmenu .mm-clone{position:absolute;pointer-events:none;display:flex;flex-direction:column;animation:mmpop .22s var(--ease,ease)}
+#mmenu .mm-clone{position:absolute;pointer-events:none;display:flex;flex-direction:column;animation:mmpulse .38s var(--ease,ease)}
 #mmenu .mm-clone .msg{max-width:100%;align-self:stretch}
 #mmenu .mm-bar{position:absolute;display:flex;gap:2px;padding:6px 8px;border-radius:30px;background:var(--card);box-shadow:0 10px 34px rgba(0,0,0,.28);animation:mmpop .22s var(--ease,ease)}
 #mmenu .mm-bar button{border:0;background:none;font-size:28px;line-height:40px;width:44px;height:40px;border-radius:20px;padding:0}
@@ -1827,9 +1829,13 @@ async function react(id, e){
 function jumpMsg(id){ const el = $('#msgs [data-mid="' + id + '"]'); if (!el){ toast('That message is further up'); return; } el.scrollIntoView({ block:'center', behavior:'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 const rbarHtml = () => { const q = st.replyTo && st.db.messages.find(x => x.id === st.replyTo); if (!q) return ''; return `<div class="rbar"><div class="grow"><b>Replying to ${esc(q.by === st.db.me ? 'yourself' : first(M(q.by) || { name:'Family' }))}</b><span>${esc(q.text.slice(0, 90))}</span></div><button onclick="setReply('')" aria-label="Cancel">×</button></div>`; };
 function setReply(id){ st.replyTo = id || ''; const b = $('#rbar'); if (b) b.innerHTML = rbarHtml(); if (id){ closeMsgMenu(); const i = $('.composer input'); if (i) i.focus(); } fitThread(); }
+function hapticPulse(){
+  try { if (navigator.vibrate) navigator.vibrate([14]); } catch(e){}
+  try { const lb = document.createElement('label'); lb.style.cssText = 'position:fixed;left:-99px;top:0;opacity:0;pointer-events:none'; const sw = document.createElement('input'); sw.type = 'checkbox'; sw.setAttribute('switch', ''); lb.appendChild(sw); document.body.appendChild(lb); lb.click(); setTimeout(() => lb.remove(), 120); } catch(e){}   /* iPhone: toggling a switch gives the system tick */
+}
 function closeMsgMenu(){ const o = $('#mmenu'); if (o) o.remove(); }
 function openMsgMenu(el){
-  const id = el.dataset.mid, m = st.db.messages.find(x => x.id === id); if (!m) return; closeMsgMenu(); Motion.haptic();
+  const id = el.dataset.mid, m = st.db.messages.find(x => x.id === id); if (!m) return; closeMsgMenu(); hapticPulse(); try { getSelection().removeAllRanges(); } catch(e){}
   const r = el.getBoundingClientRect(), mine = reactsOf(m)[st.db.me], W = innerWidth, H = innerHeight;
   const o = document.createElement('div'); o.id = 'mmenu';
   const bar = `<div class="mm-bar">${REACTS.map(e => `<button class="${mine === e ? 'on' : ''}" onclick="react('${id}','${e}')">${e}</button>`).join('')}</div>`;
@@ -1846,8 +1852,9 @@ function openMsgMenu(el){
 async function copyMsg(id){ const m = st.db.messages.find(x => x.id === id); closeMsgMenu(); if (!m) return; try { await navigator.clipboard.writeText(m.text); toast('Copied'); } catch(x){ toast('Could not copy'); } }
 (function(){
   let t = 0, x0 = 0, y0 = 0, el = null;
-  const stop = () => { clearTimeout(t); t = 0; el = null; };
-  document.addEventListener('pointerdown', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (!m || e.target.closest('.rx,.rq,.tag')) return; x0 = e.clientX; y0 = e.clientY; el = m; clearTimeout(t); t = setTimeout(() => { const k = el; stop(); if (k) openMsgMenu(k); }, 420); });
+  const stop = () => { clearTimeout(t); t = 0; if (el) el.classList.remove('pressing'); el = null; };
+  document.addEventListener('pointerdown', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (!m || e.target.closest('.rx,.rq,.tag')) return; x0 = e.clientX; y0 = e.clientY; el = m; m.classList.add('pressing'); clearTimeout(t); t = setTimeout(() => { const k = el; stop(); if (k) openMsgMenu(k); }, 420); });
+  document.addEventListener('selectstart', e => { if (e.target.closest && (e.target.closest('#msgs') || (e.target.parentElement && e.target.parentElement.closest('#msgs')))) e.preventDefault(); });
   document.addEventListener('pointermove', e => { if (t && (Math.abs(e.clientX - x0) > 9 || Math.abs(e.clientY - y0) > 9)) stop(); });
   ['pointerup', 'pointercancel', 'scroll'].forEach(n => document.addEventListener(n, stop, true));
   document.addEventListener('contextmenu', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (m){ e.preventDefault(); stop(); openMsgMenu(m); } });
