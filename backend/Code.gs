@@ -22,13 +22,13 @@ const SCHEMA = {
   Redemptions: ['id','rewardId','memberId','title','cost','status','by','decidedBy','ts'],
   Answers: ['id','week','memberId','text','ts'],
   Wishes: ['id','memberId','title','emoji','note','cost','by','ts'],
-  Messages: ['id','by','to','text','ts','tags'],
+  Messages: ['id','by','to','text','ts','tags','replyTo','reacts','rts'],
   Sessions: ['token','memberId','ts'],
   Settings: ['key','value']
 };
 const SECRET = ['folder','pinHash','salt','fails','lockUntil','pinLen'];
 const DATA_TABLES = ['Members','Posts','Comments','Reactions','Events','Habits','Logs','Rewards','Redemptions','Answers','Wishes','Messages'];
-const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link','cleanup','rsvp'];
+const WRITES = ['join','login','put','del','upload','settings','setPin','signout','link','cleanup','rsvp','react'];
 
 /* ---------------- one-time setup ---------------- */
 function setup() {
@@ -82,7 +82,7 @@ function route(q) {
     case 'msgs': return msgsPoll(q);
   }
   const me = auth(q.token);
-  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings', 'sigsend', 'rsvp'].indexOf(q.action) >= 0) throw new Error('This account is view only');
+  if (me.viewOnly === '1' && ['link', 'put', 'del', 'upload', 'setPin', 'settings', 'sigsend', 'rsvp', 'react'].indexOf(q.action) >= 0) throw new Error('This account is view only');
   switch (q.action) {
     case 'sync':
       if (me.role === 'admin' && /^https:\/\//.test(String(q.appUrl || '')) && setting('appUrl') !== q.appUrl) setSetting('appUrl', q.appUrl);
@@ -97,6 +97,7 @@ function route(q) {
     case 'settings': return saveSettings(me, q);
     case 'read': return saveReads(me, q.map);
     case 'rsvp': return rsvp(me, q);
+    case 'react': return reactMsg(me, q);
     case 'sigsend': return sigSend(me, q);
     case 'sigpoll': return sigPoll(me, q);
     case 'signout': delRow('Sessions', q.token, 'token'); CacheService.getScriptCache().remove('s:' + q.token); return {};
@@ -238,7 +239,7 @@ function msgsPoll(q) {
   let latest;
   for (;;) {
     latest = c.get('msgTs');
-    if (latest === null) { delete MEMO.Messages; latest = String(readAll('Messages').reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0); }, 0)); c.put('msgTs', latest, 21600); }
+    if (latest === null) { delete MEMO.Messages; latest = String(readAll('Messages').reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0, Number(m.rts) || 0); }, 0)); c.put('msgTs', latest, 21600); }
     if (Number(latest) > since || Date.now() >= until) break;
     Utilities.sleep(350);
   }
@@ -249,7 +250,7 @@ function msgsPoll(q) {
 }
 /** Chat: the family group plus this person's own one-to-one messages. Nobody else's are ever sent. */
 function messagesFor(me, since) {
-  return readAll('Messages').filter(function (m) { return (m.to === 'all' || m.by === me.id || m.to === me.id) && Number(m.ts) > since; }).map(function (m) { return pub('Messages', m); });
+  return readAll('Messages').filter(function (m) { return (m.to === 'all' || m.by === me.id || m.to === me.id) && (Number(m.ts) > since || Number(m.rts) > since); }).map(function (m) { return pub('Messages', m); });
 }
 function isParent(p, kidId) { const k = findBy('Members', kidId); return !!k && (k.fatherId === p.id || k.motherId === p.id); }
 function cleanEvent(r, old) {
@@ -268,6 +269,19 @@ function cleanEvent(r, old) {
   let a = {}; try { a = JSON.parse(old && old.rsvp || '{}') || {}; } catch (e) {}
   const keep = {}; r.invited.split(',').forEach(function (id) { if (a[id]) keep[id] = a[id]; });
   r.rsvp = JSON.stringify(keep);
+}
+var REACTS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
+/** Press and hold a message to react: one reaction per person, tap the same one again to take it back. */
+function reactMsg(me, q) {
+  const m = findBy('Messages', String(q.id || ''));
+  if (!m || !(m.to === 'all' || m.by === me.id || m.to === me.id)) throw new Error('Message not found');
+  const e = String(q.emoji || ''); if (e && REACTS.indexOf(e) < 0) throw new Error('Pick one of the reactions');
+  let a = {}; try { a = JSON.parse(m.reacts || '{}') || {}; } catch (x) {}
+  const had = a[me.id]; if (e) a[me.id] = e; else delete a[me.id];
+  m.reacts = Object.keys(a).length ? JSON.stringify(a) : ''; m.rts = now(); writeRow('Messages', m, m._row);
+  CacheService.getScriptCache().put('msgTs', m.rts, 21600); delete MEMO.Messages;
+  if (e && e !== had && m.by !== me.id) push([m.by], shortName(me) + ' reacted ' + e + ' to your message', m.text, m.to === 'all' ? 'chat:all' : 'chat:' + me.id);
+  return { reacts: m.reacts };
 }
 function rsvp(me, q) {
   const ev = findBy('Events', String(q.id || '')); if (!ev) throw new Error('This date was removed');
@@ -350,6 +364,10 @@ function put(me, table, row) {
       r.by = me.id; r.text = String(r.text || '').trim().slice(0, 2000);
       if (!r.text) throw new Error('Write a message first');
       r.tags = r.to === 'all' ? mentionIds(r.text, me.id) : '';
+      r.reacts = ''; r.rts = '';
+      // a reply must point at a message this person can see
+      const rp = r.replyTo ? findBy('Messages', String(r.replyTo)) : null;
+      r.replyTo = rp && (r.to === 'all' ? rp.to === 'all' : ((rp.by === me.id && rp.to === r.to) || (rp.by === r.to && rp.to === me.id))) ? rp.id : '';
       if (r.to !== 'all' && !findBy('Members', r.to)) throw new Error('Person not found');
       break;
     case 'Redemptions':

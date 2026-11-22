@@ -388,6 +388,29 @@ body.scrolled #app>.bar h1{transform:scale(.7)}
 #mpick .mp:active{background:var(--fill3)}
 b.tag{color:var(--accent);font-weight:700;cursor:pointer}
 .msg.me b.tag{color:inherit;text-decoration:underline}
+.msg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rxs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.rx{border:0;font:inherit;font-size:13px;line-height:20px;padding:0 8px;border-radius:12px;background:rgba(0,0,0,.07);color:inherit;cursor:pointer}
+.rx.mine{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.msg.me .rx{background:rgba(255,255,255,.25)}.msg.me .rx.mine{box-shadow:inset 0 0 0 1.5px #fff}
+.rq{border-left:3px solid var(--accent);background:rgba(0,0,0,.06);border-radius:6px;padding:3px 8px;margin:0 0 5px;font-size:14px;line-height:18px;cursor:pointer}
+.rq b{display:block;font-size:13px;color:var(--accent)}.rq span{display:block;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
+.msg.me .rq{background:rgba(255,255,255,.2);border-left-color:#fff}.msg.me .rq b{color:#fff}
+.msg.flash{animation:mflash 1.2s ease}@keyframes mflash{0%,60%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
+.rbar{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:8px 12px;border-left:3px solid var(--accent);border-radius:12px;background:var(--card);font-size:14px;line-height:18px}
+.rbar b{display:block;color:var(--accent);font-size:13px}.rbar span{display:block;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70vw}
+.rbar button{border:0;background:none;font-size:26px;line-height:1;color:var(--muted,#8e8e93);padding:0 4px}
+#mmenu{position:fixed;inset:0;z-index:9000}
+#mmenu .mm-bg{position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:mmfade .2s ease}
+#mmenu .mm-clone{position:absolute;pointer-events:none;display:flex;flex-direction:column;animation:mmpop .22s var(--ease,ease)}
+#mmenu .mm-clone .msg{max-width:100%;align-self:stretch}
+#mmenu .mm-bar{position:absolute;display:flex;gap:2px;padding:6px 8px;border-radius:30px;background:var(--card);box-shadow:0 10px 34px rgba(0,0,0,.28);animation:mmpop .22s var(--ease,ease)}
+#mmenu .mm-bar button{border:0;background:none;font-size:28px;line-height:40px;width:44px;height:40px;border-radius:20px;padding:0}
+#mmenu .mm-bar button.on{background:var(--fill3,rgba(0,0,0,.1))}#mmenu .mm-bar button:active{transform:scale(1.25)}
+#mmenu .mm-act{position:absolute;min-width:190px;border-radius:18px;background:var(--card);box-shadow:0 10px 34px rgba(0,0,0,.28);overflow:hidden;animation:mmpop .22s var(--ease,ease)}
+#mmenu .mm-act button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;border:0;background:none;font:inherit;color:var(--ink);padding:13px 16px}
+#mmenu .mm-act button+button{border-top:.5px solid var(--sep,rgba(0,0,0,.12))}#mmenu .mm-act button:active{background:var(--fill3,rgba(0,0,0,.08))}
+@keyframes mmfade{from{opacity:0}}@keyframes mmpop{from{opacity:0;transform:scale(.92)}}
 .mrow{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:88%}
 .mrow.first{margin-top:8px}
 .mav{width:34px;height:34px;flex:none;cursor:pointer}
@@ -1769,11 +1792,11 @@ const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px">
 function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; toTop(); render(); wakePoll(); }
 function openThread(t, draft){
   if (wideScreen() && st.tab === 'chat' && $('.cpane')){
-    seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; markRead(t); Motion.haptic();
+    seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; markRead(t); Motion.haptic();
     $('.cpane').innerHTML = vThread(); $('#clistIn').innerHTML = chatList(); loadPhotos(); wallFx($('.cpane .thread')); refreshBadges(); scrollMsgs(); wakePoll(); Motion.arm($('.cpane'));
     const i = $('.composer input'); if (i) i.focus(); return;
-  } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
-function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; toTop(); render(); }
+  } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
+function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; st.replyTo = ''; toTop(); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
 function chatList(){
   const last = t => { const ms = threadMsgs(t); return ms[ms.length - 1]; };
@@ -1787,6 +1810,48 @@ function vChat(){
   if (st.chatWith) return vThread();
   return topBar('Chat', 'Talk to the whole family or one to one') + chatList();
 }
+/* ---------- press and hold a message: react or reply ---------- */
+const REACTS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
+const reactsOf = m => { try { return JSON.parse(m.reacts || '{}') || {}; } catch (x) { return {}; } };
+const reactsHtml = m => { const r = reactsOf(m), by = {}; Object.keys(r).forEach(k => { (by[r[k]] = by[r[k]] || []).push(k); }); const ks = Object.keys(by); if (!ks.length) return ''; return `<div class="rxs">${ks.map(e => `<button class="rx ${by[e].includes(st.db.me) ? 'mine' : ''}" onclick="react('${m.id}','${e}')">${e}${by[e].length > 1 ? ' ' + by[e].length : ''}</button>`).join('')}</div>`; };
+const quoteHtml = m => { if (!m.replyTo) return ''; const q = st.db.messages.find(x => x.id === m.replyTo), who = q ? (q.by === st.db.me ? 'You' : first(M(q.by) || { name:'Family' })) : ''; return `<div class="rq" onclick="jumpMsg('${m.replyTo}')"><b>${esc(who || 'Message')}</b><span>${q ? esc(q.text.length > 90 ? q.text.slice(0, 90) + '…' : q.text) : 'This message is no longer available'}</span></div>`; };
+function updateOrRender(){ if ($('#msgs')) updateMsgs(); else render(); }
+async function react(id, e){
+  if (ro()){ toast(RO_MSG); return; }
+  const m = st.db.messages.find(x => x.id === id); if (!m) return; const me = st.db.me, r = reactsOf(m);
+  if (r[me] === e) delete r[me]; else r[me] = e;
+  m.reacts = Object.keys(r).length ? JSON.stringify(r) : ''; Motion.haptic(); closeMsgMenu(); updateOrRender();
+  try { const res = await api('react', { id, emoji: r[me] || '' }); if (res && res.reacts !== undefined) m.reacts = res.reacts; LS.set('db', st.db); }
+  catch(x){ toast(x.message); try { await sync(); } catch(_){} }
+}
+function jumpMsg(id){ const el = $('#msgs [data-mid="' + id + '"]'); if (!el){ toast('That message is further up'); return; } el.scrollIntoView({ block:'center', behavior:'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+const rbarHtml = () => { const q = st.replyTo && st.db.messages.find(x => x.id === st.replyTo); if (!q) return ''; return `<div class="rbar"><div class="grow"><b>Replying to ${esc(q.by === st.db.me ? 'yourself' : first(M(q.by) || { name:'Family' }))}</b><span>${esc(q.text.slice(0, 90))}</span></div><button onclick="setReply('')" aria-label="Cancel">×</button></div>`; };
+function setReply(id){ st.replyTo = id || ''; const b = $('#rbar'); if (b) b.innerHTML = rbarHtml(); if (id){ closeMsgMenu(); const i = $('.composer input'); if (i) i.focus(); } fitThread(); }
+function closeMsgMenu(){ const o = $('#mmenu'); if (o) o.remove(); }
+function openMsgMenu(el){
+  const id = el.dataset.mid, m = st.db.messages.find(x => x.id === id); if (!m) return; closeMsgMenu(); Motion.haptic();
+  const r = el.getBoundingClientRect(), mine = reactsOf(m)[st.db.me], W = innerWidth, H = innerHeight;
+  const o = document.createElement('div'); o.id = 'mmenu';
+  const bar = `<div class="mm-bar">${REACTS.map(e => `<button class="${mine === e ? 'on' : ''}" onclick="react('${id}','${e}')">${e}</button>`).join('')}</div>`;
+  const act = `<div class="mm-act">${ro() ? '' : `<button onclick="setReply('${id}')"><span>Reply</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v3"/></svg></button>`}<button onclick="copyMsg('${id}')"><span>Copy</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button></div>`;
+  o.innerHTML = `<div class="mm-bg" onclick="closeMsgMenu()"></div>${bar}<div class="mm-clone"></div>${act}`;
+  document.body.appendChild(o);
+  const cl = o.querySelector('.mm-clone'), b = o.querySelector('.mm-bar'), a = o.querySelector('.mm-act'), c = el.cloneNode(true); c.classList.remove('new'); c.style.animation = 'none'; c.removeAttribute('data-mid'); cl.appendChild(c);
+  const w = Math.min(r.width, W - 24), bh = 52, ah = a.offsetHeight || 100, gap = 10;
+  let top = r.top; top = Math.max(top, 70 + bh + gap); top = Math.min(top, H - ah - gap - r.height - 20); if (top < 70 + bh + gap) top = 70 + bh + gap;
+  const left = Math.min(Math.max(12, r.left), W - w - 12);
+  cl.style.cssText = `left:${left}px;top:${top}px;width:${w}px`; b.style.top = (top - bh - gap) + 'px'; b.style.left = Math.min(Math.max(12, left), W - b.offsetWidth - 12) + 'px';
+  a.style.top = (top + r.height + gap) + 'px'; a.style.left = Math.min(Math.max(12, left), W - a.offsetWidth - 12) + 'px';
+}
+async function copyMsg(id){ const m = st.db.messages.find(x => x.id === id); closeMsgMenu(); if (!m) return; try { await navigator.clipboard.writeText(m.text); toast('Copied'); } catch(x){ toast('Could not copy'); } }
+(function(){
+  let t = 0, x0 = 0, y0 = 0, el = null;
+  const stop = () => { clearTimeout(t); t = 0; el = null; };
+  document.addEventListener('pointerdown', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (!m || e.target.closest('.rx,.rq,.tag')) return; x0 = e.clientX; y0 = e.clientY; el = m; clearTimeout(t); t = setTimeout(() => { const k = el; stop(); if (k) openMsgMenu(k); }, 420); });
+  document.addEventListener('pointermove', e => { if (t && (Math.abs(e.clientX - x0) > 9 || Math.abs(e.clientY - y0) > 9)) stop(); });
+  ['pointerup', 'pointercancel', 'scroll'].forEach(n => document.addEventListener(n, stop, true));
+  document.addEventListener('contextmenu', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (m){ e.preventDefault(); stop(); openMsgMenu(m); } });
+})();
 const seenMsgs = new Set();
 function msgsHtml(){
   const t = st.chatWith, ms = threadMsgs(t), firstPaint = seenMsgs.size === 0; let day = '', prev = '', h = '';
@@ -1801,28 +1866,29 @@ function msgsHtml(){
     if (t === 'all' && !mine){
       /* group chat: name on the first bubble of a run, photo beside the last one */
       const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
-      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${mt(m.text, m.tags)}<small>${time(m.ts)}</small></div></div>`;
-    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}">${mt(m.text, m.tags)}<small>${time(m.ts)}</small></div>`;
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}" data-mid="${m.id}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${quoteHtml(m)}${mt(m.text, m.tags)}<small>${time(m.ts)}</small>${reactsHtml(m)}</div></div>`;
+    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}" data-mid="${m.id}">${quoteHtml(m)}${mt(m.text, m.tags)}<small>${time(m.ts)}</small>${reactsHtml(m)}</div>`;
     prev = m.by; seenMsgs.add(m.id);
   }
   return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" ${st.chatWith === 'all' ? 'data-mention' : ''} placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<div id="rbar">${rbarHtml()}</div><form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" ${st.chatWith === 'all' ? 'data-mention' : ''} placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
 function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v || wideScreen()) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
 if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
 function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
-function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); save('Messages', { to:st.chatWith, text, tags: st.chatWith === 'all' ? tagsOf(text) : '' }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
+function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); const replyTo = st.replyTo || ''; st.replyTo = ''; const rb = $('#rbar'); if (rb) rb.innerHTML = ''; save('Messages', { to:st.chatWith, text, replyTo, tags: st.chatWith === 'all' ? tagsOf(text) : '' }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
 async function pollMsgs(wait){
   const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
-  let fresh = 0;
-  for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0) st.db.messages[i] = m; else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
+  let fresh = 0, changed = 0;
+  for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0){ if ((st.db.messages[i].reacts || '') !== (m.reacts || '')) changed++; st.db.messages[i] = m; } else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
   if (r && r.sigs && r.sigs.length) Call.onSignals(r.sigs);
   if (r && r.ts) st.msgSince = Math.max(st.msgSince || 0, Number(r.ts));
+  if (changed && !fresh){ LS.set('db', st.db); if (st.tab === 'chat' && st.chatWith) updateOrRender(); }
   if (fresh){ LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); if (!(st.tab === 'chat' && st.chatWith)) Motion.haptic(); }
 }
 let wakePoll = () => {};
@@ -2406,6 +2472,7 @@ async function demoApi(action, p){
   if (action === 'img') return { dataUrl: demoPhotos[p.id] };
   if (action === 'settings'){ Object.assign(demoDb.settings, p); return {}; }
   if (action === 'rsvp'){ const e = demoDb.events.find(x => x.id === p.id); const r = JSON.parse(e.rsvp || '{}'); r[p.memberId] = p.answer; e.rsvp = JSON.stringify(r); return { rsvp: e.rsvp }; }
+  if (action === 'react'){ const m = demoDb.messages.find(x => x.id === p.id); if (m){ const r = JSON.parse(m.reacts || '{}'); if (p.emoji) r[demoDb.me] = p.emoji; else delete r[demoDb.me]; m.reacts = Object.keys(r).length ? JSON.stringify(r) : ''; return { reacts: m.reacts }; } return {}; }
   if (action === 'msgs') return [];
   if (action === 'link') return {};
   return {};
