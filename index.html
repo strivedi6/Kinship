@@ -490,7 +490,7 @@ body.ro .fab,body.ro [onclick^="memberForm"],body.ro [onclick^="eventForm"],body
 .celebrate canvas+canvas{z-index:0}
 .bday{border-radius:22px;padding:14px 16px}
 .bday .ey{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em}
-.bday .bd-nm{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:21px;line-height:1.15;letter-spacing:0}
+.bday .bd-nm{font-family:inherit;font-weight:700;font-size:22px;line-height:1.15;letter-spacing:-.26px}
 .bday .bd-sub{font-size:13px;line-height:18px}.bday .bd-note{font-size:14px;line-height:1.4;margin-top:8px}
 .bday .row .av{width:46px!important;height:46px!important}
 .cel-card h2{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:36px}
@@ -2028,7 +2028,7 @@ function personPick(name, sel, skipMe){
 function eventSheet(id){
   const e = st.db.events.find(x => x.id === id); if (!e) return; if (e.kind === 'flight') return flightSheet(e); const a = M(e.by) || {}, inv = ids(e.invited), tw = ids(e.with), rs = rsvpOf(e);
   const names = l => l.map(i => M(i)).filter(Boolean).map(m => esc(first(m))).join(', ');
-  const mine = me(), kids = st.db.members.filter(k => !k.passed && k.id !== mine.id && inv.includes(k.id) && (isAdmin() || looksAfter(mine, k)));
+  const mine = me(), kids = isKid(mine) ? [] : st.db.members.filter(k => !k.passed && k.id !== mine.id && inv.includes(k.id) && isKid(k) && isParentOf(mine, k));   /* only the invitee answers; parents answer for children under 18 */
   const btns = who => `<div class="rsvp">${Object.keys(RS).map(k => `<button class="${rs[who] === k ? 'on ' + k : ''}" onclick="rsvpGo('${id}','${who}','${k}')">${RS[k][1]} ${RS[k][0]}</button>`).join('')}</div>`;
   const cnt = k => inv.filter(i => rs[i] === k).length;
   openSheet(() => `<div class="sh"><h2>${esc(e.emoji || '📅')} ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card">${e.note ? `<p style="margin-top:0;white-space:pre-wrap">${esc(e.note)}</p>` : ''}

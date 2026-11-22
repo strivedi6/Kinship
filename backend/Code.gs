@@ -273,7 +273,9 @@ function rsvp(me, q) {
   const ev = findBy('Events', String(q.id || '')); if (!ev) throw new Error('This date was removed');
   const who = String(q.memberId || me.id), ans = String(q.answer || '');
   if (['yes', 'maybe', 'no'].indexOf(ans) < 0) throw new Error('Choose Going, Maybe or Can\'t');
-  if (!mayActFor(me, who)) throw new Error('Not allowed');
+  // only the invited person answers; a parent may answer for a child who is still under 18 (an adult answers for themselves)
+  const wm = findBy('Members', who);
+  if (!(me.id === who || (wm && wm.role === 'kid' && me.role !== 'kid' && isParent(me, who)))) throw new Error('Only they can answer this invite');
   if (String(ev.invited || '').split(',').indexOf(who) < 0) throw new Error('This invite is not for them');
   let a = {}; try { a = JSON.parse(ev.rsvp || '{}') || {}; } catch (e) {}
   a[who] = ans; ev.rsvp = JSON.stringify(a);
