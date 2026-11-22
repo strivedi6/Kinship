@@ -22,7 +22,7 @@ const SCHEMA = {
   Redemptions: ['id','rewardId','memberId','title','cost','status','by','decidedBy','ts'],
   Answers: ['id','week','memberId','text','ts'],
   Wishes: ['id','memberId','title','emoji','note','cost','by','ts'],
-  Messages: ['id','by','to','text','ts','tags','replyTo','reacts','rts'],
+  Messages: ['id','by','to','text','ts','tags','replyTo','reacts','rts','photo','edited','deleted'],
   Sessions: ['token','memberId','ts'],
   Settings: ['key','value']
 };
@@ -92,7 +92,7 @@ function route(q) {
     case 'del': return del(me, q.table, q.id);
     case 'cleanup': if (me.role !== 'admin') throw new Error('Only an admin can do this'); try { ensureTriggers(); } catch (e) {} return runCleanup();
     case 'upload': return upload(me, q.dataUrl);
-    case 'img': return img(q.id);
+    case 'img': return img(q.id, me);
     case 'setPin': setPin(me, q.pin); return {};
     case 'settings': return saveSettings(me, q);
     case 'read': return saveReads(me, q.map);
@@ -360,9 +360,18 @@ function put(me, table, row) {
       if (r.cost && !/^[1-9][0-9]{0,5}$/.test(r.cost)) r.cost = '';
       break;
     case 'Messages':
-      if (old) throw new Error('Messages cannot be changed');
+      if (old) {
+        // the only change allowed is editing your own message's words; it is marked "edited" and everyone's chat refreshes
+        if (old.by !== me.id || old.deleted === '1') throw new Error('You can only edit your own messages');
+        r.text = String(clean.text !== undefined ? clean.text : old.text).trim().slice(0, 2000);
+        if (!r.text && !old.photo) throw new Error('Write a message first');
+        ['to', 'photo', 'replyTo', 'reacts', 'deleted'].forEach(function (k) { r[k] = old[k] || ''; });
+        r.edited = '1'; r.rts = now(); r.tags = r.to === 'all' ? mentionIds(r.text, me.id) : '';
+        break;
+      }
       r.by = me.id; r.text = String(r.text || '').trim().slice(0, 2000);
-      if (!r.text) throw new Error('Write a message first');
+      r.photo = /^[A-Za-z0-9_-]{10,80}$/.test(String(r.photo || '')) ? String(r.photo) : ''; r.edited = ''; r.deleted = '';
+      if (!r.text && !r.photo) throw new Error('Write a message first');
       r.tags = r.to === 'all' ? mentionIds(r.text, me.id) : '';
       r.reacts = ''; r.rts = '';
       // a reply must point at a message this person can see
@@ -387,7 +396,7 @@ function put(me, table, row) {
   writeRow(table, r, target ? target._row : 0);
   if (old && table === 'Posts') trashPhotos(String(old.photo || '').split(',').filter(function (p) { return p && String(r.photo || '').split(',').indexOf(p) < 0; }));
   if (old && table === 'Members' && old.photo && r.photo !== old.photo) trashPhotos([old.photo]);
-  if (table === 'Messages') CacheService.getScriptCache().put('msgTs', String(r.ts), 21600);
+  if (table === 'Messages') CacheService.getScriptCache().put('msgTs', String(Math.max(Number(r.ts) || 0, Number(r.rts) || 0)), 21600);
   announce(me, table, r, target);
   return pub(table, r);
 }
@@ -395,6 +404,13 @@ function put(me, table, row) {
 function del(me, table, id) {
   if (DATA_TABLES.indexOf(table) < 0) throw new Error('Unknown table');
   const old = findBy(table, id); if (!old) return {};
+  if (table === 'Messages') {
+    // a deleted message stays as a stub ("This message was deleted") so that everyone's chat updates
+    if (old.by !== me.id) throw new Error('You can only delete your own messages');
+    if (old.photo) trashPhotos([old.photo]);
+    old.text = ''; old.photo = ''; old.reacts = ''; old.tags = ''; old.edited = ''; old.deleted = '1'; old.rts = now(); writeRow('Messages', old, old._row);
+    CacheService.getScriptCache().put('msgTs', old.rts, 21600); delete MEMO.Messages; return {};
+  }
   if (table === 'Members') { if (me.role !== 'admin' || id === me.id) throw new Error('Only an admin can remove people'); }
   else if (table === 'Logs' || table === 'Redemptions' || table === 'Wishes') { if (!mayActFor(me, old.memberId)) throw new Error('Not allowed'); }
   else if (table === 'Reactions') { if (old.by !== me.id) throw new Error('Not allowed'); }
@@ -441,6 +457,7 @@ function runCleanup() {
   const members = {}, posts = {}, keep = {}, folders = {}, out = {};
   readAll('Members').forEach(function (m) { members[m.id] = 1; if (m.photo) keep[m.photo] = 1; if (m.folder) folders[m.folder] = 1; });
   if (!Object.keys(members).length) throw new Error('No people found, nothing was removed');
+  readAll('Messages').forEach(function (m) { if (m.photo) keep[m.photo] = 1; });
   readAll('Posts').forEach(function (p) { posts[p.id] = 1; String(p.photo || '').split(',').forEach(function (x) { if (x) keep[x] = 1; }); });
   out.comments = purgeRows('Comments', function (c) { return !posts[c.postId] || !members[c.by]; });
   out.reactions = purgeRows('Reactions', function (x) { return !posts[x.postId] || !members[x.by]; });
@@ -481,10 +498,11 @@ function upload(me, dataUrl) {
   const blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], stamp + '.jpg');
   return { id: memberFolder(me).createFile(blob).getId() };
 }
-function img(id) {
+function img(id, me) {
   // A post photo or someone's profile photo.
   if (!readAll('Posts').some(function (p) { return String(p.photo || '').split(',').indexOf(id) >= 0; }) &&
-      !readAll('Members').some(function (m) { return m.photo === id; })) throw new Error('Not found');
+      !readAll('Members').some(function (m) { return m.photo === id; }) &&
+      !readAll('Messages').some(function (m) { return m.photo === id && (m.to === 'all' || m.by === me.id || m.to === me.id); })) throw new Error('Not found');
   const b = DriveApp.getFileById(id).getBlob();
   return { dataUrl: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
 }
@@ -541,7 +559,7 @@ function announce(me, table, r, old) {
   const who = shortName(me);
   const tagged = String(r.tags || '').split(',').filter(function (x) { return x && x !== me.id; }), notTagged = function (ids) { return ids.filter(function (x) { return tagged.indexOf(x) < 0; }); };
   if (tagged.length && !old && (table === 'Posts' || table === 'Comments' || (table === 'Messages' && r.to === 'all')))
-    push(tagged, who + ' mentioned you ' + (table === 'Posts' ? 'in a post' : table === 'Comments' ? 'in a comment' : 'in the family chat'), r.text, table === 'Messages' ? 'chat:all' : 'post:' + (table === 'Posts' ? r.id : r.postId));
+    push(tagged, who + ' mentioned you ' + (table === 'Posts' ? 'in a post' : table === 'Comments' ? 'in a comment' : 'in the family chat'), r.text || '📷 Photo', table === 'Messages' ? 'chat:all' : 'post:' + (table === 'Posts' ? r.id : r.postId));
   if (table === 'Posts' && !old) push(notTagged(everyoneBut(me.id)), who + (r.photo ? (String(r.photo).split(',').length > 1 ? ' shared ' + String(r.photo).split(',').length + ' photos' : ' shared a photo') : ' shared an update'), r.text || 'Tap to see it.', 'post:' + r.id);
   else if ((table === 'Comments' || table === 'Reactions') && !old) {
     const p = findBy('Posts', r.postId);
@@ -557,7 +575,7 @@ function announce(me, table, r, old) {
     const was = String(old.invited || '').split(','), fresh = String(r.invited || '').split(',').filter(function (x) { return x && x !== me.id && was.indexOf(x) < 0; });
     if (fresh.length) push(fresh, who + ' invited you: ' + r.title, niceDate(r.date) + ' · tap to answer', 'cal');
   }
-  else if (table === 'Messages' && !old) push(r.to === 'all' ? notTagged(everyoneBut(me.id)) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text, r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
+  else if (table === 'Messages' && !old) push(r.to === 'all' ? notTagged(everyoneBut(me.id)) : [r.to], r.to === 'all' ? who + ' wrote in the family chat' : who + ' sent you a message', r.text || '📷 Photo', r.to === 'all' ? 'chat:all' : 'chat:' + me.id);
   else if (table === 'Wishes') {
     const k = findBy('Members', r.memberId) || {};
     if (!old && me.id === r.memberId) push([k.fatherId, k.motherId], shortName(k) + ' added a wish: ' + r.title, 'Set how many stars it needs.', 'kids:wishes:' + r.memberId);

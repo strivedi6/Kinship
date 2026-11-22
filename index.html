@@ -413,6 +413,26 @@ b.tag{color:var(--accent);font-weight:700;cursor:pointer}
 #mmenu .mm-act button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;border:0;background:none;font:inherit;color:var(--ink);padding:13px 16px}
 #mmenu .mm-act button+button{border-top:.5px solid var(--sep,rgba(0,0,0,.12))}#mmenu .mm-act button:active{background:var(--fill3,rgba(0,0,0,.08))}
 @keyframes mmfade{from{opacity:0}}@keyframes mmpop{from{opacity:0;transform:scale(.92)}}
+.acts{display:flex;gap:10px;margin:10px 0}.acts .btn{flex:1}
+.accs{display:block;background:var(--card);border-radius:22px;overflow:hidden;margin:12px 0}
+details.acc{display:block;width:100%;flex:none}
+details.acc>summary .grow{flex:1;min-width:0}
+details.acc+details.acc{border-top:.5px solid var(--sep,rgba(128,128,128,.25))}
+details.acc>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary .small{display:block;margin-top:1px}
+details.acc>summary::after{content:'';width:9px;height:9px;border-right:2px solid var(--muted,#8e8e93);border-bottom:2px solid var(--muted,#8e8e93);transform:rotate(45deg);transition:transform .25s var(--ease,ease);margin-right:4px}
+details.acc[open]>summary::after{transform:rotate(-135deg)}
+details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
+@keyframes accin{from{opacity:0;transform:translateY(-6px)}}
+.danger-t{color:var(--neg,#ff453a)}
+.composer .attach{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent);cursor:pointer}
+.composer .attach svg{width:22px;height:22px}
+.abar{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:8px;border-radius:16px;background:var(--card)}
+.abar img{width:56px;height:56px;border-radius:10px;object-fit:cover}.abar button{border:0;background:none;font-size:26px;line-height:1;color:var(--muted,#8e8e93);padding:0 6px}
+.mph{display:block;width:240px;max-width:100%;max-height:320px;min-height:120px;object-fit:cover;border-radius:14px;margin:0 0 5px;background:rgba(0,0,0,.08);cursor:pointer}
+.mdel{opacity:.6;font-style:italic}
+#mmenu .mm-act button.dng{color:var(--neg,#ff453a)}
 .mrow{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:88%}
 .mrow.first{margin-top:8px}
 .mav{width:34px;height:34px;flex:none;cursor:pointer}
@@ -1195,7 +1215,8 @@ const SIDE = { tree:'Family tree', feed:'Family feed', cal:'Family dates' };
 const SC = () => document.getElementById('scroller');
 const pageY = () => SC() ? SC().scrollTop : 0;
 const toTop = () => { if (SC()) SC().scrollTop = 0; };
-function go(t){ navMini(false); navY = 0; if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
+function go(t){ if (t === st.tab && !st.chatWith && SC() && SC().scrollTop > 4){ navMini(false); Motion.haptic(); SC().scrollTo({ top:0, behavior:'smooth' }); return; }   /* tapping the tab you are on glides back to the top */
+  navMini(false); navY = 0; if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
   if (!st.db){ renderLogin(); return; }
   document.body.classList.toggle('ro', ro()); FX.stop();
@@ -1794,15 +1815,15 @@ const GAV = size => `<span class="gav" style="width:${size}px;height:${size}px">
 function openChat(){ if (st.tab !== 'chat'){ Motion.enter = true; st.prevTab = st.tab; } Motion.haptic(); st.tab = 'chat'; st.chatWith = null; toTop(); render(); wakePoll(); }
 function openThread(t, draft){
   if (wideScreen() && st.tab === 'chat' && $('.cpane')){
-    seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; markRead(t); Motion.haptic();
+    seenMsgs.clear(); st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; st.editId = ''; st.msgPhoto = ''; markRead(t); Motion.haptic();
     $('.cpane').innerHTML = vThread(); $('#clistIn').innerHTML = chatList(); loadPhotos(); wallFx($('.cpane .thread')); refreshBadges(); scrollMsgs(); wakePoll(); Motion.arm($('.cpane'));
     const i = $('.composer input'); if (i) i.focus(); return;
-  } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
-function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; st.replyTo = ''; toTop(); render(); }
+  } seenMsgs.clear(); Motion.enter = true; st.tab = 'chat'; st.chatWith = t; st.draft = draft || ''; st.replyTo = ''; st.editId = ''; st.msgPhoto = ''; markRead(t); render(); fitThread(); scrollMsgs(); wakePoll(); if (draft) setTimeout(() => { const i = $('.composer input'); if (i) i.focus(); }, 350); }
+function closeThread(){ Motion.enter = true; st.chatWith = null; st.draft = ''; st.replyTo = ''; st.editId = ''; st.msgPhoto = ''; toTop(); render(); }
 const scrollMsgs = () => { const el = $('#msgs'); if (el) el.scrollTop = el.scrollHeight; };
 function chatList(){
   const last = t => { const ms = threadMsgs(t); return ms[ms.length - 1]; };
-  const row = (t, avatar, name) => { const l = last(t), n = unread(t), who = l ? (l.by === st.db.me ? 'You: ' : t === 'all' ? first(M(l.by) || {}) + ': ' : '') : ''; return `<button class="row lrow crow ${st.chatWith === t ? 'sel' : ''}" onclick="openThread('${t}')">${avatar}<span class="grow"><span class="row" style="gap:8px"><span class="b grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</span><span class="small muted">${l ? ago(l.ts) : ''}</span></span><span class="row" style="gap:8px"><span class="pv grow">${l ? esc(who + l.text) : 'Say hello'}</span>${n ? `<i class="badge">${n}</i>` : ''}</span></span></button>`; };
+  const row = (t, avatar, name) => { const l = last(t), n = unread(t), who = l ? (l.by === st.db.me ? 'You: ' : t === 'all' ? first(M(l.by) || {}) + ': ' : '') : ''; return `<button class="row lrow crow ${st.chatWith === t ? 'sel' : ''}" onclick="openThread('${t}')">${avatar}<span class="grow"><span class="row" style="gap:8px"><span class="b grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</span><span class="small muted">${l ? ago(l.ts) : ''}</span></span><span class="row" style="gap:8px"><span class="pv grow">${l ? esc(who + msgLabel(l)) : 'Say hello'}</span>${n ? `<i class="badge">${n}</i>` : ''}</span></span></button>`; };
   const people = chatPeople().sort((a, b) => Number((last(b.id) || {}).ts || 0) - Number((last(a.id) || {}).ts || 0) || String(a.name).localeCompare(b.name));
   return `<div class="card">${row('all', GAV(46), 'Family')}</div>` + (people.length ? `<div class="sec"><h2>People</h2></div><div class="card">${people.map(p => row(p.id, av(p, 46), p.name)).join('')}</div>` : `<div class="card empty">When relatives join, you can message them here.</div>`);
 }
@@ -1812,11 +1833,27 @@ function vChat(){
   if (st.chatWith) return vThread();
   return topBar('Chat', 'Talk to the whole family or one to one') + chatList();
 }
+
+/* ---------- photos, editing and deleting in chat ---------- */
+const msgLabel = m => m.deleted === '1' ? 'This message was deleted' : m.text || (m.photo ? '📷 Photo' : '');
+const abarHtml = () => st.msgPhoto ? `<div class="abar"><img src="${st.msgPhoto}" alt=""><div class="grow small muted">Photo ready. Add a caption if you like, then send.</div><button onclick="clearMsgPhoto()" aria-label="Remove photo">×</button></div>` : '';
+function drawAbar(){ const b = $('#abar'); if (b) b.innerHTML = abarHtml(); }
+function clearMsgPhoto(){ st.msgPhoto = ''; drawAbar(); }
+async function pickMsgPhoto(inp){ const f = inp.files[0]; inp.value = ''; if (!f) return; try { st.msgPhoto = await compress(f, 1280, .72); drawAbar(); const i = $('.composer input[type=text]'); if (i) i.focus(); } catch(e){ toast(e.message || 'Could not use that photo'); } }
+function setEdit(id){ st.editId = id || ''; if (id){ st.replyTo = ''; const m = st.db.messages.find(x => x.id === id), i = $('.composer input[type=text]'); if (m && i){ i.value = m.text || ''; st.draft = i.value; closeMsgMenu(); i.focus(); } } else { const i = $('.composer input[type=text]'); if (i){ i.value = ''; st.draft = ''; } } const b = $('#rbar'); if (b) b.innerHTML = rbarHtml(); fitThread(); }
+function delMsg(id){
+  closeMsgMenu(); const m = st.db.messages.find(x => x.id === id); if (!m || m.by !== st.db.me) return;
+  if (!confirm('Delete this message for everyone?')) return;
+  m.deleted = '1'; m.text = ''; m.photo = ''; m.reacts = ''; Motion.haptic(); updateOrRender();
+  api('del', { table:'Messages', id }).then(() => LS.set('db', st.db)).catch(e => { toast(e.message); sync().catch(() => {}); });
+}
 /* ---------- press and hold a message: react or reply ---------- */
 const REACTS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
 const reactsOf = m => { try { return JSON.parse(m.reacts || '{}') || {}; } catch (x) { return {}; } };
+const bodyHtml = m => m.deleted === '1' ? '<i class="mdel">This message was deleted</i>' : (m.photo ? `<img class="mph" data-photo="${esc(m.photo)}" alt="" draggable="false" onclick="openPhoto('${esc(m.photo)}',0)">` : '') + (m.text ? mt(m.text, m.tags) : '');
+const stamp = (m, t) => t + (m.edited === '1' && m.deleted !== '1' ? ' · edited' : '');
 const reactsHtml = m => { const r = reactsOf(m), by = {}; Object.keys(r).forEach(k => { (by[r[k]] = by[r[k]] || []).push(k); }); const ks = Object.keys(by); if (!ks.length) return ''; return `<div class="rxs">${ks.map(e => `<button class="rx ${by[e].includes(st.db.me) ? 'mine' : ''}" onclick="react('${m.id}','${e}')">${e}${by[e].length > 1 ? ' ' + by[e].length : ''}</button>`).join('')}</div>`; };
-const quoteHtml = m => { if (!m.replyTo) return ''; const q = st.db.messages.find(x => x.id === m.replyTo), who = q ? (q.by === st.db.me ? 'You' : first(M(q.by) || { name:'Family' })) : ''; return `<div class="rq" onclick="jumpMsg('${m.replyTo}')"><b>${esc(who || 'Message')}</b><span>${q ? esc(q.text.length > 90 ? q.text.slice(0, 90) + '…' : q.text) : 'This message is no longer available'}</span></div>`; };
+const quoteHtml = m => { if (!m.replyTo) return ''; const q = st.db.messages.find(x => x.id === m.replyTo), who = q ? (q.by === st.db.me ? 'You' : first(M(q.by) || { name:'Family' })) : ''; return `<div class="rq" onclick="jumpMsg('${m.replyTo}')"><b>${esc(who || 'Message')}</b><span>${q ? esc((t => t.length > 90 ? t.slice(0, 90) + '…' : t)(msgLabel(q))) : 'This message is no longer available'}</span></div>`; };
 function updateOrRender(){ if ($('#msgs')) updateMsgs(); else render(); }
 async function react(id, e){
   if (ro()){ toast(RO_MSG); return; }
@@ -1827,19 +1864,19 @@ async function react(id, e){
   catch(x){ toast(x.message); try { await sync(); } catch(_){} }
 }
 function jumpMsg(id){ const el = $('#msgs [data-mid="' + id + '"]'); if (!el){ toast('That message is further up'); return; } el.scrollIntoView({ block:'center', behavior:'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
-const rbarHtml = () => { const q = st.replyTo && st.db.messages.find(x => x.id === st.replyTo); if (!q) return ''; return `<div class="rbar"><div class="grow"><b>Replying to ${esc(q.by === st.db.me ? 'yourself' : first(M(q.by) || { name:'Family' }))}</b><span>${esc(q.text.slice(0, 90))}</span></div><button onclick="setReply('')" aria-label="Cancel">×</button></div>`; };
-function setReply(id){ st.replyTo = id || ''; const b = $('#rbar'); if (b) b.innerHTML = rbarHtml(); if (id){ closeMsgMenu(); const i = $('.composer input'); if (i) i.focus(); } fitThread(); }
+const rbarHtml = () => { if (st.editId){ const e = st.db.messages.find(x => x.id === st.editId); if (e) return `<div class="rbar"><div class="grow"><b>Editing message</b><span>${esc(msgLabel(e).slice(0, 90))}</span></div><button onclick="setEdit('')" aria-label="Cancel">×</button></div>`; } const q = st.replyTo && st.db.messages.find(x => x.id === st.replyTo); if (!q) return ''; return `<div class="rbar"><div class="grow"><b>Replying to ${esc(q.by === st.db.me ? 'yourself' : first(M(q.by) || { name:'Family' }))}</b><span>${esc(msgLabel(q).slice(0, 90))}</span></div><button onclick="setReply('')" aria-label="Cancel">×</button></div>`; };
+function setReply(id){ st.replyTo = id || ''; if (id) st.editId = ''; const b = $('#rbar'); if (b) b.innerHTML = rbarHtml(); if (id){ closeMsgMenu(); const i = $('.composer input'); if (i) i.focus(); } fitThread(); }
 function hapticPulse(){
   try { if (navigator.vibrate) navigator.vibrate([14]); } catch(e){}
   try { const lb = document.createElement('label'); lb.style.cssText = 'position:fixed;left:-99px;top:0;opacity:0;pointer-events:none'; const sw = document.createElement('input'); sw.type = 'checkbox'; sw.setAttribute('switch', ''); lb.appendChild(sw); document.body.appendChild(lb); lb.click(); setTimeout(() => lb.remove(), 120); } catch(e){}   /* iPhone: toggling a switch gives the system tick */
 }
 function closeMsgMenu(){ const o = $('#mmenu'); if (o) o.remove(); }
 function openMsgMenu(el){
-  const id = el.dataset.mid, m = st.db.messages.find(x => x.id === id); if (!m) return; closeMsgMenu(); hapticPulse(); try { getSelection().removeAllRanges(); } catch(e){}
+  const id = el.dataset.mid, m = st.db.messages.find(x => x.id === id); if (!m || m.deleted === '1') return; closeMsgMenu(); hapticPulse(); try { getSelection().removeAllRanges(); } catch(e){}
   const r = el.getBoundingClientRect(), mine = reactsOf(m)[st.db.me], W = innerWidth, H = innerHeight;
   const o = document.createElement('div'); o.id = 'mmenu';
   const bar = `<div class="mm-bar">${REACTS.map(e => `<button class="${mine === e ? 'on' : ''}" onclick="react('${id}','${e}')">${e}</button>`).join('')}</div>`;
-  const act = `<div class="mm-act">${ro() ? '' : `<button onclick="setReply('${id}')"><span>Reply</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v3"/></svg></button>`}<button onclick="copyMsg('${id}')"><span>Copy</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button></div>`;
+  const own = m.by === st.db.me && !ro(), act = `<div class="mm-act">${ro() ? '' : `<button onclick="setReply('${id}')"><span>Reply</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v3"/></svg></button>`}${m.text ? `<button onclick="copyMsg('${id}')"><span>Copy</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>` : ''}${own ? `<button onclick="setEdit('${id}')"><span>Edit</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button><button class="dng" onclick="delMsg('${id}')"><span>Delete</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>` : ''}</div>`;
   o.innerHTML = `<div class="mm-bg" onclick="closeMsgMenu()"></div>${bar}<div class="mm-clone"></div>${act}`;
   document.body.appendChild(o);
   const cl = o.querySelector('.mm-clone'), b = o.querySelector('.mm-bar'), a = o.querySelector('.mm-act'), c = el.cloneNode(true); c.classList.remove('new'); c.style.animation = 'none'; c.removeAttribute('data-mid'); cl.appendChild(c);
@@ -1873,26 +1910,40 @@ function msgsHtml(){
     if (t === 'all' && !mine){
       /* group chat: name on the first bubble of a run, photo beside the last one */
       const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
-      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}" data-mid="${m.id}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${quoteHtml(m)}${mt(m.text, m.tags)}<small>${time(m.ts)}</small>${reactsHtml(m)}</div></div>`;
-    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}" data-mid="${m.id}">${quoteHtml(m)}${mt(m.text, m.tags)}<small>${time(m.ts)}</small>${reactsHtml(m)}</div>`;
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw}" data-mid="${m.id}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div></div>`;
+    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw}" data-mid="${m.id}">${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div>`;
     prev = m.by; seenMsgs.add(m.id);
   }
   return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
 }
 function vThread(){
   const t = st.chatWith, o = t === 'all' ? null : M(t), z = o && (o.tz || (cInfo(o.country) || [])[2]);
-  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<div id="rbar">${rbarHtml()}</div><form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><input type="text" name="m" ${st.chatWith === 'all' ? 'data-mention' : ''} placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
+  return `<div class="thread"><div class="tbar"><button class="glass tb" onclick="closeThread()" aria-label="Back"><svg viewBox="0 0 24 24">${ICO.back}</svg></button>${o ? av(o, 40) : GAV(40)}<div class="grow" ${o ? `onclick="profileSheet('${o.id}')"` : ''}><div class="b">${esc(o ? o.name : 'Family')}</div><div class="small muted">${o ? (o.country ? flag(o.country) + ' ' : '') + (z ? timeIn(z) + ' there' : '') : (chatPeople().length + 1) + ' people'}</div></div>${o && o.claimed && !o.passed && !ro() && !DEMO && Call.ok() ? `<button class="cbtn" onclick="Call.start('${o.id}',false)" aria-label="Voice call"><svg viewBox="0 0 24 24">${CI.phone}</svg></button><button class="cbtn" onclick="Call.start('${o.id}',true)" aria-label="Video call"><svg viewBox="0 0 24 24">${CI.cam}</svg></button>` : ''}</div><div id="msgs" data-t="${t}">${msgsHtml()}</div>${ro() ? '<div class="composer glass ro-note">View only</div>' : ''}<div id="rbar">${rbarHtml()}</div><div id="abar">${abarHtml()}</div><form class="composer glass" ${ro() ? 'hidden' : ''} onsubmit="return sendMsg(event)"><label class="attach" aria-label="Send a photo"><input type="file" accept="image/*" hidden onchange="pickMsgPhoto(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-9 9"/></svg></label><input type="text" name="m" ${st.chatWith === 'all' ? 'data-mention' : ''} placeholder="Message" autocomplete="off" maxlength="2000" enterkeyhint="send" value="${esc(st.draft || '')}" oninput="st.draft=this.value"><button class="send" aria-label="Send"><svg viewBox="0 0 24 24">${ICO.send}</svg></button></form></div>`;
 }
 /* Keep the thread exactly as tall as the visible screen, so the composer rides on top of the keyboard. */
 let vvMax = 0;
 function fitThread(){ const t = $('.thread'), v = window.visualViewport; if (!t || !v || wideScreen()) return; vvMax = Math.max(vvMax, v.height); t.style.height = v.height + 'px'; t.style.top = v.offsetTop + 'px'; t.classList.toggle('kb', v.height < vvMax - 120); scrollMsgs(); }   // kb = keyboard is up: drop the home-indicator gap
 if (window.visualViewport){ visualViewport.addEventListener('resize', fitThread); visualViewport.addEventListener('scroll', fitThread); }
-function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
-function sendMsg(ev){ ev.preventDefault(); const i = ev.target.m, text = i.value.trim(); if (!text) return false; i.value = ''; st.draft = ''; Motion.haptic(); const replyTo = st.replyTo || ''; st.replyTo = ''; const rb = $('#rbar'); if (rb) rb.innerHTML = ''; save('Messages', { to:st.chatWith, text, replyTo, tags: st.chatWith === 'all' ? tagsOf(text) : '' }).catch(() => {}); scrollMsgs(); i.focus(); return false; }
+function updateMsgs(){ const el = $('#msgs'), near = el.scrollHeight - el.scrollTop - el.clientHeight < 160; el.innerHTML = msgsHtml(); loadPhotos(); markRead(st.chatWith); if (near) scrollMsgs(); refreshBadges(); }
+function sendMsg(ev){
+  ev.preventDefault(); const i = ev.target.m, text = i.value.trim(), photo = st.msgPhoto || '', edit = st.editId || '', to = st.chatWith;
+  if (edit){
+    const m = st.db.messages.find(x => x.id === edit); if (!m || (!text && !m.photo)) return false;
+    i.value = ''; st.draft = ''; Motion.haptic(); setEdit('');
+    if (text !== m.text) save('Messages', { id:edit, text, edited:'1', tags: to === 'all' ? tagsOf(text) : '' }).catch(() => {}); return false;
+  }
+  if (!text && !photo) return false;
+  i.value = ''; st.draft = ''; Motion.haptic();
+  const replyTo = st.replyTo || ''; st.replyTo = ''; st.msgPhoto = ''; const rb = $('#rbar'); if (rb) rb.innerHTML = ''; drawAbar();
+  const tags = to === 'all' ? tagsOf(text) : '';
+  if (photo){ toast('Sending photo…'); (async () => { try { const up = await api('upload', { dataUrl: photo }); photoMem.set(up.id, Promise.resolve(photo)); await save('Messages', { to, text, photo:up.id, replyTo, tags }); } catch(e){ toast(e.message || 'Could not send the photo'); } })(); }
+  else save('Messages', { to, text, replyTo, tags }).catch(() => {});
+  scrollMsgs(); i.focus(); return false;
+}
 async function pollMsgs(wait){
   const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
   let fresh = 0, changed = 0;
-  for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0){ if ((st.db.messages[i].reacts || '') !== (m.reacts || '')) changed++; st.db.messages[i] = m; } else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
+  for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0){ const o = st.db.messages[i]; if ((o.reacts || '') !== (m.reacts || '') || o.text !== m.text || (o.deleted || '') !== (m.deleted || '')) changed++; st.db.messages[i] = m; } else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
   if (r && r.sigs && r.sigs.length) Call.onSignals(r.sigs);
   if (r && r.ts) st.msgSince = Math.max(st.msgSince || 0, Number(r.ts));
   if (changed && !fresh){ LS.set('db', st.db); if (st.tab === 'chat' && st.chatWith) updateOrRender(); }
@@ -2346,15 +2397,22 @@ function submitMember(ev, id){
   }, 'Saving…');
   return false;
 }
+document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.acc') && d.open) d.parentElement.querySelectorAll('details.acc[open]').forEach(x => { if (x !== d) x.removeAttribute('open'); }); }, true);
 function meSheet(){
   const s = st.db.settings || {}, url = location.href.split('#')[0];
-  openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div><button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
-  ${s.familyCode ? `<div class="card"><div class="b">Invite family</div><div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div></div>` : ''}
-  ${isAdmin() ? `<div class="card"><div class="b">Admin</div><div class="row lrow" style="padding:10px 0" onclick="accessSheet()"><div class="grow"><div>View-only access</div><div class="small muted">${(n => n ? n + (n === 1 ? ' person' : ' people') + ' can only look' : 'Nobody is view only')(st.db.members.filter(m => m.viewOnly === '1').length)}</div></div><span class="muted" style="font-size:22px">›</span></div><div class="row lrow" style="padding:10px 0" onclick="tidyUp(this)"><div class="grow"><div>Clean up storage</div><div class="small muted">Remove photos and data nobody uses any more. Also runs every night.</div></div><span class="muted" style="font-size:22px">›</span></div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form></div>` : ''}
-  <div class="card row lrow" onclick="themeSheet()"><span class="thdot" style="background:var(--accent)"></span><div class="grow"><div class="b">Appearance</div><div class="small muted">${esc(Theme.cur().name)}${Theme.get().acc ? ' · own colour' : ''}</div></div><span class="muted" style="font-size:22px">›</span></div>
-  <div class="card"><div class="b">Notifications</div><div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}</div>
-  <div class="card"><div class="b">Change my PIN</div><form class="row" style="margin-top:8px" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="New 4-digit PIN" required><button class="btn sm">Change</button></form></div>
-  <button class="btn line block" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh</button><button class="btn line block" style="margin-top:8px" onclick="signOut()">Sign out</button>`);
+  const nAcc = (id, title, sub, body) => `<details class="acc" id="acc-${id}"><summary><span class="grow"><span class="b">${title}</span><span class="small muted">${sub}</span></span></summary><div class="ab">${body}</div></details>`;
+  openSheet(() => `<div class="sh"><h2>Me & settings</h2><button class="x" onclick="closeSheet()">×</button></div>
+  <div class="card row lrow" onclick="profileSheet('${st.db.me}')">${av(me(), 54)}<div class="grow"><div class="b">${esc(me().name)}</div><div class="small muted">${isAdmin() ? 'Family admin' : isKid(me()) ? 'Kid' : 'Grown-up'}</div></div></div>
+  <button class="btn ghost block" onclick="memberForm('${st.db.me}')">Edit my profile</button>
+  <div class="acts">${s.familyCode ? '<button class="btn ghost" onclick="invite()">Share invite</button>' : ''}<button class="btn ghost" onclick="busy(event,async()=>{await sync();toast('Up to date')},'Refreshing…')">Refresh app</button></div>
+  <div class="accs">
+  ${nAcc('look', 'Appearance', esc(Theme.cur().name) + (Theme.get().acc ? ' · own colour' : ''), `<button class="btn line block" onclick="themeSheet()">Change theme, colour and effects</button>`)}
+  ${nAcc('push', 'Notifications', DEMO || !pushAppId() ? 'Not set up' : pushIsOn() ? 'On for this device' : 'Off for this device', `<div class="small muted">${DEMO ? 'Available once the app is connected.' : !pushAppId() ? 'Not set up yet. Add the OneSignal keys in the Settings tab of the Google Sheet.' : 'New posts, comments, family dates, birthdays and reward requests.' + (IOS ? ' On iPhone, open the app from the Home Screen icon.' : '')}</div>${!DEMO && pushAppId() ? `<div class="row" style="margin-top:10px"><span class="grow b">${pushIsOn() ? 'On for this device' : 'Off for this device'}</span>${pushIsOn() ? '' : '<button class="btn sm" onclick="busy(event,pushEnable)">Turn on</button>'}</div>` : ''}`)}
+  ${nAcc('pin', 'Security', 'Change my PIN', `<form class="row" onsubmit="return submitPin(event)"><input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="New 4-digit PIN" required><button class="btn sm">Change</button></form>`)}
+  ${s.familyCode ? nAcc('inv', 'Invite family', 'Family code ' + esc(s.familyCode), `<div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div>`) : ''}
+  ${isAdmin() ? nAcc('adm', 'Family admin', 'Access, storage and app settings', `<div class="row lrow" style="padding:10px 0" onclick="accessSheet()"><div class="grow"><div>View-only access</div><div class="small muted">${(n => n ? n + (n === 1 ? ' person' : ' people') + ' can only look' : 'Nobody is view only')(st.db.members.filter(m => m.viewOnly === '1').length)}</div></div><span class="muted" style="font-size:22px">›</span></div><div class="row lrow" style="padding:10px 0" onclick="tidyUp(this)"><div class="grow"><div>Clean up storage</div><div class="small muted">Remove photos and data nobody uses any more. Also runs every night.</div></div><span class="muted" style="font-size:22px">›</span></div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form>`) : ''}
+  </div>
+  <button class="btn line block danger-t" style="margin-top:12px" onclick="signOut()">Sign out</button>`);
 }
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
 function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim(), sessionHours:f.get('sessionHours') }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
