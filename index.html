@@ -220,9 +220,9 @@ form .btn.block{margin-top:16px}
 .btn:active,.chip:active,.opt:active,.x:active,.who button:active{transform:scale(.96);opacity:1}
 .habit:active{transform:scale(.985);opacity:1}.nav button:active,.srow:active{transform:scale(.94)}
 #sheetWrap.on{animation:fadeIn .25s ease}
-#sheetWrap.on #sheet{animation:sheetUp .5s var(--ease)}
+#sheetWrap.on #sheet{animation:sheetRise .75s cubic-bezier(.25,.75,.3,1)}#sheetWrap.on{animation:fadeIn .4s ease}
 @keyframes fadeIn{from{opacity:0}}
-@keyframes sheetUp{from{transform:translateY(60px) scale(.985);opacity:0}}
+@keyframes sheetRise{from{transform:translateY(calc(100% + 24px))}}@media(min-width:700px){#sheetWrap.on #sheet{animation:sheetUp .5s var(--ease)}}@keyframes sheetUp{from{transform:translateY(60px) scale(.985);opacity:0}}
 #toast{transition:opacity .25s,transform .45s var(--spring);transform:translateX(-50%) translateY(16px)}#toast.on{transform:translateX(-50%)}
 .cf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:90;pointer-events:none}
 [data-haptic]{position:absolute;inset:0;z-index:5;border-radius:inherit;touch-action:manipulation;cursor:pointer;margin:0;padding:0;background:none}
@@ -2316,8 +2316,10 @@ function paintSheet(){
   if (!wideScreen()) return;
   const btns = [...sh.querySelectorAll(':scope > .btn')]; btns.forEach(b => { b.classList.remove('block'); b.style.marginTop = ''; acts.appendChild(b); });
 }
-function openSheet(fn, live){ const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); paintSheet(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
-function closeSheet(){ sheetFn = null; $('#sheetActs').innerHTML = ''; $('#sheetWrap').classList.remove('on'); const sh = $('#sheet'); sh.style.transform = ''; sh.style.transition = ''; lockPage(false); }
+let sheetCloseT = 0;
+function sheetFinish(){ clearTimeout(sheetCloseT); sheetCloseT = 0; const w = $('#sheetWrap'), sh = $('#sheet'); w.classList.remove('on'); w.style.opacity = w.style.transition = w.style.backgroundColor = ''; sh.style.transform = ''; sh.style.transition = ''; }
+function openSheet(fn, live){ const sh = $('#sheet'); if (sheetCloseT){ sheetFinish(); void sh.offsetWidth; } sh.style.transform = ''; sh.style.transition = ''; sheetFn = fn; sheetLive = !!live; lockPage(true); paintSheet(); $('#sheetWrap').classList.add('on'); sh.scrollTop = 0; loadPhotos(); Motion.arm(sh); }
+function closeSheet(){ sheetFn = null; $('#sheetActs').innerHTML = ''; lockPage(false); const w = $('#sheetWrap'), sh = $('#sheet'); if (!w.classList.contains('on') || sheetCloseT){ if (!sheetCloseT) sheetFinish(); return; } sh.style.transition = 'transform .5s cubic-bezier(.45,0,.25,1)'; sh.style.transform = 'translateY(calc(100% + 40px))'; w.style.transition = 'opacity .4s ease .06s'; w.style.opacity = '0'; sheetCloseT = setTimeout(sheetFinish, 520); }
 const LAUREL = side => `<svg class="laurel ${side}" viewBox="0 0 40 90" aria-hidden="true"><g fill="currentColor"><path d="M30 86C14 70 8 48 14 24c1-5 3-10 6-14-6 18-6 40 2 58 3 7 6 12 8 14z" opacity=".8"/><ellipse cx="10" cy="62" rx="4" ry="9" transform="rotate(-35 10 62)"/><ellipse cx="7" cy="46" rx="4" ry="9" transform="rotate(-15 7 46)"/><ellipse cx="9" cy="30" rx="3.5" ry="8.5" transform="rotate(10 9 30)"/><ellipse cx="15" cy="16" rx="3" ry="8" transform="rotate(30 15 16)"/><ellipse cx="22" cy="74" rx="3.5" ry="8" transform="rotate(-60 22 74)"/></g></svg>`;
 function profileSheet(id){
   openSheet(() => { const m = M(id); if (!m) return '<div class="empty">Not found.</div>';
@@ -2625,8 +2627,7 @@ const sdEnd = () => {
   if (!SD.on) return; SD.on = false; if (!SD.drag) return; SD.drag = false;
   const sh = $('#sheet'), wrap = $('#sheetWrap'), v = SD.dy / Math.max(1, Date.now() - SD.t0); sh.classList.remove('drag');
   if (SD.dy > Math.min(140, sh.offsetHeight * .25) || (v > .5 && SD.dy > 40)){
-    Motion.haptic(); sh.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1)'; sh.style.transform = `translateY(${sh.offsetHeight + 40}px)`; wrap.style.transition = 'opacity .28s'; wrap.style.opacity = '0';
-    setTimeout(() => { closeSheet(); wrap.style.opacity = wrap.style.transition = wrap.style.backgroundColor = ''; }, 280);
+    Motion.haptic(); wrap.style.backgroundColor = ''; closeSheet();
   } else { sh.style.transition = 'transform .45s cubic-bezier(.32,.72,0,1)'; sh.style.transform = ''; wrap.style.backgroundColor = ''; }
 };
 document.addEventListener('touchend', sdEnd, { passive:true }); document.addEventListener('touchcancel', sdEnd, { passive:true });
