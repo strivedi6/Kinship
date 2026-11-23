@@ -754,7 +754,7 @@ html,body{overflow:hidden}
 .tk-time{font-size:26px;line-height:32px;font-weight:700;margin-top:10px;letter-spacing:-.3px}
 .tk-date{font-size:14px;line-height:18px;color:var(--muted)}
 .tk-term{display:inline-block;margin-top:10px;padding:3px 10px;border-radius:1000px;background:var(--fill3);font-size:13px;font-weight:600}
-.tk-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--accent);flex:none;width:54px}.tk-mid svg{transform:rotate(90deg)}
+.tk-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--accent);flex:none;width:54px}.tk-mid .fly svg{transform:rotate(90deg);display:block;position:relative;animation:flyb 2.6s ease-in-out infinite}.fly{position:relative;width:54px;height:34px;display:flex;align-items:center;justify-content:center}.wd{position:absolute;right:calc(50% + 14px);height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent));opacity:0;animation:wind 1.5s linear infinite}.wd.w1{top:9px;width:20px}.wd.w2{top:16px;width:26px;animation-delay:.5s}.wd.w3{top:23px;width:16px;animation-delay:1s}@keyframes wind{0%{opacity:0;transform:translateX(14px)}25%{opacity:.9}100%{opacity:0;transform:translateX(-18px)}}@keyframes flyb{0%,100%{transform:rotate(90deg) translateX(0)}50%{transform:rotate(90deg) translateX(-3px)}}@media(prefers-reduced-motion:reduce){.wd,.fly svg{animation:none}}
 .tk-fl{font-size:12px;font-weight:700;padding:3px 8px;border-radius:1000px;background:var(--fill3);color:var(--ink);white-space:nowrap}
 .tk-ppl{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}.tk-ppl>div{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
 .tk-note{margin-top:14px;font-size:14px;line-height:19px;color:var(--muted);white-space:pre-wrap}
@@ -1635,7 +1635,7 @@ function todayTiles(){
     if (e.yearly === '1' ? base.slice(5) !== md2 : base !== t) continue;
     const fl = e.kind === 'flight', who = ids(e.with).map(i => M(i)).filter(Boolean);
     const sub = fl ? flightLine(e) : [e.at && !sameMin(e.at, e.dinner) ? tmFmt(e.at) : '', e.dinner ? '🍽 ' + dinnerTxt(e, true) : '', e.note || ''].filter(Boolean).join(' · ');
-    out.push(`<button class="bday evt ${fl ? 'fl' : ''}" onclick="eventSheet('${e.id}')"><div class="bd-in"><span class="ey">${fl ? '✈️ Flight today' : '📅 Today'}</span><div class="row" style="gap:12px;margin-top:8px"><div class="grow"><div class="bd-nm">${fl ? '' : esc(e.emoji || '') + ' '}${esc(e.title)}</div>${sub ? `<div class="bd-sub">${esc(sub)}</div>` : ''}</div>${fl && who.length ? `<div class="tk-ppl" style="margin:0;gap:0">${who.slice(0, 4).map((m, i) => `<div style="margin-left:${i ? -10 : 0}px">${av(m, 36)}</div>`).join('')}</div>` : ''}</div></div></button>`);
+    out.push(`<button class="bday evt ${fl ? 'fl' : ''}" onclick="eventSheet('${e.id}')"><div class="bd-in"><span class="ey">${fl ? 'Flight today' : '📅 Today'}</span><div class="row" style="gap:12px;margin-top:8px"><div class="grow"><div class="bd-nm">${fl ? '' : esc(e.emoji || '') + ' '}${esc(e.title)}</div>${sub ? `<div class="bd-sub">${esc(sub)}</div>` : ''}</div>${fl && who.length ? `<div class="tk-ppl" style="margin:0;gap:0">${who.slice(0, 4).map((m, i) => `<div style="margin-left:${i ? -10 : 0}px">${av(m, 36)}</div>`).join('')}</div>` : ''}</div></div></button>`);
   }
   return out.join('');
 }
@@ -2178,8 +2178,8 @@ async function rsvpGo(id, who, ans){
 function flightSheet(e){
   const tw = ids(e.with).map(i => M(i)).filter(Boolean), mine = e.by === st.db.me || isAdmin();
   const side = (lab, code, city, iso, tz, term, right) => `<div class="tk-side${right ? ' r' : ''}"><small>${lab}</small><div class="tk-code">${esc(code || city.slice(0, 3).toUpperCase())}</div><div class="tk-city">${esc(city)}</div><div class="tk-time">${tmFmt(iso, tz)}</div><div class="tk-date">${esc(dtFmt(iso, tz))}</div>${term ? `<div class="tk-term">${/^\d+[A-Za-z]?$/.test(term) ? 'Terminal ' : ''}${esc(term)}</div>` : ''}</div>`;
-  openSheet(() => `<div class="sh"><h2>✈️ ${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div>
-  <div class="tkt"><div class="tk-top">${side('DEPARTS', e.fromCode, e.fromCity, e.dep, e.fromTz, e.fromTerm)}<div class="tk-mid"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>${e.flightNo ? `<span class="tk-fl">${esc(e.flightNo)}</span>` : ''}</div>${side('ARRIVES', e.toCode, e.toCity, e.arr, e.toTz, e.toTerm, true)}</div>
+  openSheet(() => `<div class="sh"><h2>${esc(e.title)}</h2><button class="x" onclick="closeSheet()">×</button></div>
+  <div class="tkt"><div class="tk-top">${side('DEPARTS', e.fromCode, e.fromCity, e.dep, e.fromTz, e.fromTerm)}<div class="tk-mid"><div class="fly"><i class="wd w1"></i><i class="wd w2"></i><i class="wd w3"></i><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></div>${e.flightNo ? `<span class="tk-fl">${esc(e.flightNo)}</span>` : ''}</div>${side('ARRIVES', e.toCode, e.toCity, e.arr, e.toTz, e.toTerm, true)}</div>
   <div class="tk-bot"><small>TRAVELLING</small>${tw.length ? `<div class="tk-ppl">${tw.map(m => `<div title="${esc(first(m))}">${av(m, 46)}</div>`).join('')}</div>` : '<div class="small muted">Nobody added yet</div>'}${e.note ? `<div class="tk-note">${esc(e.note)}</div>` : ''}</div></div>
   <div class="small muted" style="margin:8px 6px 14px">Added by ${esc(first(M(e.by) || {}))}. Times are local to each airport.</div>
   ${mine ? `<button class="btn ghost block" onclick="flightForm('${e.id}')">Edit</button><button class="btn line block" style="margin-top:8px" onclick="closeSheet();removeRow('Events','${e.id}')">Delete</button>` : ''}`, true);
@@ -2668,6 +2668,34 @@ const ptrEnd = async () => {
   Glow.busy(false); PTR.busy = false; PTR.dist = 0;
 };
 document.addEventListener('touchend', ptrEnd, { passive:true }); document.addEventListener('touchcancel', ptrEnd, { passive:true });
+
+
+/* Elastic edge bounce (rubber band) for the page bottom and for sheets */
+(() => {
+  const SPR = 'transform .55s cubic-bezier(.2,1.1,.3,1)', rb = d => 110 * (1 - Math.exp(-d / 260));
+  let el = null, tgt = null, y0 = 0, last = 0, mode = '', on = false;
+  const atTop = e => e.scrollTop <= 0, atBot = e => e.scrollTop + e.clientHeight >= e.scrollHeight - 1;
+  document.addEventListener('touchstart', t => {
+    on = false; if (t.touches.length !== 1 || PTR.busy) return;
+    const sh = t.target.closest && t.target.closest('#sheet');
+    if (sh){ el = sh; tgt = sh; } else if (!(st.tab === 'chat' && st.chatWith)) { el = SC(); tgt = $('#app'); } else return;
+    if (!el || !tgt) return; y0 = t.touches[0].clientY; last = 0; mode = ''; on = true; tgt.style.transition = 'none';
+  }, { passive:true });
+  document.addEventListener('touchmove', t => {
+    if (!on) return; const dy = t.touches[0].clientY - y0;
+    if (!mode){
+      if (Math.abs(dy) < 4) return;
+      if (dy < 0 && atBot(el)) mode = 'bot'; else if (dy > 0 && atTop(el) && el !== SC()) mode = 'top'; else { on = false; return; }
+      y0 = t.touches[0].clientY; return;
+    }
+    const d = mode === 'bot' ? y0 - t.touches[0].clientY : t.touches[0].clientY - y0;
+    if (d <= 0){ tgt.style.transform = ''; return; }
+    if (t.cancelable) t.preventDefault(); last = rb(d) * (el === SC() ? 1 : .5);
+    tgt.style.transform = `translateY(${mode === 'bot' ? -last : last}px)`;
+  }, { passive:false });
+  const end = () => { if (!tgt) return; if (on && last){ tgt.style.transition = SPR; tgt.style.transform = ''; } on = false; last = 0; };
+  document.addEventListener('touchend', end, { passive:true }); document.addEventListener('touchcancel', end, { passive:true });
+})();
 
 /* No pinch or double-tap zoom: the app keeps one size, like a native app. */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
