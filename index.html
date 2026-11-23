@@ -2684,10 +2684,10 @@ document.addEventListener('touchend', ptrEnd, { passive:true }); document.addEve
     if (!el || !tgt) return; y0 = t.touches[0].clientY; last = 0; mode = ''; on = true; tgt.style.transition = 'none';
   }, { passive:true });
   document.addEventListener('touchmove', t => {
-    if (!on) return; const dy = t.touches[0].clientY - y0;
+    if (!on) return; if (typeof SD !== 'undefined' && SD.drag){ on = false; return; } const dy = t.touches[0].clientY - y0;
     if (!mode){
       if (Math.abs(dy) < 4) return;
-      if (dy < 0 && atBot(el)) mode = 'bot'; else if (dy > 0 && atTop(el) && el !== SC()) mode = 'top'; else { on = false; return; }
+      if (dy < 0 && atBot(el)) mode = 'bot'; else { on = false; return; }
       y0 = t.touches[0].clientY; return;
     }
     const d = mode === 'bot' ? y0 - t.touches[0].clientY : t.touches[0].clientY - y0;
