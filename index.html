@@ -790,6 +790,28 @@ html,body{overflow:hidden}
 .clock[class*=sky-]>:not(.sk){text-shadow:0 1px 8px rgba(0,20,70,.38)}
 /* portrait only: if a phone is turned sideways, ask for it to be turned back */
 @media(orientation:landscape) and (max-height:520px) and (pointer:coarse){body:before{content:"Please turn your phone upright";position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font:600 18px/1.3 -apple-system,system-ui,sans-serif;text-align:center;padding:24px}#app,#nav,#sheet,#call{visibility:hidden}}
+
+/* ---------- TV / kiosk mode (open the app with ?tv on a TV browser; arrow keys + OK on the remote) ---------- */
+body.tv{cursor:none}body.tv #nav,body.tv #navblur,body.tv #side,body.tv #banner{display:none!important}
+body.tv :focus{outline:.28vw solid var(--accent);outline-offset:.3vw}body.tv input:focus{outline-offset:0}
+#tv,#tv *{line-height:1.25!important}#tv .stars{line-height:1.3!important}#tv{position:fixed;inset:0;z-index:90;background:#05060a;color:#fff;overflow:hidden;font-size:1.7vw}
+#tv .pn{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .8s ease}#tv .pn.on{opacity:1}
+#tv .ph{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity 1.4s ease;transform:scale(1.02)}#tv .ph.on{opacity:1;animation:tvken 16s ease-out forwards}
+@keyframes tvken{to{transform:scale(1.09)}}
+#tv .phb{position:absolute;inset:0;background:center/cover;filter:blur(40px) brightness(.5);transform:scale(1.2);opacity:0;transition:opacity 1.4s}#tv .phb.on{opacity:1}
+#tv .ph.c{background-size:contain;animation:none;transform:none}
+#tv .cap{position:absolute;left:0;right:0;bottom:0;padding:9vh 4vw 6vh;background:linear-gradient(transparent,rgba(0,0,0,.78));display:flex;align-items:flex-end;gap:1.6vw}
+#tv .cap .av{flex:none;border:.2vw solid #fff}#tv .cap b{display:block;font-size:2.4vw}#tv .cap span{display:block;font-size:1.8vw;opacity:.85;margin-top:.3vw;max-width:70vw}
+#tv .clk{position:absolute;right:3vw;top:3vh;font-size:3.4vw;font-weight:700;text-shadow:0 .2vw .8vw rgba(0,0,0,.7)}#tv .clk small{display:block;font-size:1.4vw;font-weight:500;opacity:.85;text-align:right}
+#tv .dots{position:absolute;left:0;right:0;top:3vh;display:flex;justify-content:center;gap:1vw}#tv .dots i{width:1vw;height:1vw;border-radius:50%;background:rgba(255,255,255,.35)}#tv .dots i.on{background:#fff;transform:scale(1.25)}
+#tv .hint{position:absolute;left:3vw;top:3vh;font-size:1.2vw;opacity:.55;text-shadow:0 0 .6vw #000}
+#tv .box{position:absolute;inset:0;padding:11vh 5vw 5vh;background:radial-gradient(120% 90% at 20% 0,#1b2547,#07080d 70%)}
+#tv h2{font-size:3vw;margin:0 0 2vh}#tv .clocks{display:flex;flex-wrap:wrap;gap:1.6vw;margin-bottom:4vh}#tv .clock{width:19vw;padding:1.4vw;border-radius:2vw;font-size:1.5vw;position:relative;overflow:hidden;min-height:11vw}#tv .clock .t{font-size:3.4vw;font-weight:700}
+#tv .evs{display:grid;grid-template-columns:1fr 1fr;gap:1.4vw}#tv .ev{display:flex;align-items:center;gap:1.4vw;padding:1.4vw 1.8vw;border-radius:1.8vw;background:rgba(255,255,255,.09)}#tv .ev .d{flex:none;width:6vw;text-align:center;font-size:2.6vw;font-weight:700;line-height:1}#tv .ev .d small{display:block;font-size:1.1vw;opacity:.7;text-transform:uppercase;letter-spacing:.1vw}
+#tv .ev .b{font-size:1.9vw;font-weight:600}#tv .ev .small{font-size:1.3vw;opacity:.75}#tv .ev .chip{margin-left:auto;flex:none;font-size:1.3vw;padding:.4vw 1vw;border-radius:2vw;background:rgba(255,255,255,.16)}#tv .ev.today{background:linear-gradient(90deg,#ff7a59,#ff3d81)}
+#tv .kid{display:flex;gap:4vw;align-items:center}#tv .kid .big{flex:none}#tv .kid h3{font-size:5vw;margin:0}#tv .stars{font-size:3vw;margin:1vh 0 3vh}#tv .hb{display:grid;grid-template-columns:1fr 1fr;gap:1.2vw}#tv .hb div{padding:1.2vw 1.6vw;border-radius:1.6vw;background:rgba(255,255,255,.1);font-size:1.9vw;display:flex;gap:1vw;align-items:center}#tv .hb div.done{background:rgba(70,200,120,.35)}
+#tv .kids{display:flex;gap:1.4vw;margin-bottom:3vh}#tv .kids i{font-style:normal;padding:.6vw 1.6vw;border-radius:3vw;background:rgba(255,255,255,.12);font-size:1.6vw}#tv .kids i.on{background:#fff;color:#111;font-weight:700}
+#tv .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.4vw;opacity:.7}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -1225,7 +1247,8 @@ const toTop = () => { if (SC()) SC().scrollTop = 0; };
 function go(t){ if (t === st.tab && !st.chatWith && SC() && SC().scrollTop > 4){ navMini(false); Motion.haptic(); SC().scrollTo({ top:0, behavior:'smooth' }); return; }   /* tapping the tab you are on glides back to the top */
   navMini(false); navY = 0; if (t !== st.tab) Motion.enter = true; Motion.haptic(); st.tab = t; st.chatWith = null; toTop(); render(); if (t === 'tree') setTimeout(findMe, 60); }
 function render(){
-  if (!st.db){ renderLogin(); return; }
+  if (!st.db){ renderLogin(); const t = $('#tv'); if (t) t.remove(); return; }
+  if (typeof TV_ON !== 'undefined' && TV_ON){ renderTV(); return; }
   document.body.classList.toggle('ro', ro()); FX.stop();
   $('#banner').innerHTML = DEMO ? '<div class="banner">Demo mode: sample family, nothing is saved. Connect your Google Sheet to go live.</div>' : '';
   const inThread = st.tab === 'chat' && !!st.chatWith;
@@ -2417,6 +2440,10 @@ document.addEventListener('pointerdown', e => { if (!IOS && e.target.closest && 
 /* iPhone: buttons that are not pre-armed get the system tick at the moment of the tap (a tap is a real gesture, so this is allowed) */
 document.addEventListener('click', e => { if (!IOS || !e.isTrusted) return; const t = e.target.closest && e.target.closest('button, summary, .btn, .row.lrow, [onclick]'); if (t && !t.querySelector(':scope > [data-haptic]') && !t.closest('[data-haptic]')) hapticPulse(); }, true);
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.acc') && d.open) d.parentElement.querySelectorAll('details.acc[open]').forEach(x => { if (x !== d) x.removeAttribute('open'); }); }, true);
+function tvInfo(){
+  const u = location.origin + location.pathname + '?tv';
+  openSheet(() => `<div class="sh"><h2>TV mode</h2><button class="x" onclick="closeSheet()">×</button></div><div class="card" style="padding:14px"><p style="margin:0 0 10px">Show the family on a TV: photos, the time in each country, coming-up dates and the kids' stars. Use the remote: ▲▼ switch screens, ◀▶ change photo or child, OK pauses.</p><p style="margin:0 0 10px">On your Samsung TV open <b>Internet</b>, go to this address and bookmark it. The first time, sign in with the family code and your PIN (number keys work).</p><div class="small b" style="word-break:break-all;user-select:text;-webkit-user-select:text;padding:10px;border-radius:12px;background:var(--tert)">${esc(u)}</div></div><button class="btn block" style="margin-top:12px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(u)}').then(()=>toast('Link copied'))">Copy link</button><p class="small muted" style="margin:12px 6px 0">To leave TV mode on a device, open the address with ?tv=0 at the end.</p>`);
+}
 function meSheet(){
   const s = st.db.settings || {}, url = location.href.split('#')[0];
   const nAcc = (id, title, sub, body) => `<details class="acc" id="acc-${id}"><summary><span class="grow"><span class="b">${title}</span><span class="small muted">${sub}</span></span></summary><div class="ab">${body}</div></details>`;
@@ -2431,7 +2458,7 @@ function meSheet(){
   ${s.familyCode ? nAcc('inv', 'Invite family', 'Family code ' + esc(s.familyCode), `<div class="small muted">Share the link and the family code. Each person then sets their own PIN.</div><div class="row" style="margin-top:10px"><h2 class="grow" style="letter-spacing:.06em">${esc(s.familyCode)}</h2><button class="btn sm" onclick="invite()">Share invite</button></div>`) : ''}
   ${isAdmin() ? nAcc('adm', 'Family admin', 'Access, storage and app settings', `<div class="row lrow" style="padding:10px 0" onclick="accessSheet()"><div class="grow"><div>View-only access</div><div class="small muted">${(n => n ? n + (n === 1 ? ' person' : ' people') + ' can only look' : 'Nobody is view only')(st.db.members.filter(m => m.viewOnly === '1').length)}</div></div><span class="muted" style="font-size:22px">›</span></div><div class="row lrow" style="padding:10px 0" onclick="tidyUp(this)"><div class="grow"><div>Clean up storage</div><div class="small muted">Remove photos and data nobody uses any more. Also runs every night.</div></div><span class="muted" style="font-size:22px">›</span></div><form onsubmit="return submitSettings(event)"><label>App name</label><input type="text" name="appName" maxlength="30" value="${esc(s.appName || '')}"><label>Family code</label><input type="text" name="familyCode" minlength="6" maxlength="20" value="${esc(s.familyCode || '')}"><p class="small muted">Changing the code does not sign anyone out. It only affects new sign-ins.</p><label>Auto sign-out</label><select name="sessionHours">${[['0','Never'],['24','Every 24 hours'],['48','Every 48 hours'],['168','Every 7 days'],['720','Every 30 days']].map(o => `<option value="${o[0]}" ${String(s.sessionHours || '0') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><p class="small muted">Everyone is asked for their PIN again after this long. Signing in again also loads the newest version of the app.</p><button class="btn sm">Save settings</button></form>`) : ''}
   </div>
-  <button class="btn line block danger-t" style="margin-top:12px" onclick="signOut()">Sign out</button>`);
+  <button class="btn line block" style="margin-top:12px" onclick="tvInfo()">TV mode</button><button class="btn line block danger-t" style="margin-top:12px" onclick="signOut()">Sign out</button>`);
 }
 function invite(){ const s = st.db.settings, text = `Join our family app "${s.appName || CONFIG.APP_NAME}": ${location.href.split('#')[0]}\nFamily code: ${s.familyCode}\nOpen the link, enter the code, add yourself and choose a PIN.`; if (navigator.share) navigator.share({ text }).catch(() => {}); else navigator.clipboard.writeText(text).then(() => toast('Invite copied'), () => toast(s.familyCode)); }
 function submitSettings(ev){ const f = new FormData(ev.target); busy(ev, async () => { await api('settings', { appName:f.get('appName').trim(), familyCode:f.get('familyCode').trim(), sessionHours:f.get('sessionHours') }); await sync(); toast('Saved'); }, 'Saving…'); return false; }
@@ -2563,12 +2590,93 @@ async function demoApi(action, p){
 }
 
 /* ---------- START ---------- */
+
+/* ---------- TV / kiosk mode ---------- */
+const TV_ON = (() => { try { const m = /[?&]tv(?:=([^&#]*))?/.exec(location.search); if (m){ if (m[1] === '0' || m[1] === 'off') LS.del ? LS.del('tv') : LS.set('tv', 0); else LS.set('tv', 1); } return !!LS.get('tv'); } catch(e){ return /[?&]tv\b/.test(location.search); } })();
+const TVM = { panel:0, idx:0, kid:0, paused:false, list:[], shown:-1, timer:0, built:false, layer:0 };
+const TV_PANELS = ['Photos', 'Today', 'Kids'];
+if (TV_ON){ document.body.classList.add('tv'); try { const z = Math.min(2.4, Math.max(1, innerHeight / 820)); document.documentElement.style.setProperty('--tvz', z); } catch(e){} }
+function tvPhotos(){
+  const out = [];
+  [...st.db.posts].sort((a, b) => b.ts - a.ts).slice(0, 80).forEach(p => photosOf(p).forEach(id => out.push({ id, by:p.by, text:p.text || '', ts:p.ts })));
+  if (!out.length) st.db.members.filter(m => m.photo && !m.passed).forEach(m => out.push({ id:m.photo, by:m.id, text:'', ts:0 }));
+  return out;
+}
+function tvShow(n){
+  const L = TVM.list; if (!L.length) return; TVM.idx = (n + L.length) % L.length; const it = L[TVM.idx], pn = $('#tv .pn.p0'); if (!pn) return; const my = ++TVM.shown;
+  getPhoto(it.id).then(d => {
+    if (!d || my !== TVM.shown) return; const a = pn.querySelectorAll('.ph'), b = pn.querySelectorAll('.phb'); TVM.layer = 1 - TVM.layer;
+    a.forEach((x, i) => { x.classList.toggle('on', i === TVM.layer); if (i === TVM.layer){ x.style.backgroundImage = `url(${d})`; x.style.animation = 'none'; void x.offsetWidth; x.style.animation = ''; } }); b.forEach((x, i) => { x.classList.toggle('on', i === TVM.layer); if (i === TVM.layer) x.style.backgroundImage = `url(${d})`; });
+    const w = M(it.by), cap = $('#tv .cap'); if (cap){ cap.innerHTML = (w ? av(w, 64) : '') + `<div><b>${esc(w ? first(w) : 'Family')}</b>${it.text ? `<span>${esc(it.text.slice(0, 140))}</span>` : ''}</div>`; cap.style.opacity = w || it.text ? 1 : 0; }
+  }).catch(() => {});
+}
+function tvAuto(){ clearInterval(TVM.timer); TVM.timer = setInterval(() => { if (TVM.panel === 0 && !TVM.paused) tvShow(TVM.idx + 1); }, 12000); }
+function tvClock(){ const e = $('#tv .clk'); if (!e) return; const n = new Date(); e.innerHTML = new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(n) + `<small>${new Intl.DateTimeFormat([], { weekday:'long', day:'numeric', month:'long' }).format(n)}</small>`; }
+function tvToday(){
+  const zs = zones(), ev = upcoming().slice(0, 6);
+  return `<div class="box"><h2>Right now</h2><div class="clocks">${zs.map(z => `<div class="clock sky-${skyOf(z.tz)}">${skyLayer(z, z.country)}<div class="b">${flag(z.country)} ${esc(cname(z.country))}</div><div class="t">${timeIn(z.tz)}</div><div class="small">${dayIn(z.tz)} · ${z.n} ${z.n === 1 ? 'person' : 'people'}</div></div>`).join('')}</div><h2>Coming up</h2><div class="evs">${ev.map(e => { let sub = e.flight ? flightLine(e.flight) : (e.sub || ''); return `<div class="ev ${inDays(e.d) === 'Today' ? 'today' : ''}"><div class="d"><small>${MON[e.d.getMonth()]}</small>${e.d.getDate()}</div><div><div class="b">${e.emoji ? e.emoji + ' ' : ''}${esc(e.title)}</div><div class="small">${esc(sub)}</div></div><span class="chip">${inDays(e.d)}</span></div>`; }).join('') || '<div class="small">Nothing planned yet</div>'}</div></div>`;
+}
+function tvKids(){
+  const ks = kidsList(); if (!ks.length) return '<div class="empty">No kids added yet</div>';
+  TVM.kid = (TVM.kid + ks.length) % ks.length; const k = ks[TVM.kid], hs = habitsFor(k.id), t0 = today();
+  const done = id => st.db.logs.some(l => l.habitId === id && l.memberId === k.id && l.date === t0);
+  return `<div class="box"><div class="kids">${ks.map((x, i) => `<i class="${i === TVM.kid ? 'on' : ''}">${esc(first(x))}</i>`).join('')}</div><div class="kid"><div class="big">${av(k, Math.round(innerWidth * .16))}</div><div style="flex:1"><h3>${esc(first(k))}</h3><div class="stars">⭐ ${pointsOf(k.id, weekStart())} this week · ${hs.filter(h => done(h.id)).length}/${hs.length} habits today</div><div class="hb">${hs.map(h => `<div class="${done(h.id) ? 'done' : ''}"><span>${esc(h.emoji || '✅')}</span>${esc(h.title || h.name || '')}${done(h.id) ? ' ✓' : ''}</div>`).join('') || '<div>No habits yet</div>'}</div></div></div></div>`;
+}
+function tvDraw(){
+  let r = $('#tv'); if (!r){ r = document.createElement('div'); r.id = 'tv'; document.body.appendChild(r); TVM.built = false; }
+  if (!TVM.built){
+    r.innerHTML = `<div class="pn p0"><div class="phb"></div><div class="phb"></div><div class="ph c"></div><div class="ph c"></div><div class="cap"></div></div><div class="pn p1"></div><div class="pn p2"></div><div class="clk"></div><div class="dots"></div><div class="hint">▲▼ screens · ◀▶ change · OK pause</div>`; TVM.built = true; TVM.shown = -1; TVM.list = []; tvAuto();
+  }
+  const nl = tvPhotos(), same = nl.length === TVM.list.length && nl.every((x, i) => x.id === TVM.list[i].id);
+  if (!same){ const cur = TVM.list[TVM.idx]; TVM.list = nl; const at = cur ? nl.findIndex(x => x.id === cur.id) : -1; if (TVM.shown < 0 || at < 0) tvShow(0); else TVM.idx = at; }
+  if (!nl.length) $('#tv .p0 .cap').innerHTML = '<div style="margin:auto;font-size:2.4vw">Add photos in the family feed to see them here</div>';
+  $('#tv .p1').innerHTML = tvToday(); $('#tv .p2').innerHTML = tvKids();
+  r.querySelectorAll('.pn').forEach((p, i) => p.classList.toggle('on', i === TVM.panel));
+  r.querySelector('.dots').innerHTML = TV_PANELS.map((_, i) => `<i class="${i === TVM.panel ? 'on' : ''}"></i>`).join(''); tvClock();
+}
+function tvKey(e){
+  const k = e.keyCode, key = e.key;
+  if (!st.db){ tvNav(e); return; }
+  const go = d => { TVM.panel = (TVM.panel + d + TV_PANELS.length) % TV_PANELS.length; tvDraw(); };
+  if (k === 38 || key === 'ArrowUp' || k === 427) go(-1);
+  else if (k === 40 || key === 'ArrowDown' || k === 428) go(1);
+  else if (k === 37 || key === 'ArrowLeft' || k === 412){ if (TVM.panel === 0) tvShow(TVM.idx - 1); else if (TVM.panel === 2){ TVM.kid--; tvDraw(); } }
+  else if (k === 39 || key === 'ArrowRight' || k === 417){ if (TVM.panel === 0) tvShow(TVM.idx + 1); else if (TVM.panel === 2){ TVM.kid++; tvDraw(); } }
+  else if (k === 13 || k === 415 || k === 19 || k === 10252 || key === 'Enter' || key === ' '){ TVM.paused = !TVM.paused; const h = $('#tv .hint'); if (h) h.textContent = TVM.paused ? '⏸ Paused · OK to play' : '▲▼ screens · ◀▶ change · OK pause'; }
+  else if (k === 10009 || k === 8 || key === 'Escape' || key === 'Backspace'){ TVM.panel = 0; tvDraw(); }
+  else return; e.preventDefault();
+}
+/* remote arrow keys move the focus between buttons (used on the login screen) */
+function tvNav(e){
+  const k = e.keyCode, a = document.activeElement, isIn = a && /^(INPUT|TEXTAREA)$/.test(a.tagName);
+  if (/^[0-9]$/.test(e.key) && !isIn && st.login && ['pin', 'newpin', 'newpin2'].includes(st.login.step)){ pinPress(e.key); e.preventDefault(); return; }
+  if (k === 10009 || (k === 8 && !isIn) || e.key === 'Escape'){ goBack(); e.preventDefault(); return; }
+  const dir = { 37:'l', 38:'u', 39:'r', 40:'d' }[k]; if (!dir){ if (k === 13 && a && a !== document.body && !/^(BUTTON|INPUT|TEXTAREA|A)$/.test(a.tagName) && a.click){ a.click(); e.preventDefault(); } return; }
+  if (isIn && a.type !== 'password' && (dir === 'l' || dir === 'r')) return;
+  const els = [...document.querySelectorAll('button:not([disabled]), [onclick], input, textarea, a[href]')].filter(x => { const r = x.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(x).visibility !== 'hidden' && !x.closest('[hidden]') && !x.hasAttribute('data-haptic') && x.tagName !== 'LABEL'; });
+  if (!els.length) return; e.preventDefault();
+  if (!a || a === document.body || !els.includes(a)){ els[0].focus(); return; }
+  const c = a.getBoundingClientRect(), cx = c.left + c.width / 2, cy = c.top + c.height / 2; let best = null, bs = 1e9;
+  els.forEach(x => { if (x === a) return; const r = x.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+    const fwd = dir === 'l' ? -dx : dir === 'r' ? dx : dir === 'u' ? -dy : dy, side = dir === 'l' || dir === 'r' ? Math.abs(dy) : Math.abs(dx);
+    if (fwd < 4) return; const sc = fwd + side * 2.2; if (sc < bs){ bs = sc; best = x; } });
+  if (best){ best.focus(); try { best.scrollIntoView({ block:'nearest' }); } catch(_){} }
+}
+function renderTV(){ tvDraw(); }
+if (TV_ON){
+  document.addEventListener('keydown', tvKey, true);
+  const z = () => { const l = $('#app'); if (l && !st.db){ l.style.zoom = String(Math.min(2.4, Math.max(1, innerHeight / 820))); } else if (l) l.style.zoom = ''; };
+  setInterval(() => { if (st.db){ tvClock(); if (TVM.panel === 1) { const p = $('#tv .p1'); if (p) p.innerHTML = tvToday(); } } z(); }, 5000);
+  setInterval(() => { if (st.db && !document.hidden) sync().catch(() => {}); }, 300000);
+  try { const wl = () => navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); wl(); document.addEventListener('visibilitychange', () => { if (!document.hidden) wl(); }); } catch(e){}
+  try { tizen.tvinputdevice.registerKey('MediaPlayPause'); } catch(e){}
+}
 (async function start(){
   if (DEMO){ st.token = 'demo'; await sync(); return; }
   st.token = LS.get('token');
   if (!st.token){ warmLogin(); render(); return; }
   st.db = normDb(LS.get('db'));
-  if (st.db){ render(); tryGo(); setTimeout(maybeCelebrate, 600); }                       // saved data first: the app opens at once
+  if (st.db){ render(); if (!TV_ON){ tryGo(); setTimeout(maybeCelebrate, 600); } }                       // saved data first: the app opens at once
   else $('#app').innerHTML = `<div class="splash"><img src="icon-192.png" alt=""><div>Opening ${esc(CONFIG.APP_NAME)}…</div></div>`;
   try { await sync(); } catch(e){ if (st.db) toast('Showing saved data. ' + e.message); else { warmLogin(); render(); } }
 })();
