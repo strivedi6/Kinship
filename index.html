@@ -442,6 +442,7 @@ details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
 .gname{display:block;font-weight:700;font-size:14px;line-height:18px;margin-bottom:1px}
 
 .who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
+.msg.ph{padding:0;width:260px;max-width:80%}.msg.ph .mph{display:block;width:100%;height:auto;max-height:340px;min-height:140px;margin:0;border-radius:22px;object-fit:cover}.msg.phc .mph{border-bottom-left-radius:0;border-bottom-right-radius:0}.msg.ph .cap{display:block;padding:6px 12px 0}.msg.ph .gname{padding:7px 12px 2px;margin:0}.msg.ph .rq{margin:7px 8px 0}.msg.ph .rxs{padding:0 8px 6px}.msg.pho.tail .mph{border-bottom-left-radius:5px}.msg.me.pho.tail .mph{border-bottom-left-radius:22px;border-bottom-right-radius:5px}.msg.pho small{position:absolute;right:11px;bottom:8px;float:none;margin:0;color:#fff;opacity:1;text-shadow:0 1px 2px rgba(0,0,0,.85),0 0 8px rgba(0,0,0,.6)}.msg.phc small{margin:2px 12px 6px 12px}
 .msg small{float:right;font-size:12px;line-height:14px;opacity:.6;margin:8px 0 -2px 12px;letter-spacing:0;white-space:nowrap}.msg.me small{opacity:.7}
 @keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
 .composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom) * .6);display:flex;align-items:center;gap:10px;padding:0!important;margin-bottom:10px;z-index:16;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0}
@@ -1856,7 +1857,7 @@ function delMsg(id){
 /* ---------- press and hold a message: react or reply ---------- */
 const REACTS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
 const reactsOf = m => { try { return JSON.parse(m.reacts || '{}') || {}; } catch (x) { return {}; } };
-const bodyHtml = m => m.deleted === '1' ? '<i class="mdel">This message was deleted</i>' : (m.photo ? `<img class="mph" data-photo="${esc(m.photo)}" alt="" draggable="false" onclick="openPhoto('${esc(m.photo)}',0)">` : '') + (m.text ? mt(m.text, m.tags) : '');
+const bodyHtml = m => m.deleted === '1' ? '<i class="mdel">This message was deleted</i>' : (m.photo ? `<img class="mph" data-photo="${esc(m.photo)}" alt="" draggable="false" onclick="openPhoto('${esc(m.photo)}',0)">` : '') + (m.text ? (m.photo ? `<span class="cap">${mt(m.text, m.tags)}</span>` : mt(m.text, m.tags)) : '');
 const stamp = (m, t) => t + (m.edited === '1' && m.deleted !== '1' ? ' · edited' : '');
 const reactsHtml = m => { const r = reactsOf(m), by = {}; Object.keys(r).forEach(k => { (by[r[k]] = by[r[k]] || []).push(k); }); const ks = Object.keys(by); if (!ks.length) return ''; return `<div class="rxs">${ks.map(e => `<button class="rx ${by[e].includes(st.db.me) ? 'mine' : ''}" onclick="react('${m.id}','${e}')">${e}${by[e].length > 1 ? ' ' + by[e].length : ''}</button>`).join('')}</div>`; };
 const quoteHtml = m => { if (!m.replyTo) return ''; const q = st.db.messages.find(x => x.id === m.replyTo), who = q ? (q.by === st.db.me ? 'You' : first(M(q.by) || { name:'Family' })) : ''; return `<div class="rq" onclick="jumpMsg('${m.replyTo}')"><b>${esc(who || 'Message')}</b><span>${q ? esc((t => t.length > 90 ? t.slice(0, 90) + '…' : t)(msgLabel(q))) : 'This message is no longer available'}</span></div>`; };
@@ -1916,8 +1917,8 @@ function msgsHtml(){
     if (t === 'all' && !mine){
       /* group chat: name on the first bubble of a run, photo beside the last one */
       const nx = ms[i + 1], last = !nx || nx.by !== m.by || dayName(nx.ts) !== dn, who = M(m.by) || { name:'Family' };
-      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw} ${tl}" data-mid="${m.id}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div></div>`;
-    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw} ${tl}" data-mid="${m.id}">${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div>`;
+      h += `<div class="mrow ${isFirst ? 'first' : ''}"><span class="mav" ${last && who.id ? `onclick="profileSheet('${who.id}')"` : ''}>${last ? av(who, 34) : ''}</span><div class="msg g ${nw} ${tl} ${m.photo && m.deleted !== '1' ? (m.text ? 'ph phc' : 'ph pho') : ''}" data-mid="${m.id}">${isFirst ? `<span class="gname" style="color:${hue(m.by)}">${esc(who.name || 'Family')}</span>` : ''}${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div></div>`;
+    } else h += `<div class="msg ${mine ? 'me' : ''} ${isFirst ? 'first' : ''} ${nw} ${tl} ${m.photo && m.deleted !== '1' ? (m.text ? 'ph phc' : 'ph pho') : ''}" data-mid="${m.id}">${quoteHtml(m)}${bodyHtml(m)}<small>${stamp(m, time(m.ts))}</small>${reactsHtml(m)}</div>`;
     prev = m.by; seenMsgs.add(m.id);
   }
   return h || `<div class="empty">No messages yet. Say hello 👋</div>`;
