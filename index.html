@@ -402,7 +402,7 @@ b.tag{color:var(--accent);font-weight:700;cursor:pointer}
 .rq b{display:block;font-size:13px;color:var(--accent)}.rq span{display:block;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
 .msg.me .rq{background:rgba(255,255,255,.2);border-left-color:#fff}.msg.me .rq b{color:#fff}
 .msg.flash{animation:mflash 1.2s ease}@keyframes mflash{0%,60%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
-.rbar{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:8px 12px;border-left:3px solid var(--accent);border-radius:12px;background:var(--card);font-size:14px;line-height:18px}
+.rbar{display:flex;align-items:center;gap:10px;margin:0 16px 8px;padding:8px 12px;border-left:3px solid var(--accent);border-radius:12px;background:var(--card);font-size:14px;line-height:18px}
 .rbar b{display:block;color:var(--accent);font-size:13px}.rbar span{display:block;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70vw}
 .rbar button{border:0;background:none;font-size:26px;line-height:1;color:var(--muted,#8e8e93);padding:0 4px}
 #mmenu{position:fixed;inset:0;z-index:9000}
@@ -429,7 +429,7 @@ details.acc[open]>summary::after{transform:rotate(-135deg)}
 details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
 @keyframes accin{from{opacity:0;transform:translateY(-6px)}}
 .danger-t{color:var(--neg,#ff453a)}
-.abar{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:8px;border-radius:16px;background:var(--card)}
+.abar{display:flex;align-items:center;gap:10px;margin:0 16px 8px;padding:8px;border-radius:16px;background:var(--card)}
 .abar img{width:56px;height:56px;border-radius:10px;object-fit:cover}.abar button{border:0;background:none;font-size:26px;line-height:1;color:var(--muted,#8e8e93);padding:0 6px}
 .mph{display:block;width:240px;max-width:100%;max-height:320px;min-height:120px;object-fit:cover;border-radius:14px;margin:0 0 5px;background:rgba(0,0,0,.08);cursor:pointer}
 .mdel{opacity:.6;font-style:italic}
@@ -444,13 +444,14 @@ details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
 .who-l{font-size:12px;line-height:16px;color:var(--muted);margin:8px 0 1px 13px;font-weight:600}
 .msg small{float:right;font-size:12px;line-height:14px;opacity:.6;margin:8px 0 -2px 12px;letter-spacing:0;white-space:nowrap}.msg.me small{opacity:.7}
 @keyframes msgin{from{opacity:0;transform:translateY(8px) scale(.97)}}
-.composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom) * .6);display:flex;align-items:center;gap:8px;padding:0;margin-bottom:10px;z-index:16;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0}
-.composer input[type=text],.cbar input[type=text]{flex:1;min-width:0;min-height:44px;padding:0 18px;border-radius:1000px;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 0 0 .5px var(--rim)!important;font-size:17px}
+.composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom) * .6);display:flex;align-items:center;gap:10px;padding:0!important;margin-bottom:10px;z-index:16;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0}
+.composer input[type=text],.cbar input[type=text]{flex:1;min-width:0;height:44px;min-height:44px;margin:0;padding:0 18px;border-radius:1000px;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 0 0 .5px var(--rim)!important;font-size:17px}
 .composer .attach{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--ink);cursor:pointer;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 0 0 .5px var(--rim)}
-.composer .attach svg{width:24px;height:24px}
+.composer .attach svg{width:24px;height:24px;display:block}
+.composer .attach,.composer .send,.cbar .send{margin:0;padding:0}
 .composer .send,.cbar .send{width:44px;height:44px;border-radius:50%;background:var(--accent);color:var(--onacc);display:flex;align-items:center;justify-content:center;flex:none}
 .composer .send svg,.cbar .send svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.cbar{display:flex;align-items:center;gap:8px;margin-top:12px}
+.cbar{display:flex;align-items:center;gap:10px;margin:12px 0 0;padding:0}
 /* wishes */
 .wbar{height:10px;border-radius:5px;background:var(--fill3);overflow:hidden;margin:0 0 6px}
 .wbar i{display:block;height:100%;border-radius:5px;background:var(--c,var(--accent));transition:width .9s cubic-bezier(.34,1.15,.64,1)}
@@ -464,7 +465,7 @@ details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
 .tbar{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;box-shadow:0 .5px 0 var(--sep);flex:none;width:100%;max-width:852px;margin:0 auto}
 .thread #msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 10px;justify-content:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;width:100%;max-width:852px;margin:0 auto}
 .thread #msgs>:first-child{margin-top:auto}
-.thread .composer{position:static;flex:none;margin:4px auto max(8px,env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:828px}
+.thread .composer{position:static;flex:none;margin:6px auto max(16px,env(safe-area-inset-bottom));width:calc(100% - 32px);max-width:820px}
 /* sheets: page behind is frozen and blurred */
 #sheetWrap{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);background:rgba(0,0,0,.22)}
 #sheet{overscroll-behavior:contain;will-change:transform}
@@ -472,7 +473,7 @@ details.acc .ab{padding:0 18px 16px;animation:accin .25s var(--ease,ease)}
 @media(max-width:699px){#sheet{--rb:47px}}
 #sheet.drag{transition:none!important}
 /* message box rests just above the keyboard */
-.thread.kb .composer{margin-bottom:6px}
+.thread.kb .composer{margin-bottom:10px}
 .thread{will-change:transform}
 .thread>.tfx{z-index:-1}
 /* meet-your-family card can be swiped */
