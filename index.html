@@ -1976,9 +1976,11 @@ function openMsgMenu(el){
 }
 async function copyMsg(id){ const m = st.db.messages.find(x => x.id === id); closeMsgMenu(); if (!m) return; try { await navigator.clipboard.writeText(m.text); toast('Copied'); } catch(x){ toast('Could not copy'); } }
 (function(){
-  let t = 0, x0 = 0, y0 = 0, el = null;
+  let t = 0, x0 = 0, y0 = 0, el = null, lastLong = 0;
+  /* a single tap on a message opens the same menu */
+  document.addEventListener('click', e => { const m = e.target.closest && e.target.closest('#msgs .msg[data-mid]'); if (!m || Date.now() - lastLong < 700 || e.target.closest('.mph,a,.rx,.rq,.tag,.mav,.gname')) return; if (document.querySelector('#mmenu')) return; Motion.haptic(); openMsgMenu(m); }, true);
   const stop = () => { clearTimeout(t); t = 0; if (el) el.classList.remove('pressing'); el = null; };
-  document.addEventListener('pointerdown', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (!m || e.target.closest('.rx,.rq,.tag')) return; x0 = e.clientX; y0 = e.clientY; el = m; m.classList.add('pressing'); clearTimeout(t); t = setTimeout(() => { const k = el; stop(); if (k) openMsgMenu(k); }, 420); });
+  document.addEventListener('pointerdown', e => { const m = e.target.closest && e.target.closest('.msg[data-mid]'); if (!m || e.target.closest('.rx,.rq,.tag')) return; x0 = e.clientX; y0 = e.clientY; el = m; m.classList.add('pressing'); clearTimeout(t); t = setTimeout(() => { const k = el; stop(); if (k){ lastLong = Date.now(); openMsgMenu(k); } }, 420); });
   document.addEventListener('selectstart', e => { if (e.target.closest && (e.target.closest('#msgs') || (e.target.parentElement && e.target.parentElement.closest('#msgs')))) e.preventDefault(); });
   document.addEventListener('pointermove', e => { if (t && (Math.abs(e.clientX - x0) > 9 || Math.abs(e.clientY - y0) > 9)) stop(); });
   ['pointerup', 'pointercancel', 'scroll'].forEach(n => document.addEventListener(n, stop, true));
