@@ -812,6 +812,13 @@ body.tv :focus{outline:.28vw solid var(--accent);outline-offset:.3vw}body.tv inp
 #tv .kid{display:flex;gap:4vw;align-items:center}#tv .kid .big{flex:none}#tv .kid h3{font-size:5vw;margin:0}#tv .stars{font-size:3vw;margin:1vh 0 3vh}#tv .hb{display:grid;grid-template-columns:1fr 1fr;gap:1.2vw}#tv .hb div{padding:1.2vw 1.6vw;border-radius:1.6vw;background:rgba(255,255,255,.1);font-size:1.9vw;display:flex;gap:1vw;align-items:center}#tv .hb div.done{background:rgba(70,200,120,.35)}
 #tv .kids{display:flex;gap:1.4vw;margin-bottom:3vh}#tv .kids i{font-style:normal;padding:.6vw 1.6vw;border-radius:3vw;background:rgba(255,255,255,.12);font-size:1.6vw}#tv .kids i.on{background:#fff;color:#111;font-weight:700}
 #tv .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.4vw;opacity:.7}
+.tk{display:inline-block;vertical-align:-1px;margin-left:5px;opacity:.7}.tk.rd{color:#53bdeb;opacity:1}
+#minfo{position:fixed;inset:0;z-index:140;background:var(--page);color:var(--ink);overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateX(104%);transition:transform .45s var(--ease)}#minfo.on{transform:none}
+#minfo .mi-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;background:color-mix(in srgb,var(--page) 88%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font-size:19px}
+#minfo .mi-back{position:absolute;left:14px;top:calc(env(safe-area-inset-top) + 8px);width:44px;height:44px;border-radius:50%;border:0;background:var(--fill);color:var(--ink);display:grid;place-items:center}
+#minfo .mi-body{padding:8px 16px calc(env(safe-area-inset-bottom) + 40px)}#minfo .mi-prev{padding:18px 4px 22px;display:flex;justify-content:flex-end}#minfo .mi-prev .msg{max-width:84%;margin:0}
+#minfo .mi-h{display:flex;align-items:center;gap:8px;margin:18px 10px 8px;font-size:15px;letter-spacing:.04em;color:var(--muted)}#minfo .mi-h .tk{margin:0;opacity:1}#minfo .mi-h .tk:not(.rd){color:var(--muted)}
+#minfo .mi-c{background:var(--card);border-radius:24px;padding:4px 14px}#minfo .mi-row{display:flex;align-items:center;gap:14px;padding:10px 0}#minfo .mi-row+.mi-row{border-top:.5px solid var(--sep,rgba(120,120,128,.25))}#minfo .mi-n{flex:1;font-size:19px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#minfo .mi-t{font-size:14px;color:var(--muted);white-space:nowrap}#minfo .mi-t b{font-weight:500;color:var(--ink);font-size:16px;margin-left:2px}#minfo .mi-empty{margin:26px 10px;color:var(--muted)}
 </style>
 <style>.thdot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 3px var(--card),0 0 0 1px var(--sep)}</style>
 <script>
@@ -938,7 +945,7 @@ async function api(action, payload = {}){
   return j.data;
 }
 const normDb = d => { if (d){ d.messages = d.messages || []; d.wishes = d.wishes || []; } return d; };
-function useData(d){ normDb(d); setTimeout(maybeCelebrate, 300); setTimeout(seedReads, 0); setTimeout(prefetchPhotos, 2500); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
+function useData(d){ normDb(d); st.rv = d.rv || st.rv || ''; setTimeout(maybeCelebrate, 300); setTimeout(seedReads, 0); setTimeout(prefetchPhotos, 2500); st.msgSince = d.messages.reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0); st.db = d; LS.set('db', d); if (d.settings && d.settings.appName) document.title = d.settings.appName; pushLogin(); render(); tryGo(); }
 /* A session ended: clear the stored app shell and reload, so the newest version comes in with the next sign-in. */
 async function freshReload(){ try { if (window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('kinship-')).map(k => caches.delete(k))); } } catch(e){} location.reload(); }
 let syncing = null;
@@ -1881,7 +1888,51 @@ function delMsg(id){
 const REACTS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
 const reactsOf = m => { try { return JSON.parse(m.reacts || '{}') || {}; } catch (x) { return {}; } };
 const bodyHtml = m => m.deleted === '1' ? '<i class="mdel">This message was deleted</i>' : (m.photo ? `<img class="mph" data-photo="${esc(m.photo)}" alt="" draggable="false" onclick="openPhoto('${esc(m.photo)}',0)">` : '') + (m.text ? (m.photo ? `<span class="cap">${mt(m.text, m.tags)}</span>` : mt(m.text, m.tags)) : '');
-const stamp = (m, t) => t + (m.edited === '1' && m.deleted !== '1' ? ' · edited' : '');
+const TK1 = '<path d="M1.5 6.2l3.6 3.6L12.5 2"/>', TK2 = '<path d="M1 6.2l3.6 3.6L11.5 2"/><path d="M6.2 9l.8.8L15 2"/>';
+const tkSvg = st2 => `<svg class="tk ${st2 === 'read' ? 'rd' : ''}" viewBox="0 0 17 12" width="17" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${st2 === 'sent' ? TK1 : TK2}</svg>`;
+const recips = m => m.to === 'all' ? st.db.members.filter(o => o.claimed && !o.passed && o.id !== m.by) : [M(m.to)].filter(Boolean);
+function rcOf(m, o){
+  const x = (st.db.rc || {})[o.id]; if (!x) return { rd:false, dv:false, rAt:0, dAt:0 };
+  const all = m.to === 'all', ts = Number(m.ts), rd = Number((x.r || {})[all ? 'all' : 'dm'] || 0) >= ts, dv = rd || Number(x.d || 0) >= ts;
+  const re = rd ? (x.rl || []).find(e => e[0] === (all ? 'all' : st.db.me) && Number(e[1]) >= ts) : null, de = dv ? (x.dl || []).find(e => Number(e[0]) >= ts) : null;
+  return { rd, dv, rAt: re ? Number(re[2]) : 0, dAt: de ? Number(de[1]) : 0 };
+}
+function msgState(m){
+  const rs = recips(m); if (!rs.length) return 'sent'; const c = rs.map(o => rcOf(m, o));
+  return c.every(x => x.rd) ? 'read' : c.every(x => x.dv) ? 'dlv' : 'sent';
+}
+const stamp = (m, t) => t + (m.edited === '1' && m.deleted !== '1' ? ' · edited' : '') + (m.by === st.db.me && m.deleted !== '1' ? tkSvg(msgState(m)) : '');
+/* ---- Message info: swipe your own message to the left (or long-press, Info) ---- */
+const fmtT = ts => new Intl.DateTimeFormat([], { hour:'numeric', minute:'2-digit' }).format(new Date(Number(ts)));
+const fmtD = ts => { const d = new Date(Number(ts)), k = ymd(d), y = new Date(); y.setDate(y.getDate() - 1); return k === today() ? 'today' : k === ymd(y) ? 'yesterday' : d.getDate() + ' ' + MON[d.getMonth()]; };
+function minfoHtml(m){
+  const rs = recips(m), c = rs.map(o => ({ o, ...rcOf(m, o) })), row = x => `<div class="mi-row">${av(x.o, 52)}<span class="mi-n">${esc(x.o.name || first(x.o))}</span><span class="mi-t">${x.at ? `${fmtD(x.at)} <b>${fmtT(x.at)}</b>` : ''}</span></div>`;
+  const sec = (ic, title, list) => list.length ? `<div class="mi-h">${ic}${title}</div><div class="mi-c">${list.map(row).join('')}</div>` : '';
+  const rdL = c.filter(x => x.rd).map(x => ({ ...x, at:x.rAt })), dvL = c.filter(x => x.dv && !x.rd).map(x => ({ ...x, at:x.dAt })), wt = c.filter(x => !x.dv).map(x => ({ ...x, at:0 }));
+  return `<div class="mi-top"><button class="mi-back" onclick="closeMinfo()"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>Message info</b></div>
+  <div class="mi-body"><div class="mi-prev"><div class="msg me tail ${m.photo && m.deleted !== '1' ? (m.text ? 'ph phc' : 'ph pho') : ''}">${quoteHtml(m)}${bodyHtml(m)}<small>${fmtT(m.ts)}${tkSvg(msgState(m))}</small></div></div>
+  ${sec(tkSvg('read'), 'READ BY', rdL)}${sec(tkSvg('dlv'), 'DELIVERED TO', dvL)}${sec(tkSvg('sent'), rs.length ? 'SENT, NOT DELIVERED YET' : 'SENT', wt)}${rs.length ? '' : '<div class="mi-empty">Nobody else has an account to receive this yet.</div>'}</div>`;
+}
+function msgInfo(id){
+  const m = st.db.messages.find(x => x.id === id); if (!m || m.by !== st.db.me) return; closeMsgMenu(); hapticPulse(12);
+  let o = $('#minfo'); if (!o){ o = document.createElement('div'); o.id = 'minfo'; document.body.appendChild(o); }
+  o.dataset.mid = id; o.innerHTML = minfoHtml(m); loadPhotos(); void o.offsetWidth; o.classList.add('on');
+}
+function closeMinfo(){ const o = $('#minfo'); if (!o) return; o.classList.remove('on'); hapticPulse(8); setTimeout(() => { if (!o.classList.contains('on')) o.remove(); }, 460); }
+function refreshMinfo(){ const o = $('#minfo'); if (!o || !o.classList.contains('on')) return; const m = st.db.messages.find(x => x.id === o.dataset.mid); if (m) o.innerHTML = minfoHtml(m); loadPhotos(); }
+/* swipe left on one of your own messages */
+(() => {
+  let el = null, x0 = 0, y0 = 0, dx = 0, on = false, fired = false;
+  document.addEventListener('touchstart', t => { on = false; if (t.touches.length !== 1) return; const b = t.target.closest && t.target.closest('#msgs .msg.me'); if (!b || b.classList.contains('del')) return; el = b; x0 = t.touches[0].clientX; y0 = t.touches[0].clientY; dx = 0; on = true; fired = false; }, { passive:true });
+  document.addEventListener('touchmove', t => {
+    if (!on) return; const mx = t.touches[0].clientX - x0, my = t.touches[0].clientY - y0;
+    if (!dx && Math.abs(my) > 14 && Math.abs(my) > Math.abs(mx)){ on = false; return; }
+    if (mx > -6 && !dx) return; dx = Math.min(0, mx); const v = -72 * (1 - Math.exp(dx / 90)); el.style.transition = 'none'; el.style.transform = `translateX(${-v}px)`;
+    if (!fired && dx < -70){ fired = true; hapticPulse(10); } else if (fired && dx > -60) fired = false;
+  }, { passive:true });
+  const end = () => { if (!el) return; const go = on && dx < -70 && el.dataset.mid; el.style.transition = 'transform .45s cubic-bezier(.3,1.3,.5,1)'; el.style.transform = ''; const id = el.dataset.mid; el = null; on = false; if (go) msgInfo(id); };
+  document.addEventListener('touchend', end, { passive:true }); document.addEventListener('touchcancel', end, { passive:true });
+})();
 const reactsHtml = m => { const r = reactsOf(m), by = {}; Object.keys(r).forEach(k => { (by[r[k]] = by[r[k]] || []).push(k); }); const ks = Object.keys(by); if (!ks.length) return ''; return `<div class="rxs">${ks.map(e => `<button class="rx ${by[e].includes(st.db.me) ? 'mine' : ''}" onclick="react('${m.id}','${e}')">${e}${by[e].length > 1 ? ' ' + by[e].length : ''}</button>`).join('')}</div>`; };
 const quoteHtml = m => { if (!m.replyTo) return ''; const q = st.db.messages.find(x => x.id === m.replyTo), who = q ? (q.by === st.db.me ? 'You' : first(M(q.by) || { name:'Family' })) : ''; return `<div class="rq" onclick="jumpMsg('${m.replyTo}')"><b>${esc(who || 'Message')}</b><span>${q ? esc((t => t.length > 90 ? t.slice(0, 90) + '…' : t)(msgLabel(q))) : 'This message is no longer available'}</span></div>`; };
 function updateOrRender(){ if ($('#msgs')) updateMsgs(); else render(); }
@@ -1913,7 +1964,7 @@ function openMsgMenu(el){
   const r = el.getBoundingClientRect(), mine = reactsOf(m)[st.db.me], W = innerWidth, H = innerHeight;
   const o = document.createElement('div'); o.id = 'mmenu';
   const bar = `<div class="mm-bar">${REACTS.map(e => `<button class="${mine === e ? 'on' : ''}" onclick="react('${id}','${e}')">${e}</button>`).join('')}</div>`;
-  const own = m.by === st.db.me && !ro(), act = `<div class="mm-act">${ro() ? '' : `<button onclick="setReply('${id}')"><span>Reply</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v3"/></svg></button>`}${m.text ? `<button onclick="copyMsg('${id}')"><span>Copy</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>` : ''}${own ? `<button onclick="setEdit('${id}')"><span>Edit</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button><button class="dng" onclick="delMsg('${id}')"><span>Delete</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>` : ''}</div>`;
+  const own = m.by === st.db.me && !ro(), act = `<div class="mm-act">${ro() ? '' : `<button onclick="setReply('${id}')"><span>Reply</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v3"/></svg></button>`}${m.text ? `<button onclick="copyMsg('${id}')"><span>Copy</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>` : ''}${own && !ro() ? '' : ''}${m.by === st.db.me ? `<button onclick="msgInfo('${id}')"><span>Info</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></button>` : ''}${own ? `<button onclick="setEdit('${id}')"><span>Edit</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button><button class="dng" onclick="delMsg('${id}')"><span>Delete</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>` : ''}</div>`;
   o.innerHTML = `<div class="mm-bg" onclick="closeMsgMenu()"></div>${bar}<div class="mm-clone"></div>${act}`;
   document.body.appendChild(o);
   const cl = o.querySelector('.mm-clone'), b = o.querySelector('.mm-bar'), a = o.querySelector('.mm-act'), c = el.cloneNode(true); c.classList.remove('new'); c.style.animation = 'none'; c.removeAttribute('data-mid'); cl.appendChild(c);
@@ -1978,12 +2029,13 @@ function sendMsg(ev){
   scrollMsgs(); i.focus(); return false;
 }
 async function pollMsgs(wait){
-  const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0 }), list = Array.isArray(r) ? r : (r && r.messages) || [];
-  let fresh = 0, changed = 0;
+  const r = await api('msgs', { since: st.msgSince || 0, wait: wait ? 1 : 0, rv: st.rv || '' }), list = Array.isArray(r) ? r : (r && r.messages) || [];
+  let fresh = 0, changed = 0, rcChanged = false;
   for (const m of list){ const i = st.db.messages.findIndex(x => x.id === m.id); if (i >= 0){ const o = st.db.messages[i]; if ((o.reacts || '') !== (m.reacts || '') || o.text !== m.text || (o.deleted || '') !== (m.deleted || '')) changed++; st.db.messages[i] = m; } else { st.db.messages.push(m); fresh++; } st.msgSince = Math.max(st.msgSince || 0, Number(m.ts)); }
   if (r && r.sigs && r.sigs.length) Call.onSignals(r.sigs);
+  if (r && r.rc){ const nrc = JSON.stringify(r.rc); if (nrc !== JSON.stringify(st.db.rc || {})){ st.db.rc = r.rc; LS.set('db', st.db); rcChanged = true; } st.rv = r.rv || ''; }
   if (r && r.ts) st.msgSince = Math.max(st.msgSince || 0, Number(r.ts));
-  if (changed && !fresh){ LS.set('db', st.db); if (st.tab === 'chat' && st.chatWith) updateOrRender(); }
+  if ((changed || rcChanged) && !fresh){ LS.set('db', st.db); if (st.tab === 'chat' && st.chatWith) updateOrRender(); refreshMinfo(); }
   if (fresh){ LS.set('db', st.db); if (st.tab === 'chat') render(); else refreshBadges(); if (!(st.tab === 'chat' && st.chatWith)) Motion.haptic(); }
 }
 let wakePoll = () => {};
@@ -2685,12 +2737,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') addEventList
 /* ---------- back swipe from the left edge, as in a native app ---------- */
 const Back = { on:false, x0:0, y0:0, dx:0, el:null };
 function goBack(){
+  if ($('#minfo')) return closeMinfo();
   if (sheetFn) return closeSheet();
   if (!st.db){ const L = st.login, to = { pin:'who', new:'who', newpin: L.claim ? 'who' : 'new', newpin2:'newpin' }[L.step]; if (to){ L.known = false; lockGo(to, -1); } return; }
   if (st.tab === 'chat' && st.chatWith) return closeThread();
   if (st.tab === 'chat') return go(st.prevTab && st.prevTab !== 'chat' ? st.prevTab : 'home');
 }
-const canGoBack = () => !!sheetFn || (!st.db ? ['pin', 'new', 'newpin', 'newpin2'].includes(st.login.step) : st.tab === 'chat');
+const canGoBack = () => !!$('#minfo') || !!sheetFn || (!st.db ? ['pin', 'new', 'newpin', 'newpin2'].includes(st.login.step) : st.tab === 'chat');
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1 || e.touches[0].clientX > 26 || !canGoBack() || A.busy) return;
   Back.on = true; Back.x0 = e.touches[0].clientX; Back.y0 = e.touches[0].clientY; Back.dx = 0;

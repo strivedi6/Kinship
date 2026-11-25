@@ -220,7 +220,38 @@ function saveReads(me, map) {
   Object.keys(map || {}).slice(0, 80).forEach(function (k) { if (/^[\w-]{1,40}$/.test(k)) { const v = Number(map[k]) || 0; ok[k] = Math.max(Number(cur[k]) || 0, v); } });
   Object.keys(cur).forEach(function (k) { if (!(k in ok)) ok[k] = cur[k]; });
   setSetting('read:' + me.id, JSON.stringify(ok));
+  /* remember WHEN each chat was read, so the sender can see read times in Message info */
+  const adv = Object.keys(ok).filter(function (k) { return (k === 'all' || k.length > 1) && (Number(ok[k]) || 0) > (Number(cur[k]) || 0) && (k === 'all' || findBy('Members', k)); });
+  if (adv.length) {
+    const log = jget('rlog:' + me.id, []), now = Date.now();
+    adv.forEach(function (k) { log.push([k, Number(ok[k]), now]); });
+    setSetting('rlog:' + me.id, JSON.stringify(log.slice(-80))); bumpRc();
+  }
   return { reads: ok };
+}
+function jget(k, def) { try { const v = JSON.parse(setting(k) || 'null'); return v || def; } catch (e) { return def; } }
+function bumpRc() { try { CacheService.getScriptCache().put('rcv', String(Date.now()), 21600); } catch (e) {} }
+/** Note that this person's device has now received every message up to wm (the "delivered" tick). */
+function markDelivered(id, wm) {
+  wm = Number(wm) || 0; if (!wm) return;
+  const k = 'dlv:' + id; let cur = jget(k, { wm: 0, log: [] });
+  if (wm <= cur.wm) return;
+  const lk = LockService.getScriptLock(); if (!lk.tryLock(3000)) return;
+  try {
+    delete MEMO.Settings; cur = jget(k, { wm: 0, log: [] }); if (wm <= cur.wm) return;
+    cur.log.push([wm, Date.now()]); cur.wm = wm; cur.log = cur.log.slice(-60);
+    setSetting(k, JSON.stringify(cur)); bumpRc();
+  } finally { try { lk.releaseLock(); } catch (x) {} }
+}
+/** What everyone else has received and read, for the sender's ticks and Message info. */
+function receiptsFor(me) {
+  const rc = {};
+  readAll('Members').forEach(function (o) {
+    if (o.id === me.id || !o.pinHash) return;
+    const rd = jget('read:' + o.id, {}), dl = jget('dlv:' + o.id, { wm: 0, log: [] }), rl = jget('rlog:' + o.id, []);
+    rc[o.id] = { r: { all: Number(rd.all) || 0, dm: Number(rd[me.id]) || 0 }, d: dl.wm || 0, dl: dl.log.slice(-40), rl: rl.filter(function (x) { return x[0] === 'all' || x[0] === me.id; }).slice(-40) };
+  });
+  return rc;
 }
 function syncAll(me) {
   const d = { me: me.id, settings: { appName: setting('appName'), oneSignalAppId: setting('oneSignalAppId'), sessionHours: String(Number(setting('sessionHours')) || 0), celebrations: setting('celebrations') || '' } };
@@ -228,6 +259,7 @@ function syncAll(me) {
   DATA_TABLES.forEach(function (t) { if (t !== 'Messages') d[t.toLowerCase()] = readAll(t).map(function (r) { return pub(t, r); }); });
   d.messages = messagesFor(me, 0).slice(-600);
   d.reads = readsOf(me);
+  try { markDelivered(me.id, d.messages.reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0); }, 0)); d.rc = receiptsFor(me); d.rv = CacheService.getScriptCache().get('rcv') || ''; } catch (e) {}
   return d;
 }
 /** Chat check. With wait=1 it holds the line for up to 14 seconds and answers the moment a new message is written,
@@ -240,13 +272,17 @@ function msgsPoll(q) {
   for (;;) {
     latest = c.get('msgTs');
     if (latest === null) { delete MEMO.Messages; latest = String(readAll('Messages').reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0, Number(m.rts) || 0); }, 0)); c.put('msgTs', latest, 21600); }
-    if (Number(latest) > since || Date.now() >= until) break;
+    if (Number(latest) > since || (q.rv !== undefined && (c.get('rcv') || '') !== String(q.rv)) || Date.now() >= until) break;
     Utilities.sleep(350);
   }
   const sigs = takeSigs(sess.memberId);
-  if (Number(latest) <= since) return { messages: [], ts: Number(latest), sigs: sigs };
+  const rcOut = function (list) {
+    try { const mx = list.reduce(function (x, m) { return Math.max(x, Number(m.ts) || 0); }, 0); if (mx) markDelivered(sess.memberId, mx); return { rc: receiptsFor({ id: sess.memberId }), rv: c.get('rcv') || '' }; } catch (e) { return {}; }
+  };
+  if (Number(latest) <= since) { const o = rcOut([]); return { messages: [], ts: Number(latest), sigs: sigs, rc: o.rc, rv: o.rv }; }
   delete MEMO.Messages;
-  return { messages: messagesFor({ id: sess.memberId }, since - 2000), ts: Number(latest), sigs: sigs };
+  const list = messagesFor({ id: sess.memberId }, since - 2000), o = rcOut(list);
+  return { messages: list, ts: Number(latest), sigs: sigs, rc: o.rc, rv: o.rv };
 }
 /** Chat: the family group plus this person's own one-to-one messages. Nobody else's are ever sent. */
 function messagesFor(me, since) {
